@@ -617,7 +617,7 @@ html{overflow-x:hidden}
 }
 body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
 
-/* ===== status banner, info alerts, risk flags, language switch ===== */
+/* ===== status banner, info alerts, risk flags ===== */
 .banner{max-width:1440px;margin:0 auto;padding:28px max(24px,env(safe-area-inset-left)) 0}
 .banner:empty{display:none}
 .banner:not(:empty) + .view{padding-top:0}
@@ -630,11 +630,7 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
 .flags:empty{display:none}
 .flag{display:flex;align-items:flex-start;gap:10px;font-size:12px;line-height:1.45;color:var(--muted)}
 .flag svg{flex:none;margin-top:1px}
-.seg.lang{font-family:var(--mono);font-size:12px}
-.seg.lang button{height:36px;padding:0 10px}
-.m-menu .seg.lang{align-self:flex-start;margin:8px 8px 6px}
 @media (max-width:760px){
-  .nav-right .seg.lang{display:none}
   .banner{padding-top:20px}
 }
 </style>
@@ -654,24 +650,22 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
 
   <header class="nav wrap">
     <div class="nav-inner">
-      <a href="#top" class="logo" aria-label="Olvana home" data-i18n-aria="aria.home"><svg width="24" height="24" aria-hidden="true"><use href="#logo"/></svg>Olvana</a>
+      <a href="#top" class="logo" aria-label="Olvana home"><svg width="24" height="24" aria-hidden="true"><use href="#logo"/></svg>Olvana</a>
       <nav class="nav-links" aria-label="Main">
-        <a href="#yield" data-i18n="nav.how">How it works</a>
-        <a href="#grades" data-i18n="nav.grades">Risk grades</a>
-        <a href="#calculator" data-i18n="nav.calc">Calculator</a>
-        <a href="#rewards-preview" data-i18n="nav.rewards">Rewards</a>
-        <a href="#faq" data-i18n="nav.faq">FAQ</a>
+        <a href="#yield">How it works</a>
+        <a href="#grades">Risk grades</a>
+        <a href="#calculator">Calculator</a>
+        <a href="#rewards-preview">Rewards</a>
+        <a href="#faq">FAQ</a>
       </nav>
       <div class="nav-right">
         <a class="ticker" href="#rewards">$[TICKER]</a>
-        <div class="seg lang" role="group" aria-label="Language" data-i18n-aria="aria.lang"><button type="button" data-lang="en" class="on" aria-pressed="true" lang="en">EN</button><button type="button" data-lang="id" aria-pressed="false" lang="id">ID</button></div>
-        <a class="btn btn-gold" href="#app" data-i18n="nav.launch">Launch app</a>
+        <a class="btn btn-gold" href="#app">Launch app</a>
         <button type="button" class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="mMenu" aria-label="Open menu"><span></span><span></span></button>
       </div>
     </div>
     <nav class="m-menu" id="mMenu" aria-label="Mobile">
-      <a href="#yield" data-i18n="nav.how">How it works</a><a href="#grades" data-i18n="nav.grades">Risk grades</a><a href="#calculator" data-i18n="nav.calc">Calculator</a><a href="#rewards-preview" data-i18n="nav.rewards">Rewards</a><a href="#faq" data-i18n="nav.faq">FAQ</a><a href="#rewards">$[TICKER]</a>
-      <div class="seg lang" role="group" aria-label="Language" data-i18n-aria="aria.lang"><button type="button" data-lang="en" class="on" aria-pressed="true" lang="en">EN</button><button type="button" data-lang="id" aria-pressed="false" lang="id">ID</button></div>
+      <a href="#yield">How it works</a><a href="#grades">Risk grades</a><a href="#calculator">Calculator</a><a href="#rewards-preview">Rewards</a><a href="#faq">FAQ</a><a href="#rewards">$[TICKER]</a>
     </nav>
   </header>
 
@@ -679,22 +673,22 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
     <!-- HERO -->
     <section class="hero2 wrap">
       <div class="hero2-copy">
-        <a href="#app" class="badge rise"><span class="dot"></span><span data-i18n="hero.badge">Live on Robinhood Chain</span> <b>USDG Earn</b></a>
-        <h1 class="display2 rise d1" data-i18n-html="hero.h1">Earn on dollars.<br><span class="grad">Know the risk.</span></h1>
-        <p class="lede2 rise d2" data-i18n="hero.lede">Olvana puts your USDG into curated onchain lending vaults, and grades every vault A, B or C before you deposit. Your wallet, your keys, your call.</p>
+        <a href="#app" class="badge rise"><span class="dot"></span><span>Live on Robinhood Chain</span> <b>USDG Earn</b></a>
+        <h1 class="display2 rise d1">Earn on dollars.<br><span class="grad">Know the risk.</span></h1>
+        <p class="lede2 rise d2">Olvana puts your USDG into curated onchain lending vaults, and grades every vault A, B or C before you deposit. Your wallet, your keys, your call.</p>
         <div class="cta-row2 rise d3">
-          <a href="#app" class="btn btn-gold btn-lg" data-i18n="hero.cta1">Start earning</a>
-          <a href="#grades" class="btn btn-glass btn-lg" data-i18n="hero.cta2">See how we grade</a>
+          <a href="#app" class="btn btn-gold btn-lg">Start earning</a>
+          <a href="#grades" class="btn btn-glass btn-lg">See how we grade</a>
         </div>
         <dl class="hero-facts rise d3">
-          <div><dt data-i18n="hero.f1t">Up to</dt><dd id="hfApy">7.42%</dd><span data-i18n="hero.f1s">net APY on grade A vaults</span></div>
-          <div><dt data-i18n="hero.f2t">Fee on deposits</dt><dd>0%</dd><span data-i18n="hero.f2s">10% of yield only</span></div>
-          <div><dt data-i18n="hero.f3t">Custody</dt><dd data-i18n="hero.f3d">None</dd><span data-i18n="hero.f3s">non-custodial</span></div>
+          <div><dt>Up to</dt><dd id="hfApy">7.42%</dd><span>net APY on grade A vaults</span></div>
+          <div><dt>Fee on deposits</dt><dd>0%</dd><span>10% of yield only</span></div>
+          <div><dt>Custody</dt><dd>None</dd><span>non-custodial</span></div>
         </dl>
       </div>
       <div class="deck-wrap rise d4">
-        <div class="deck" id="heroDeck" aria-label="Vaults. Choose a card to bring it forward." data-i18n-aria="aria.deck"></div>
-        <div class="deck-pick" role="group" aria-label="Compare vaults" id="deckPick" data-i18n-aria="aria.compare"></div>
+        <div class="deck" id="heroDeck" aria-label="Vaults. Choose a card to bring it forward."></div>
+        <div class="deck-pick" role="group" aria-label="Compare vaults" id="deckPick"></div>
         <p class="deck-hint"><span id="heroNote">sample data</span></p>
       </div>
     </section>
@@ -707,8 +701,8 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
     <!-- YIELD FLOW -->
     <section id="yield" class="wrap sec2">
       <div class="head2">
-        <h2 class="h2" data-i18n-html="yield.h2">Where your yield <span class="grad">comes from.</span></h2>
-        <p data-i18n="yield.p">No emissions, no printing. Borrowers pay interest to use your USDG, and they post more collateral than they borrow.</p>
+        <h2 class="h2">Where your yield <span class="grad">comes from.</span></h2>
+        <p>No emissions, no printing. Borrowers pay interest to use your USDG, and they post more collateral than they borrow.</p>
       </div>
       <div class="flow2">
         <svg class="flow2-lines" viewBox="0 0 1200 220" preserveAspectRatio="none" aria-hidden="true" id="flowSvg">
@@ -721,22 +715,22 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
           <circle r="3.5" fill="#A99BFF"><animateMotion dur="4s" repeatCount="indefinite"><mpath href="#fp3"/></animateMotion></circle>
         </svg>
         <div class="flow2-nodes">
-          <div class="fnode"><span class="fi">1</span><b data-i18n="yield.n1">You</b><small data-i18n="yield.n1s">Deposit USDG from your wallet</small></div>
-          <div class="fnode hot"><span class="fi">2</span><b>Morpho vault</b><small data-i18n="yield.n2s">Curator allocates to lending markets</small></div>
-          <div class="fnode"><span class="fi">3</span><b data-i18n="yield.n3">Borrowers</b><small data-i18n="yield.n3s">Lock over 100% collateral, pay interest</small></div>
+          <div class="fnode"><span class="fi">1</span><b>You</b><small>Deposit USDG from your wallet</small></div>
+          <div class="fnode hot"><span class="fi">2</span><b>Morpho vault</b><small>Curator allocates to lending markets</small></div>
+          <div class="fnode"><span class="fi">3</span><b>Borrowers</b><small>Lock over 100% collateral, pay interest</small></div>
         </div>
-        <div class="flow2-back" data-i18n="yield.back">Interest flows back to your vault shares, every block</div>
+        <div class="flow2-back">Interest flows back to your vault shares, every block</div>
       </div>
     </section>
 
     <!-- RISK GRADES -->
     <section id="grades" class="wrap sec2">
       <div class="head2">
-        <h2 class="h2" data-i18n-html="grades.h2">A grade on <span class="grad">every vault.</span></h2>
-        <p data-i18n="grades.p">Scored out of 100 from the four things that actually break lending vaults. You see the breakdown, not just the letter.</p>
+        <h2 class="h2">A grade on <span class="grad">every vault.</span></h2>
+        <p>Scored out of 100 from the four things that actually break lending vaults. You see the breakdown, not just the letter.</p>
       </div>
       <div class="grades">
-        <div class="gtabs" role="tablist" aria-label="Vaults" id="gTabs" data-i18n-aria="aria.vaults"></div>
+        <div class="gtabs" role="tablist" aria-label="Vaults" id="gTabs"></div>
         <div class="gbody">
           <div class="gauge-wrap">
             <svg viewBox="0 0 220 220" class="gauge" aria-hidden="true">
@@ -758,31 +752,31 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
     <!-- CALCULATOR -->
     <section id="calculator" class="wrap sec2">
       <div class="head2">
-        <h2 class="h2" data-i18n-html="calc.h2">Run the <span class="grad">numbers.</span></h2>
-        <p data-i18n="calc.p">Projection at today's net rate, compounded daily. Rates move with borrow demand, so treat it as an estimate.</p>
+        <h2 class="h2">Run the <span class="grad">numbers.</span></h2>
+        <p>Projection at today's net rate, compounded daily. Rates move with borrow demand, so treat it as an estimate.</p>
       </div>
       <div class="calc2">
         <div class="calc2-in">
           <div class="field">
-            <label for="cAmt" data-i18n="calc.amt">Amount (USDG)</label>
+            <label for="cAmt">Amount (USDG)</label>
             <div class="inputbox"><span class="mono muted">$</span><input id="cAmt" inputmode="decimal" value="1,000" autocomplete="off"></div>
           </div>
           <div class="field">
-            <label for="cMonths"><span data-i18n="calc.dur">Duration:</span> <span id="cMonthsLbl" style="color:var(--ink)">12 months</span></label>
+            <label for="cMonths"><span>Duration:</span> <span id="cMonthsLbl" style="color:var(--ink)">12 months</span></label>
             <input type="range" id="cMonths" min="1" max="36" value="12">
           </div>
           <div class="field">
-            <label for="cVault" data-i18n="calc.vault">Vault</label>
+            <label for="cVault">Vault</label>
             <select id="cVault" class="sel"></select>
           </div>
         </div>
         <div class="calc2-out">
           <div class="calc2-top">
-            <div><span class="muted" style="font-size:14px" data-i18n="calc.est">Estimated earnings</span><div class="calc-big" id="cEarn">+$76.98</div></div>
+            <div><span class="muted" style="font-size:14px">Estimated earnings</span><div class="calc-big" id="cEarn">+$76.98</div></div>
             <div class="rows" style="font-size:14px;min-width:240px">
-              <div><span><span data-i18n="calc.after">Balance after</span> <span id="cMonthsLbl2">12 months</span></span><span id="cFinal">$1,076.98</span></div>
-              <div><span data-i18n="calc.net">Net APY</span><span id="cApy">7.42%</span></div>
-              <div><span data-i18n="calc.pts">Points</span><span class="gold" id="cPts">365,000</span></div>
+              <div><span><span>Balance after</span> <span id="cMonthsLbl2">12 months</span></span><span id="cFinal">$1,076.98</span></div>
+              <div><span>Net APY</span><span id="cApy">7.42%</span></div>
+              <div><span>Points</span><span class="gold" id="cPts">365,000</span></div>
             </div>
           </div>
           <svg id="cChart" class="chart" viewBox="0 0 820 190" preserveAspectRatio="none" aria-hidden="true" style="height:170px"></svg>
@@ -793,10 +787,10 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
     <!-- FEATURES -->
     <section class="wrap sec2">
       <div class="feats">
-        <div class="feat"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z" stroke="#A99BFF" stroke-width="1.5" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="#7CC4FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><h3 data-i18n="feat.1t">Checked before you sign</h3><p data-i18n-html="feat.1p">Allowlist, simulation, liquidity and oracle checks run on every transaction. <a href="#security" class="gold">How we protect you</a></p></div>
-        <div class="feat"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 4L3 11l6 2.5L11.5 20 21 4z" stroke="#A99BFF" stroke-width="1.5" stroke-linejoin="round"/><path d="M9 13.5l4-3" stroke="#7CC4FF" stroke-width="1.5" stroke-linecap="round"/></svg><h3 data-i18n="feat.2t">Telegram alerts</h3><p data-i18n="feat.2p">Daily earnings, and a warning when utilization spikes so you can exit early.</p></div>
-        <div class="feat"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="3" stroke="#A99BFF" stroke-width="1.5"/><path d="M16 12.5h2" stroke="#7CC4FF" stroke-width="1.8" stroke-linecap="round"/><path d="M6 6V5a2 2 0 012-2h9" stroke="#A99BFF" stroke-width="1.5" stroke-linecap="round"/></svg><h3 data-i18n="feat.3t">Your wallet, always</h3><p data-i18n="feat.3p">Olvana never holds funds. Every deposit and withdrawal is signed by you.</p></div>
-        <div class="feat"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 19V5M4 19h16" stroke="#A99BFF" stroke-width="1.5" stroke-linecap="round"/><path d="M7 15l4-4 3 3 5-6" stroke="#7CC4FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><h3 data-i18n="feat.4t">One honest fee</h3><p data-i18n="feat.4p">10% of yield, set in the vault contract. Nothing on deposits, withdrawals or principal.</p></div>
+        <div class="feat"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z" stroke="#A99BFF" stroke-width="1.5" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="#7CC4FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><h3>Checked before you sign</h3><p>Allowlist, simulation, liquidity and oracle checks run on every transaction. <a href="#security" class="gold">How we protect you</a></p></div>
+        <div class="feat"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 4L3 11l6 2.5L11.5 20 21 4z" stroke="#A99BFF" stroke-width="1.5" stroke-linejoin="round"/><path d="M9 13.5l4-3" stroke="#7CC4FF" stroke-width="1.5" stroke-linecap="round"/></svg><h3>Telegram alerts</h3><p>Daily earnings, and a warning when utilization spikes so you can exit early.</p></div>
+        <div class="feat"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="3" stroke="#A99BFF" stroke-width="1.5"/><path d="M16 12.5h2" stroke="#7CC4FF" stroke-width="1.8" stroke-linecap="round"/><path d="M6 6V5a2 2 0 012-2h9" stroke="#A99BFF" stroke-width="1.5" stroke-linecap="round"/></svg><h3>Your wallet, always</h3><p>Olvana never holds funds. Every deposit and withdrawal is signed by you.</p></div>
+        <div class="feat"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 19V5M4 19h16" stroke="#A99BFF" stroke-width="1.5" stroke-linecap="round"/><path d="M7 15l4-4 3 3 5-6" stroke="#7CC4FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><h3>One honest fee</h3><p>10% of yield, set in the vault contract. Nothing on deposits, withdrawals or principal.</p></div>
       </div>
     </section>
 
@@ -805,17 +799,17 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
       <div class="rband">
         <div class="rband-l">
           <span class="pill-s">Season 1</span>
-          <h2 class="h2" style="font-size:clamp(36px,4.4vw,60px)" data-i18n-html="rw.h2">Earn yield. <span class="grad">Stack points.</span></h2>
-          <p data-i18n="rw.p">One point per dollar, per day, from your first deposit. Invite friends and get 10% of what they earn. $[TICKER] holders get a boost.</p>
-          <a href="#rewards" class="btn btn-gold" data-i18n="rw.cta">View rewards</a>
+          <h2 class="h2" style="font-size:clamp(36px,4.4vw,60px)">Earn yield. <span class="grad">Stack points.</span></h2>
+          <p>One point per dollar, per day, from your first deposit. Invite friends and get 10% of what they earn. $[TICKER] holders get a boost.</p>
+          <a href="#rewards" class="btn btn-gold">View rewards</a>
         </div>
         <div class="rband-r">
           <div class="ways">
-            <div><span data-i18n="rw.w1">Deposit in any vault</span><span data-i18n="rw.w1v">1 pt / $ / day</span></div>
-            <div><span data-i18n="rw.w2">Friend deposits with your link</span><span data-i18n="rw.w2v">+10% of their points</span></div>
+            <div><span>Deposit in any vault</span><span>1 pt / $ / day</span></div>
+            <div><span>Friend deposits with your link</span><span>+10% of their points</span></div>
             <div><span>Hold $[TICKER]</span><span>[boost]×</span></div>
           </div>
-          <div class="copybox"><code>olvana.org/?ref=OLV-7A3F</code><span class="tag" data-i18n="rw.link">Your link</span></div>
+          <div class="copybox"><code>olvana.org/?ref=OLV-7A3F</code><span class="tag">Your link</span></div>
         </div>
       </div>
     </section>
@@ -823,15 +817,15 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
     <!-- FAQ -->
     <section id="faq" class="wrap sec2">
       <div class="faq">
-        <h2 class="h2" data-i18n-html="faq.h2">Questions, <span class="grad">answered.</span></h2>
+        <h2 class="h2">Questions, <span class="grad">answered.</span></h2>
         <div class="faq-list">
-          <details open><summary><span data-i18n="faq.q1">Who pays the yield?</span><span class="pm" aria-hidden="true">+</span></summary><p data-i18n="faq.a1">Borrowers. They lock collateral worth more than their loan and pay interest on the USDG they borrow. That interest accrues to vault shares.</p></details>
-          <details><summary><span data-i18n="faq.q2">How is the risk grade calculated?</span><span class="pm" aria-hidden="true">+</span></summary><p data-i18n="faq.a2">Out of 100 points: utilization (25), collateral quality (30), oracle type (25) and curator track record (20). 80 and above is A, 60 to 79 is B, below 60 is C. A grade is a summary, not a guarantee. We also flag risks the score doesn't capture, like tokenized-stock collateral that can't be repriced when markets are closed.</p></details>
-          <details><summary><span data-i18n="faq.q3">Can I lose money?</span><span class="pm" aria-hidden="true">+</span></summary><p data-i18n-html="faq.a3">Yes. Contract bugs, bad collateral, oracle failures or curator mistakes can cause losses or delay withdrawals. Read the <a href="#risk" class="gold">risk disclosure</a> before depositing.</p></details>
-          <details><summary><span data-i18n="faq.q4">Can I always withdraw?</span><span class="pm" aria-hidden="true">+</span></summary><p data-i18n="faq.a4">Instantly when the vault has idle liquidity. At 100% utilization, exits wait until borrowers repay. Turn on utilization alerts to get warned early.</p></details>
-          <details><summary><span data-i18n="faq.q7">How do I get USDG on Robinhood Chain?</span><span class="pm" aria-hidden="true">+</span></summary><p data-i18n="faq.a7">Get USDG from [where to buy USDG], then bridge it to Robinhood Chain with [bridge link]. Keep a little [gas token] in the same wallet to pay network fees. Olvana never asks you to send funds to anyone.</p></details>
-          <details><summary><span data-i18n="faq.q5">How does Olvana make money?</span><span class="pm" aria-hidden="true">+</span></summary><p data-i18n="faq.a5">A 10% performance fee on yield, set in the vault contract. No fee on deposits or withdrawals, and nothing is taken from your principal.</p></details>
-          <details><summary><span data-i18n="faq.q6">What does $[TICKER] do?</span><span class="pm" aria-hidden="true">+</span></summary><p data-i18n="faq.a6">It boosts the points you earn and lets holders vote on which vaults Olvana lists. It does not pay out vault revenue.</p></details>
+          <details open><summary><span>Who pays the yield?</span><span class="pm" aria-hidden="true">+</span></summary><p>Borrowers. They lock collateral worth more than their loan and pay interest on the USDG they borrow. That interest accrues to vault shares.</p></details>
+          <details><summary><span>How is the risk grade calculated?</span><span class="pm" aria-hidden="true">+</span></summary><p>Out of 100 points: utilization (25), collateral quality (30), oracle type (25) and curator track record (20). 80 and above is A, 60 to 79 is B, below 60 is C. A grade is a summary, not a guarantee. We also flag risks the score doesn't capture, like tokenized-stock collateral that can't be repriced when markets are closed.</p></details>
+          <details><summary><span>Can I lose money?</span><span class="pm" aria-hidden="true">+</span></summary><p>Yes. Contract bugs, bad collateral, oracle failures or curator mistakes can cause losses or delay withdrawals. Read the <a href="#risk" class="gold">risk disclosure</a> before depositing.</p></details>
+          <details><summary><span>Can I always withdraw?</span><span class="pm" aria-hidden="true">+</span></summary><p>Instantly when the vault has idle liquidity. At 100% utilization, exits wait until borrowers repay. Turn on utilization alerts to get warned early.</p></details>
+          <details><summary><span>How do I get USDG on Robinhood Chain?</span><span class="pm" aria-hidden="true">+</span></summary><p>Get USDG from [where to buy USDG], then bridge it to Robinhood Chain with [bridge link]. Keep a little [gas token] in the same wallet to pay network fees. Olvana never asks you to send funds to anyone.</p></details>
+          <details><summary><span>How does Olvana make money?</span><span class="pm" aria-hidden="true">+</span></summary><p>A 10% performance fee on yield, set in the vault contract. No fee on deposits or withdrawals, and nothing is taken from your principal.</p></details>
+          <details><summary><span>What does $[TICKER] do?</span><span class="pm" aria-hidden="true">+</span></summary><p>It boosts the points you earn and lets holders vote on which vaults Olvana lists. It does not pay out vault revenue.</p></details>
         </div>
       </div>
     </section>
@@ -840,10 +834,10 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
     <section class="wrap">
       <div class="cta2">
         <div>
-          <h2 data-i18n-html="cta.h2">Your USDG could be<br><span class="grad">working right now.</span></h2>
-          <p data-i18n="cta.p">Connect a wallet, pick a grade you're comfortable with, and deposit in three signatures.</p>
+          <h2>Your USDG could be<br><span class="grad">working right now.</span></h2>
+          <p>Connect a wallet, pick a grade you're comfortable with, and deposit in three signatures.</p>
         </div>
-        <a href="#app" class="btn btn-gold btn-lg" data-i18n="cta.btn">Launch Olvana</a>
+        <a href="#app" class="btn btn-gold btn-lg">Launch Olvana</a>
       </div>
     </section>
   </main>
@@ -852,14 +846,14 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
     <div class="foot">
       <div style="display:flex;flex-direction:column;gap:16px;max-width:380px">
         <a href="#top" class="logo"><svg width="24" height="24" aria-hidden="true"><use href="#logo"/></svg>Olvana</a>
-        <p class="muted" style="margin:0;font-size:14px;line-height:1.6" data-i18n="foot.p">Non-custodial software. Olvana does not hold your assets, give investment advice, or guarantee returns.</p>
-        <p class="mono" style="margin:0;font-size:11px;color:var(--faint)" id="dataNote" data-i18n="foot.data">Figures shown are sample data until live vault data is connected.</p>
+        <p class="muted" style="margin:0;font-size:14px;line-height:1.6">Non-custodial software. Olvana does not hold your assets, give investment advice, or guarantee returns.</p>
+        <p class="mono" style="margin:0;font-size:11px;color:var(--faint)" id="dataNote">Figures shown are sample data until live vault data is connected.</p>
       </div>
       <div class="foot-cols">
-        <div><h4 data-i18n="foot.product">Product</h4><a href="#app">Earn</a><a href="#vaults" data-i18n="foot.vaults">Vaults</a><a href="#portfolio" data-i18n="foot.portfolio">Portfolio</a><a href="#rewards" data-i18n="nav.rewards">Rewards</a></div>
-        <div><h4 data-i18n="foot.verify">Verify</h4><a href="https://robinhoodchain.blockscout.com" target="_blank" rel="noopener">Explorer</a><a href="#security" data-i18n="foot.security">Security</a><a href="#grades" data-i18n="nav.grades">Risk grades</a><a href="#alerts" data-i18n="foot.alerts">Alerts</a></div>
-        <div><h4 data-i18n="foot.legal">Legal</h4><a href="#terms" data-i18n="foot.terms">Terms</a><a href="#privacy" data-i18n="foot.privacy">Privacy</a><a href="#risk" data-i18n="foot.risk">Risk disclosure</a></div>
-        <div><h4 data-i18n="foot.community">Community</h4><span class="muted">[X]</span><span class="muted">[Telegram channel]</span><span class="muted">[Discord]</span></div>
+        <div><h4>Product</h4><a href="#app">Earn</a><a href="#vaults">Vaults</a><a href="#portfolio">Portfolio</a><a href="#rewards">Rewards</a></div>
+        <div><h4>Verify</h4><a href="https://robinhoodchain.blockscout.com" target="_blank" rel="noopener">Explorer</a><a href="#security">Security</a><a href="#grades">Risk grades</a><a href="#alerts">Alerts</a></div>
+        <div><h4>Legal</h4><a href="#terms">Terms</a><a href="#privacy">Privacy</a><a href="#risk">Risk disclosure</a></div>
+        <div><h4>Community</h4><span class="muted">[X]</span><span class="muted">[Telegram channel]</span><span class="muted">[Discord]</span></div>
       </div>
     </div>
     <div class="foot-bottom"><span>© 2026 Olvana · [Company legal name] · [contact email]</span><span style="display:flex;align-items:center;gap:8px"><span class="dot"></span><span id="footStatus">All systems operational</span></span></div>
@@ -1115,7 +1109,6 @@ function route() {
   const inApp = APP_ROUTES.includes(h);
   const dp = document.getElementById('demoPanel'); if (dp) { dp.classList.remove('open'); document.getElementById('demoFab').setAttribute('aria-expanded', false); }
   document.body.classList.toggle('in-app', inApp);
-  document.documentElement.lang = inApp ? 'en' : LANG;  // app views are English-only in the prototype
   if (inApp) {
     if (h !== lastRoute) { UI.stage = 'form'; window.scrollTo(0, 0); }
     lastRoute = h;
@@ -1653,124 +1646,22 @@ function viewSecurity() {
   </article>`;
 }
 
-/* ===================== i18n (landing only) =====================
-   Prototype: static landing copy is tagged with data-i18n (text), data-i18n-html (trusted markup
-   from this dictionary only) and data-i18n-aria (aria-label). English static strings are read from
-   the HTML at boot, so the markup stays the English source; `en` below only holds strings built in JS.
-   App views (Earn, Vaults, Portfolio, Rewards, Alerts, legal pages) stay English in this pass.
-   Production will use a full i18n catalog covering every route. */
-const I18N = {
-  en: {
+/* ===================== copy strings (landing, built in JS) ===================== */
+const COPY = {
     'title':'Olvana — Onchain USDG Earn', 'aria.openMenu':'Open menu', 'aria.closeMenu':'Close menu',
     'd.sample':'sample data', 'd.live':'live data', 'd.netApy':'net APY', 'd.NetApy':'Net APY', 'd.tvlLbl':'Total deposits',
     'd.util':'Utilization', 'd.wd':'Withdrawable now', 'd.depositIn':'Deposit in {v}', 'd.apy':'APY', 'd.tvl':'TVL',
     'd.utilized':'utilized', 'd.perfFee':'Performance fee', 'd.ofYield':'of yield', 'd.oracle':'Oracle', 'd.curator':'Curator',
     'd.month':'{n} month', 'd.months':'{n} months', 'd.status':'All systems operational', 'd.dataLive':'Live vault data from Morpho.',
     'd.deckCard':'{v}, net APY {a}%, grade {g}', 'd.incidents':'{n} past incident on record'
-  },
-  id: {
-    'title':'Olvana — Earn USDG Onchain',
-    'aria.home':'Beranda Olvana', 'aria.lang':'Bahasa', 'aria.deck':'Vault. Pilih kartu untuk menampilkannya di depan.',
-    'aria.compare':'Bandingkan vault', 'aria.vaults':'Vault', 'aria.openMenu':'Buka menu', 'aria.closeMenu':'Tutup menu',
-    'nav.how':'Cara kerja', 'nav.grades':'Grade risiko', 'nav.calc':'Kalkulator', 'nav.rewards':'Rewards', 'nav.faq':'FAQ', 'nav.launch':'Buka app',
-    'hero.badge':'Sudah live di Robinhood Chain',
-    'hero.h1':'Hasil dari dolar.<br><span class="grad">Pahami risikonya.</span>',
-    'hero.lede':'Olvana menempatkan USDG kamu di vault lending onchain yang dikurasi, dan memberi grade A, B atau C untuk setiap vault sebelum kamu deposit. Wallet kamu, key kamu, keputusan kamu.',
-    'hero.cta1':'Mulai sekarang', 'hero.cta2':'Lihat cara kami menilai',
-    'hero.f1t':'Hingga', 'hero.f1s':'net APY di vault grade A', 'hero.f2t':'Fee deposit', 'hero.f2s':'hanya 10% dari yield',
-    'hero.f3t':'Kustodi', 'hero.f3d':'Tidak ada', 'hero.f3s':'non-custodial',
-    'yield.h2':'Dari mana <span class="grad">yield kamu berasal.</span>',
-    'yield.p':'Tanpa emisi token, tanpa cetak uang. Peminjam membayar bunga untuk memakai USDG kamu, dan jaminan yang mereka setor lebih besar dari pinjamannya.',
-    'yield.n1':'Kamu', 'yield.n1s':'Deposit USDG dari wallet kamu', 'yield.n2s':'Kurator mengalokasikan dana ke pasar lending',
-    'yield.n3':'Peminjam', 'yield.n3s':'Mengunci jaminan lebih dari 100%, membayar bunga',
-    'yield.back':'Bunga mengalir kembali ke share vault kamu, di setiap blok',
-    'grades.h2':'Ada grade di <span class="grad">setiap vault.</span>',
-    'grades.p':'Skor dari 100, dihitung dari empat hal yang paling sering bikin vault lending bermasalah. Kamu lihat rinciannya, bukan cuma hurufnya.',
-    'calc.h2':'Hitung <span class="grad">angkanya.</span>',
-    'calc.p':'Proyeksi memakai rate net hari ini, dengan bunga majemuk harian. Rate naik-turun mengikuti permintaan pinjaman, jadi anggap ini perkiraan.',
-    'calc.amt':'Jumlah (USDG)', 'calc.dur':'Durasi:', 'calc.vault':'Vault', 'calc.est':'Perkiraan hasil', 'calc.after':'Saldo setelah',
-    'calc.net':'Net APY', 'calc.pts':'Points',
-    'feat.1t':'Dicek sebelum kamu tanda tangan',
-    'feat.1p':'Cek allowlist, simulasi, likuiditas, dan oracle dijalankan di setiap transaksi. <a href="#security" class="gold">Cara kami melindungimu</a>',
-    'feat.2t':'Alert Telegram', 'feat.2p':'Laporan hasil harian, plus peringatan saat utilisasi melonjak supaya kamu bisa keluar lebih awal.',
-    'feat.3t':'Selalu dari wallet kamu', 'feat.3p':'Olvana tidak pernah memegang dana. Setiap deposit dan penarikan kamu tanda tangani sendiri.',
-    'feat.4t':'Satu fee, tanpa trik', 'feat.4p':'10% dari yield, diatur di kontrak vault. Tidak ada potongan untuk deposit, penarikan, atau modal pokok.',
-    'rw.h2':'Dapat yield. <span class="grad">Kumpulkan points.</span>',
-    'rw.p':'Satu point per dolar, per hari, sejak deposit pertama. Ajak teman dan dapatkan 10% dari points mereka. Holder $[TICKER] dapat boost.',
-    'rw.cta':'Lihat rewards', 'rw.w1':'Deposit di vault mana pun', 'rw.w1v':'1 pt / $ / hari',
-    'rw.w2':'Teman deposit lewat link kamu', 'rw.w2v':'+10% dari points mereka', 'rw.link':'Link kamu',
-    'faq.h2':'Pertanyaan, <span class="grad">terjawab.</span>',
-    'faq.q1':'Siapa yang membayar yield-nya?',
-    'faq.a1':'Peminjam. Mereka mengunci jaminan yang nilainya lebih besar dari pinjaman, lalu membayar bunga atas USDG yang mereka pinjam. Bunga itu masuk ke share vault.',
-    'faq.q2':'Bagaimana grade risiko dihitung?',
-    'faq.a2':'Dari total 100 poin: utilisasi (25), kualitas jaminan (30), jenis oracle (25), dan rekam jejak kurator (20). Skor 80 ke atas dapat A, 60 sampai 79 dapat B, di bawah 60 dapat C. Grade adalah ringkasan, bukan jaminan. Kami juga menandai risiko yang tidak tertangkap skor, seperti jaminan saham tokenisasi yang harganya tidak bisa diperbarui saat bursa tutup.',
-    'faq.q3':'Apakah saya bisa rugi?',
-    'faq.a3':'Bisa. Bug di kontrak, jaminan yang buruk, oracle yang gagal, atau kesalahan kurator bisa menyebabkan kerugian atau menunda penarikan. Baca <a href="#risk" class="gold">pengungkapan risiko</a> sebelum deposit.',
-    'faq.q4':'Apakah saya selalu bisa menarik dana?',
-    'faq.a4':'Bisa langsung, selama vault masih punya likuiditas yang menganggur. Saat utilisasi 100%, penarikan harus menunggu peminjam melunasi pinjamannya. Nyalakan alert utilisasi supaya kamu diperingatkan lebih awal.',
-    'faq.q7':'Bagaimana cara mendapatkan USDG di Robinhood Chain?',
-    'faq.a7':'Dapatkan USDG dari [where to buy USDG], lalu bridge ke Robinhood Chain lewat [bridge link]. Simpan sedikit [gas token] di wallet yang sama untuk membayar biaya jaringan. Olvana tidak pernah meminta kamu mengirim dana ke siapa pun.',
-    'faq.q5':'Dari mana Olvana dapat pemasukan?',
-    'faq.a5':'Dari performance fee 10% atas yield, yang diatur di kontrak vault. Tidak ada fee untuk deposit atau penarikan, dan tidak ada yang diambil dari modal pokok kamu.',
-    'faq.q6':'Apa fungsi $[TICKER]?',
-    'faq.a6':'Memberi boost pada points yang kamu kumpulkan dan memberi holder hak voting untuk menentukan vault mana yang di-listing Olvana. $[TICKER] tidak membagikan pendapatan vault.',
-    'cta.h2':'USDG kamu bisa<br><span class="grad">mulai bekerja sekarang.</span>',
-    'cta.p':'Hubungkan wallet, pilih grade yang bikin kamu nyaman, lalu deposit dengan tiga tanda tangan.',
-    'cta.btn':'Buka Olvana',
-    'foot.p':'Software non-custodial. Olvana tidak memegang aset kamu, tidak memberi saran investasi, dan tidak menjamin imbal hasil.',
-    'foot.data':'Angka yang ditampilkan adalah data contoh sampai data vault live terhubung.',
-    'foot.product':'Produk', 'foot.vaults':'Vault', 'foot.portfolio':'Portofolio', 'foot.verify':'Verifikasi', 'foot.security':'Keamanan',
-    'foot.alerts':'Alert', 'foot.legal':'Legal', 'foot.terms':'Ketentuan', 'foot.privacy':'Privasi', 'foot.risk':'Pengungkapan risiko',
-    'foot.community':'Komunitas',
-    'd.sample':'data contoh', 'd.live':'data live', 'd.netApy':'net APY', 'd.NetApy':'Net APY', 'd.tvlLbl':'Total deposit',
-    'd.util':'Utilisasi', 'd.wd':'Bisa ditarik sekarang', 'd.depositIn':'Deposit di {v}', 'd.apy':'APY', 'd.tvl':'TVL',
-    'd.utilized':'terpakai', 'd.perfFee':'Performance fee', 'd.ofYield':'dari yield', 'd.oracle':'Oracle', 'd.curator':'Kurator',
-    'd.month':'{n} bulan', 'd.months':'{n} bulan', 'd.status':'Semua sistem berjalan normal', 'd.dataLive':'Data vault live dari Morpho.',
-    'd.deckCard':'{v}, net APY {a}%, grade {g}', 'd.incidents':'{n} insiden tercatat sebelumnya',
-    // risk breakdown labels/notes, keyed by the English string from risk()
-    '~Utilization':'Utilisasi', '~Collateral quality':'Kualitas jaminan', '~Oracle':'Oracle', '~Curator record':'Rekam jejak kurator',
-    '~Healthy room for withdrawals':'Ruang penarikan masih longgar', '~Getting tight; exits may slow':'Mulai ketat; penarikan bisa melambat',
-    '~Near full; exits can be delayed':'Hampir penuh; penarikan bisa tertunda', '~Established push oracle':'Push oracle yang sudah teruji',
-    '~DEX-based pricing, easier to distort':'Harga berbasis DEX, lebih mudah dimanipulasi', '~No recorded incidents':'Tidak ada insiden tercatat',
-    // risk flags, keyed by riskFlags() k
-    'flag.equity':'Jaminan saham tokenisasi: harganya bisa melompat saat bursa saham tutup (malam hari, akhir pekan, hari libur), sehingga likuidasi bisa terlambat.',
-    'flag.lltv':'Pasar dengan loan-to-value tinggi (LLTV di atas 86%) menyisakan ruang lebih sempit sebelum terjadi bad debt.',
-    'flag.new':'Vault baru: rekam jejaknya kurang dari 90 hari.',
-    'flag.peg':'USDG diperdagangkan di ${p}, menjauh dari peg $1.'
-  }
 };
-let LANG = 'en';
 const t = (k, vars) => {
-  let s = I18N[LANG][k] != null ? I18N[LANG][k] : I18N.en[k] != null ? I18N.en[k] : k;
+  let s = COPY[k] != null ? COPY[k] : k;
   if (vars) for (const [a, b] of Object.entries(vars)) s = s.split('{' + a + '}').join(b);
   return s;
 };
-// translate an English string produced by shared code (risk parts/notes); falls back to the original
-const tx = s => {
-  if (LANG === 'en') return s;
-  if (I18N[LANG]['~' + s] != null) return I18N[LANG]['~' + s];
-  const m = /^(\d+) past incident on record$/.exec(s);
-  return m ? t('d.incidents', { n: m[1] }) : s;
-};
-const tFlag = f => LANG !== 'en' && I18N[LANG]['flag.' + f.k] ? I18N[LANG]['flag.' + f.k].replace('{p}', f.p || '') : f.text;
-function harvestEn() {
-  document.querySelectorAll('[data-i18n]').forEach(el => { if (I18N.en[el.dataset.i18n] == null) I18N.en[el.dataset.i18n] = el.textContent; });
-  document.querySelectorAll('[data-i18n-html]').forEach(el => { if (I18N.en[el.dataset.i18nHtml] == null) I18N.en[el.dataset.i18nHtml] = el.innerHTML; });
-  document.querySelectorAll('[data-i18n-aria]').forEach(el => { if (I18N.en[el.dataset.i18nAria] == null) I18N.en[el.dataset.i18nAria] = el.getAttribute('aria-label'); });
-}
-function applyLang(l, persist, rerender = true) {
-  LANG = I18N[l] ? l : 'en';
-  document.querySelectorAll('[data-i18n]').forEach(el => { el.textContent = t(el.dataset.i18n); });
-  document.querySelectorAll('[data-i18n-html]').forEach(el => { el.innerHTML = t(el.dataset.i18nHtml); });  // trusted dictionary markup only
-  document.querySelectorAll('[data-i18n-aria]').forEach(el => el.setAttribute('aria-label', t(el.dataset.i18nAria)));
-  document.querySelectorAll('.seg.lang button').forEach(b => { const on = b.dataset.lang === LANG; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
-  const mb = $('menuBtn'); mb.setAttribute('aria-label', t(mb.getAttribute('aria-expanded') === 'true' ? 'aria.closeMenu' : 'aria.openMenu'));
-  document.title = t('title');
-  if (!document.body.classList.contains('in-app')) document.documentElement.lang = LANG;
-  if (persist) { try { localStorage.setItem('olvana-lang', LANG); } catch (e) {} }
-  if (rerender && !document.body.classList.contains('in-app')) renderLanding();
-}
-document.querySelectorAll('.seg.lang button').forEach(b => b.addEventListener('click', () => applyLang(b.dataset.lang, true)));
+const tx = s => s;
+const tFlag = f => f.text;
 
 /* ===================== LANDING ===================== */
 let heroOrder = ['core', 'prime', 'boost'];
@@ -1919,7 +1810,7 @@ async function fetchLive() {
       v.live = true; any = true;
     } catch (e) {}
   }
-  if (any) { const dn = $('dataNote'); dn.dataset.i18n = 'd.dataLive'; dn.textContent = t('d.dataLive'); route(); }
+  if (any) { const dn = $('dataNote'); dn.textContent = t('d.dataLive'); route(); }
 }
 
 /* ===================== mobile menu ===================== */
@@ -1932,13 +1823,6 @@ document.addEventListener('keydown', e => { if (e.key === 'Escape' && mMenu.clas
 /* ===================== boot ===================== */
 const ref = new URLSearchParams(location.search).get('ref');
 if (ref && !S.referredBy) { S.referredBy = ref.slice(0, 20); save(); setTimeout(() => toast('Referral ' + esc(S.referredBy) + ' applied'), 600); }
-// language: ?lang=id wins, then the saved choice, then English
-let initLang = 'en';
-try { initLang = localStorage.getItem('olvana-lang') || 'en'; } catch (e) {}
-const qLang = new URLSearchParams(location.search).get('lang');
-if (qLang && I18N[qLang]) initLang = qLang;
-harvestEn();
-applyLang(initLang, !!(qLang && I18N[qLang]), false);
 checkAlerts(true);
 route();
 fetchLive();

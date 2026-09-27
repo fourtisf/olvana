@@ -270,7 +270,7 @@ Routes (prototype uses hashes; production uses real routes):
 /privacy     privacy policy (draft)
 /security    security & transparency: contract addresses, fee + recipient, audits, pre-flight checks, anti-phishing, vulnerability reporting
 ```
-- **Language:** English + Bahasa Indonesia (`?lang=id`, switch in nav). Prototype translates the landing page; production uses a full catalog (e.g. `next-intl`) for every route.
+- **Language:** English only.
 - **Status banner** from `GET /status` on every app route.
 - `?ref=OLV-XXXX` on any page → store in cookie → call `/referral/claim` after SIWE.
 - Mobile: bottom tab bar in app, hamburger menu on landing (already in prototype).
