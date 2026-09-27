@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { VAULT_V2_FACTORY_ADDRESS } from '../src/config';
-import { fetchLiveUsdgVaults, keepVault, toLiveVault, type ApiMarketPosition, type ApiVaultV2 } from '../src/morpho';
+import { fetchLiveStableVaults, keepVault, toLiveVault, type ApiMarketPosition, type ApiVaultV2 } from '../src/morpho';
 
 const FACTORY = VAULT_V2_FACTORY_ADDRESS!;
 const pos = (symbol: string | null, usd: number, util: number, lltv: string, oracle = 'ChainlinkOracleV2'): ApiMarketPosition => ({
@@ -59,14 +59,22 @@ describe('keepVault (safety filter)', () => {
   it('keeps a listed USDG vault from the official factory', () => expect(keepVault(vault(), opts)).toBe(true));
   it('drops vaults from another factory', () =>
     expect(keepVault(vault({ factory: { address: '0x' + '9'.repeat(40) } }), opts)).toBe(false));
-  it('drops non-USDG, unlisted and empty vaults', () => {
-    expect(keepVault(vault({ asset: { ...vault().asset, symbol: 'USDC' } }), opts)).toBe(false);
+  it('keeps other allowlisted stablecoins near $1, drops the rest', () => {
+    expect(keepVault(vault({ asset: { ...vault().asset, symbol: 'USDC' } }), opts)).toBe(true);
+    expect(keepVault(vault({ asset: { ...vault().asset, symbol: 'USDX' } }), opts)).toBe(false);
+    expect(keepVault(vault({ asset: { ...vault().asset, symbol: 'USDC', priceUsd: 0.93 } }), opts)).toBe(false);
+    expect(keepVault(vault({ asset: { ...vault().asset, symbol: 'USDC', priceUsd: null } }), opts)).toBe(false);
+  });
+
+  it('drops unlisted and empty vaults', () => {
     expect(keepVault(vault({ listed: false }), opts)).toBe(false);
     expect(keepVault(vault({ totalAssetsUsd: 0 }), opts)).toBe(false);
   });
   it('enforces the USDG address once configured', () => {
     expect(keepVault(vault(), { usdgAddress: '0x' + '5'.repeat(40), factory: FACTORY })).toBe(true);
     expect(keepVault(vault(), { usdgAddress: '0x' + '6'.repeat(40), factory: FACTORY })).toBe(false);
+    // the USDG pin doesn't apply to other stablecoins
+    expect(keepVault(vault({ asset: { ...vault().asset, symbol: 'USDC' } }), { usdgAddress: '0x' + '6'.repeat(40), factory: FACTORY })).toBe(true);
   });
   it('drops everything when the factory is not configured', () =>
     expect(keepVault(vault(), { usdgAddress: null, factory: null })).toBe(false));
@@ -125,23 +133,25 @@ describe('toLiveVault', () => {
   });
 });
 
-describe('fetchLiveUsdgVaults', () => {
+describe('fetchLiveStableVaults', () => {
   const respond = (body: unknown, status = 200) =>
     (async () => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch;
 
-  it('filters and sorts by TVL', async () => {
+  it('filters, lists USDG first, then by TVL', async () => {
     const items = [
+      vault({ name: 'Big USDC', totalAssetsUsd: 90_000_000, asset: { ...vault().asset, symbol: 'USDC' } }),
       vault({ name: 'Small', totalAssetsUsd: 1_000 }),
       vault(),
       vault({ name: 'Spam USDG', factory: { address: '0x' + '9'.repeat(40) } }),
     ];
-    const out = await fetchLiveUsdgVaults({ fetchImpl: respond({ data: { vaultV2s: { items } } }) });
-    expect(out.map((v) => v.name)).toEqual(['Steakhouse USDG', 'Small']);
+    const out = await fetchLiveStableVaults({ fetchImpl: respond({ data: { vaultV2s: { items } } }) });
+    expect(out.map((v) => v.name)).toEqual(['Steakhouse USDG', 'Small', 'Big USDC']);
+    expect(out[2]!.asset.symbol).toBe('USDC');
   });
 
   it('throws on HTTP and GraphQL errors (never returns stale or sample data)', async () => {
-    await expect(fetchLiveUsdgVaults({ fetchImpl: respond({}, 500) })).rejects.toThrow('HTTP 500');
-    await expect(fetchLiveUsdgVaults({ fetchImpl: respond({ errors: [{ message: 'bad field' }] }) })).rejects.toThrow(
+    await expect(fetchLiveStableVaults({ fetchImpl: respond({}, 500) })).rejects.toThrow('HTTP 500');
+    await expect(fetchLiveStableVaults({ fetchImpl: respond({ errors: [{ message: 'bad field' }] }) })).rejects.toThrow(
       'bad field',
     );
   });

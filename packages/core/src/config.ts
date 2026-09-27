@@ -51,6 +51,13 @@ export const USDG_ADDRESS: Address | null = null;
 export const USDG_DECIMALS = 6;
 
 /**
+ * Stablecoins Olvana lists. A vault's asset must match one of these symbols
+ * AND trade within 2% of $1 (see morpho.ts `keepVault`). Only USDG is pinned
+ * to an address so far — pin the others here as they are verified.
+ */
+export const STABLECOINS: readonly string[] = ['USDG', 'USDC', 'USDT', 'USDT0', 'PYUSD', 'DAI', 'USDS'];
+
+/**
  * Morpho Blue core on Robinhood Chain. Verified 2026-09-27 from Morpho's
  * official address registry (morpho-org/sdks packages/morpho-ts/src/addresses.ts,
  * commit 61a904b, `[ChainId.RobinhoodMainnet].blue`).

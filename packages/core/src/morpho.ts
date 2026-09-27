@@ -7,10 +7,10 @@
  *
  * `toLiveVault` turns one API vault into the shape the risk score and UI use.
  * `keepVault` is the safety filter: anyone can deploy a vault called "USDG",
- * so only listed vaults from the official Vault V2 factory holding the USDG
- * asset are kept.
+ * so only listed vaults from the official Vault V2 factory whose asset is an
+ * allowlisted stablecoin trading near $1 are kept.
  */
-import { MORPHO_API_URL, USDG_ADDRESS, VAULT_V2_FACTORY_ADDRESS, CHAIN_ID } from './config';
+import { MORPHO_API_URL, STABLECOINS, USDG_ADDRESS, VAULT_V2_FACTORY_ADDRESS, CHAIN_ID } from './config';
 import {
   classifyCollateral,
   riskFlags,
@@ -22,7 +22,7 @@ import {
   type RiskResult,
 } from './risk';
 
-export const USDG_VAULTS_QUERY = `query($c:[Int!]){
+export const STABLE_VAULTS_QUERY = `query($c:[Int!]){
   vaultV2s(first: 100, where:{chainId_in:$c, listed:true}){
     items{
       address name symbol listed creationTimestamp
@@ -90,7 +90,9 @@ export interface LiveCollateral {
 export interface LiveVault {
   address: string;
   name: string;
-  /** USDG logo (https only), from Morpho's asset list. */
+  /** The stablecoin deposited into the vault. */
+  asset: { symbol: string; address: string; decimals: number };
+  /** Asset logo (https only), from Morpho's asset list. */
   assetLogo: string | null;
   curator: string;
   curatorVerified: boolean;
@@ -119,12 +121,21 @@ const CHAINLINK = new Set(['ChainlinkOracle', 'ChainlinkOracleV2']);
 export const safeLogo = (u: string | null | undefined): string | null => (u && /^https:\/\//i.test(u) ? u : null);
 const eq = (a: string | null | undefined, b: string | null | undefined) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
 
+/** A vault's asset must be within this distance of $1 to be listed. */
+export const STABLE_PRICE_TOLERANCE = 0.02;
+
 export function keepVault(
   v: ApiVaultV2,
-  opts: { usdgAddress?: string | null; factory?: string | null } = { usdgAddress: USDG_ADDRESS, factory: VAULT_V2_FACTORY_ADDRESS },
+  opts: { usdgAddress?: string | null; factory?: string | null; stablecoins?: readonly string[] } = {
+    usdgAddress: USDG_ADDRESS,
+    factory: VAULT_V2_FACTORY_ADDRESS,
+  },
 ): boolean {
-  if (v.asset?.symbol !== 'USDG') return false;
-  if (opts.usdgAddress && !eq(v.asset.address, opts.usdgAddress)) return false;
+  const symbols = opts.stablecoins ?? STABLECOINS;
+  if (!v.asset || !symbols.includes(v.asset.symbol)) return false;
+  const price = v.asset.priceUsd;
+  if (typeof price !== 'number' || Math.abs(price - 1) > STABLE_PRICE_TOLERANCE) return false;
+  if (v.asset.symbol === 'USDG' && opts.usdgAddress && !eq(v.asset.address, opts.usdgAddress)) return false;
   if (!v.listed) return false;
   if (!opts.factory || !eq(v.factory?.address, opts.factory)) return false;
   return (v.totalAssetsUsd ?? 0) > 0;
@@ -188,6 +199,7 @@ export function toLiveVault(v: ApiVaultV2, opts: { now?: Date; overrides?: Colla
   return {
     address: v.address,
     name: v.name,
+    asset: { symbol: v.asset.symbol, address: v.asset.address, decimals: v.asset.decimals },
     assetLogo: safeLogo(v.asset.logoURI),
     curator: curatorItem?.name ?? `${v.curator.address.slice(0, 6)}…${v.curator.address.slice(-4)}`,
     curatorVerified: curatorItem?.verified ?? false,
@@ -207,15 +219,15 @@ export function toLiveVault(v: ApiVaultV2, opts: { now?: Date; overrides?: Colla
   };
 }
 
-/** Fetch, filter and map the live USDG vaults. `fetchImpl` is injectable for tests. */
-export async function fetchLiveUsdgVaults(
+/** Fetch, filter and map the live stablecoin vaults. `fetchImpl` is injectable for tests. */
+export async function fetchLiveStableVaults(
   opts: { url?: string; fetchImpl?: typeof fetch; overrides?: CollateralOverrides; signal?: AbortSignal } = {},
 ): Promise<LiveVault[]> {
   const f = opts.fetchImpl ?? fetch;
   const res = await f(opts.url ?? MORPHO_API_URL, {
     method: 'POST',
     headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ query: USDG_VAULTS_QUERY, variables: { c: [CHAIN_ID] } }),
+    body: JSON.stringify({ query: STABLE_VAULTS_QUERY, variables: { c: [CHAIN_ID] } }),
     signal: opts.signal,
   });
   if (!res.ok) throw new Error(`Morpho API HTTP ${res.status}`);
@@ -225,5 +237,5 @@ export async function fetchLiveUsdgVaults(
   return items
     .filter((v) => keepVault(v))
     .map((v) => toLiveVault(v, { overrides: opts.overrides }))
-    .sort((a, b) => b.tvlUsd - a.tvlUsd);
+    .sort((a, b) => (a.asset.symbol === 'USDG' ? 0 : 1) - (b.asset.symbol === 'USDG' ? 0 : 1) || b.tvlUsd - a.tvlUsd);
 }
