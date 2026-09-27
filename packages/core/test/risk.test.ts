@@ -54,12 +54,13 @@ describe('riskScore — prototype vaults', () => {
 });
 
 describe('factor rules', () => {
-  it('utilization thresholds are strict < 85 and < 95', () => {
+  it('utilization thresholds are strict < 92 and < 97 (Morpho targets 90%)', () => {
     expect(utilizationPoints(0)).toBe(25);
-    expect(utilizationPoints(84.99)).toBe(25);
-    expect(utilizationPoints(85)).toBe(15);
-    expect(utilizationPoints(94.99)).toBe(15);
-    expect(utilizationPoints(95)).toBe(5);
+    expect(utilizationPoints(90)).toBe(25);
+    expect(utilizationPoints(91.99)).toBe(25);
+    expect(utilizationPoints(92)).toBe(15);
+    expect(utilizationPoints(96.99)).toBe(15);
+    expect(utilizationPoints(97)).toBe(5);
     expect(utilizationPoints(100)).toBe(5);
   });
 

@@ -2,7 +2,7 @@
  * Olvana risk grade — ported exactly from the approved prototype (HANDOFF §5).
  *
  * Score out of 100:
- *   Utilization         25  (< 85% → 25 · < 95% → 15 · else 5)
+ *   Utilization         25  (< 92% → 25 · < 97% → 15 · else 5)
  *   Collateral quality  30  (30 × Σ share_i × q_i; blue 1.0 · mid 0.6 · tail 0.2)
  *   Oracle              25  (chainlink 25 · mixed 15 · dex 8)
  *   Curator record      20  (0 incidents → 20 · ≥ 1 → 10)
@@ -51,8 +51,17 @@ export interface RiskResult {
   parts: [RiskPart, RiskPart, RiskPart, RiskPart];
 }
 
+/**
+ * Morpho's interest-rate curve targets 90% utilization, so healthy markets sit
+ * around 90%. Thresholds are set just above that target (owner-approved
+ * 2026-09-27; previously 85 / 95, which penalised every healthy Morpho market).
+ * The prototype fixtures keep their scores (82 → 25, 61 → 25, 93 → 15).
+ */
+export const UTIL_HEALTHY_BELOW = 92;
+export const UTIL_TIGHT_BELOW = 97;
+
 export function utilizationPoints(utilization: number): number {
-  return utilization < 85 ? 25 : utilization < 95 ? 15 : 5;
+  return utilization < UTIL_HEALTHY_BELOW ? 25 : utilization < UTIL_TIGHT_BELOW ? 15 : 5;
 }
 
 export function collateralPoints(collateral: readonly RiskCollateral[]): number {
@@ -95,9 +104,9 @@ export function riskScore(input: RiskInput): RiskResult {
         points: u,
         max: 25,
         note:
-          input.utilization < 85
+          input.utilization < UTIL_HEALTHY_BELOW
             ? 'Healthy room for withdrawals'
-            : input.utilization < 95
+            : input.utilization < UTIL_TIGHT_BELOW
               ? 'Getting tight; exits may slow'
               : 'Near full; exits can be delayed',
       },

@@ -112,7 +112,7 @@ Score out of 100:
 
 | Factor | Max | Rule |
 |---|---|---|
-| Utilization | 25 | `< 85%` → 25 · `< 95%` → 15 · else 5 |
+| Utilization | 25 | `< 92%` → 25 · `< 97%` → 15 · else 5 — Morpho's rate curve targets 90%, so thresholds sit just above it (owner-approved 2026-09-27; was 85 / 95). Fixtures unchanged. |
 | Collateral quality | 30 | `30 × Σ(share_i × q_i)` where q = blue 1.0, mid 0.6, tail 0.2 |
 | Oracle | 25 | Chainlink (or equivalent push oracle) 25 · mixed 15 · DEX/TWAP 8 |
 | Curator record | 20 | 0 incidents → 20 · ≥1 → 10 |

@@ -68,8 +68,8 @@ describe('real Robinhood Chain vaults (2026-09-27 shape)', () => {
       ]),
       { now },
     );
-    // utilization 90% → 15 · collateral 30 × (0.999 × 0.6 + 0.001 × 1) ≈ 18 · mixed oracle 15 · curator 20
-    expect(v.risk).toMatchObject({ score: 68, grade: 'B' });
+    // utilization 90% (Morpho's target) → 25 · collateral 30 × (0.999 × 0.6 + 0.001 × 1) ≈ 18 · mixed oracle 15 · curator 20
+    expect(v.risk).toMatchObject({ score: 78, grade: 'B' });
     expect(v.flags.map((f) => f.key)).not.toContain('high-lltv');
     expect(visibleCollateral(v).map((c) => c.symbol)).toEqual(['USDe', 'syrupUSDG', 'mGLO', 'spUSDG']);
   });
@@ -160,8 +160,8 @@ describe('toLiveVault', () => {
     const o = toLiveVault(vault(), { now, overrides: { TSLA: { quality: 'mid', kind: 'equity' } } });
     expect(o.collateral[1]).toMatchObject({ quality: 'mid', kind: 'equity' });
     expect(o.flags.map((f) => f.key)).toContain('equity-collateral');
-    // utilization 88.7% → 15 · collateral 30 × (0.667 + 0.333 × 0.6) = 26.0 · Chainlink 25 · curator 20
-    expect(o.risk).toMatchObject({ score: 86, grade: 'A' });
+    // utilization 88.7% → 25 · collateral 30 × (0.667 + 0.333 × 0.6) = 26.0 · Chainlink 25 · curator 20
+    expect(o.risk).toMatchObject({ score: 96, grade: 'A' });
   });
 
   it('oracle: all Chainlink → chainlink, some → mixed, none → dex', () => {
