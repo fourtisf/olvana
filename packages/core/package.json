@@ -15,7 +15,8 @@
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
-    "config:todos": "tsx scripts/config-todos.ts"
+    "config:todos": "tsx scripts/config-todos.ts",
+    "verify:onchain": "tsx scripts/verify-onchain.ts"
   },
   "dependencies": {
     "viem": "^2.56.9"
