@@ -8,7 +8,9 @@ const pos = (symbol: string | null, usd: number, util: number, lltv: string, ora
   market: {
     uniqueKey: '0x' + (symbol ?? 'idle'),
     lltv,
-    collateralAsset: symbol ? { symbol, address: '0x' + '1'.repeat(40) } : null,
+    collateralAsset: symbol
+      ? { symbol, address: '0x' + '1'.repeat(40), logoURI: symbol === 'WETH' ? 'https://cdn.example/weth.png' : 'javascript:alert(1)' }
+      : null,
     oracle: { type: oracle },
     state: { utilization: util },
   },
@@ -21,7 +23,7 @@ const vault = (over: Partial<ApiVaultV2> = {}): ApiVaultV2 => ({
   listed: true,
   creationTimestamp: String(Date.parse('2026-05-29T00:00:00Z') / 1000),
   factory: { address: FACTORY.toLowerCase() },
-  asset: { address: '0x' + '5'.repeat(40), symbol: 'USDG', decimals: 6, priceUsd: 1 },
+  asset: { address: '0x' + '5'.repeat(40), symbol: 'USDG', decimals: 6, priceUsd: 1, logoURI: 'https://cdn.example/usdg.png' },
   totalAssetsUsd: 48_500_000,
   liquidityUsd: 9_200_000,
   performanceFee: 0.1,
@@ -81,14 +83,19 @@ describe('toLiveVault', () => {
     expect(v.curator).toBe('Steakhouse Financial');
   });
 
+  it('passes through https logos only', () => {
+    expect(v.assetLogo).toBe('https://cdn.example/usdg.png');
+    expect(toLiveVault(vault({ asset: { ...vault().asset, logoURI: null } }), { now }).assetLogo).toBeNull();
+  });
+
   it('weights utilization by supply and ignores the idle market', () => {
     expect(v.utilization).toBeCloseTo(((0.88 * 30 + 0.9 * 15) / 45) * 100, 9);
   });
 
   it('builds the collateral mix with LLTV and quality', () => {
     expect(v.collateral).toEqual([
-      { symbol: 'WETH', share: 66.7, lltv: 86, quality: 'blue', kind: 'crypto' },
-      { symbol: 'TSLA', share: 33.3, lltv: 77, quality: 'tail', kind: 'crypto' },
+      { symbol: 'WETH', share: 66.7, lltv: 86, quality: 'blue', kind: 'crypto', logo: 'https://cdn.example/weth.png' },
+      { symbol: 'TSLA', share: 33.3, lltv: 77, quality: 'tail', kind: 'crypto', logo: null },
     ]);
   });
 

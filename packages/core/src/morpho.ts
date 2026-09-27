@@ -27,7 +27,7 @@ export const USDG_VAULTS_QUERY = `query($c:[Int!]){
     items{
       address name symbol listed creationTimestamp
       factory{ address }
-      asset{ address symbol decimals priceUsd }
+      asset{ address symbol decimals priceUsd logoURI }
       totalAssetsUsd liquidityUsd performanceFee managementFee
       apy7d: avgApy(lookback: SEVEN_DAYS)
       net7d: avgNetApy(lookback: SEVEN_DAYS)
@@ -36,7 +36,7 @@ export const USDG_VAULTS_QUERY = `query($c:[Int!]){
       curators{ items{ name verified } }
       adapters{ items{
         address type assetsUsd
-        ... on MorphoMarketV1Adapter { positions{ items{ supplyAssetsUsd market{ uniqueKey lltv collateralAsset{ symbol address } oracle{ type } state{ utilization } } } } }
+        ... on MorphoMarketV1Adapter { positions{ items{ supplyAssetsUsd market{ uniqueKey lltv collateralAsset{ symbol address logoURI } oracle{ type } state{ utilization } } } } }
       } }
     }
   }
@@ -47,7 +47,7 @@ export interface ApiMarketPosition {
   market: {
     uniqueKey: string;
     lltv: string;
-    collateralAsset: { symbol: string; address: string } | null;
+    collateralAsset: { symbol: string; address: string; logoURI?: string | null } | null;
     oracle: { type: string } | null;
     state: { utilization: number } | null;
   };
@@ -60,7 +60,7 @@ export interface ApiVaultV2 {
   listed: boolean;
   creationTimestamp: string;
   factory: { address: string };
-  asset: { address: string; symbol: string; decimals: number; priceUsd: number | null };
+  asset: { address: string; symbol: string; decimals: number; priceUsd: number | null; logoURI?: string | null };
   totalAssetsUsd: number | null;
   liquidityUsd: number | null;
   performanceFee: number;
@@ -83,11 +83,15 @@ export interface LiveCollateral {
   lltv: number;
   quality: CollateralQuality;
   kind: CollateralKind;
+  /** Token logo (https only), from Morpho's asset list. */
+  logo: string | null;
 }
 
 export interface LiveVault {
   address: string;
   name: string;
+  /** USDG logo (https only), from Morpho's asset list. */
+  assetLogo: string | null;
   curator: string;
   curatorVerified: boolean;
   /** Net APY after fees, percent (7-day realized, falls back to 1-day). */
@@ -111,6 +115,8 @@ export interface LiveVault {
 export type CollateralOverrides = Readonly<Record<string, { quality: CollateralQuality; kind?: CollateralKind }>>;
 
 const CHAINLINK = new Set(['ChainlinkOracle', 'ChainlinkOracleV2']);
+/** Only pass through https URLs from the API into <img src>. */
+export const safeLogo = (u: string | null | undefined): string | null => (u && /^https:\/\//i.test(u) ? u : null);
 const eq = (a: string | null | undefined, b: string | null | undefined) => !!a && !!b && a.toLowerCase() === b.toLowerCase();
 
 export function keepVault(
@@ -136,16 +142,16 @@ export function toLiveVault(v: ApiVaultV2, opts: { now?: Date; overrides?: Colla
   const utilization =
     total > 0 ? (positions.reduce((t, p) => t + (p.market.state?.utilization ?? 0) * (p.supplyAssetsUsd ?? 0), 0) / total) * 100 : 0;
 
-  const bySymbol = new Map<string, { usd: number; lltv: number }>();
+  const bySymbol = new Map<string, { usd: number; lltv: number; logo: string | null }>();
   for (const p of positions) {
     const sym = p.market.collateralAsset!.symbol;
-    const cur = bySymbol.get(sym) ?? { usd: 0, lltv: 0 };
+    const cur = bySymbol.get(sym) ?? { usd: 0, lltv: 0, logo: safeLogo(p.market.collateralAsset!.logoURI) };
     cur.usd += p.supplyAssetsUsd ?? 0;
     cur.lltv = Math.max(cur.lltv, Number(p.market.lltv) / 1e16);
     bySymbol.set(sym, cur);
   }
   const collateral: LiveCollateral[] = [...bySymbol.entries()]
-    .map(([symbol, { usd, lltv }]) => {
+    .map(([symbol, { usd, lltv, logo }]) => {
       const o = Object.entries(overrides).find(([s]) => s.toLowerCase() === symbol.toLowerCase())?.[1];
       return {
         symbol,
@@ -153,6 +159,7 @@ export function toLiveVault(v: ApiVaultV2, opts: { now?: Date; overrides?: Colla
         lltv: Math.round(lltv * 10) / 10,
         quality: o?.quality ?? classifyCollateral(symbol),
         kind: o?.kind ?? 'crypto',
+        logo,
       };
     })
     .sort((a, b) => b.share - a.share);
@@ -181,6 +188,7 @@ export function toLiveVault(v: ApiVaultV2, opts: { now?: Date; overrides?: Colla
   return {
     address: v.address,
     name: v.name,
+    assetLogo: safeLogo(v.asset.logoURI),
     curator: curatorItem?.name ?? `${v.curator.address.slice(0, 6)}…${v.curator.address.slice(-4)}`,
     curatorVerified: curatorItem?.verified ?? false,
     netApy: net * 100,
