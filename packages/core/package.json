@@ -10,7 +10,8 @@
     "./risk": "./src/risk.ts",
     "./points": "./src/points.ts",
     "./stats": "./src/stats.ts",
-    "./alerts": "./src/alerts.ts"
+    "./alerts": "./src/alerts.ts",
+    "./morpho": "./src/morpho.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",
