@@ -1,0 +1,121 @@
+// Olvana database schema — starting point from HANDOFF §7.1.
+// Conventions: every address is stored lowercase; USD / USDG amounts use 6
+// decimals, vault shares 18.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  address    String         @id // lowercase
+  refCode    String         @unique // "OLV-XXXX"
+  referredBy String? // refCode of referrer
+  createdAt  DateTime       @default(now())
+  alerts     AlertSettings?
+  telegram   TelegramLink?
+
+  @@index([referredBy])
+  @@map("user")
+}
+
+/// Indexed ERC-4626 Deposit / Withdraw events.
+model VaultEvent {
+  id     String   @id // txHash:logIndex
+  vault  String
+  user   String
+  kind   String // deposit | withdraw
+  assets Decimal  @db.Decimal(38, 6)
+  shares Decimal  @db.Decimal(38, 18)
+  block  BigInt
+  ts     DateTime
+
+  @@index([user])
+  @@index([vault])
+  @@map("vault_event")
+}
+
+/// Vault state every 5 min; also the risk score history.
+model VaultSnapshot {
+  id          Int      @id @default(autoincrement())
+  vault       String
+  ts          DateTime
+  grossApy    Float
+  netApy      Float
+  tvl         Decimal  @db.Decimal(38, 6)
+  utilization Float
+  liquidity   Decimal  @db.Decimal(38, 6)
+  collateral  Json // [{symbol, share, lltv, quality}]
+  oracle      String // chainlink | mixed | dex
+  riskScore   Int
+  riskGrade   String // A | B | C
+  riskParts   Json // 4-part breakdown as computed by @olvana/core riskScore()
+
+  @@index([vault, ts])
+  @@map("vault_snapshot")
+}
+
+model PointsLedger {
+  id        Int      @id @default(autoincrement())
+  user      String
+  source    String // deposit | referral | boost
+  points    Decimal  @db.Decimal(38, 4)
+  periodEnd DateTime
+
+  @@index([user])
+  @@index([user, periodEnd])
+  @@map("points_ledger")
+}
+
+model AlertSettings {
+  user          String  @id
+  daily         Boolean @default(true)
+  utilization   Boolean @default(true)
+  collateral    Boolean @default(true)
+  threshold     Int     @default(95)
+  lastUtilAlert Json? // {vaultId: ts} to avoid spam
+  owner         User    @relation(fields: [user], references: [address])
+
+  @@map("alert_settings")
+}
+
+model TelegramLink {
+  user     String   @id
+  chatId   String   @unique
+  linkedAt DateTime @default(now())
+  owner    User     @relation(fields: [user], references: [address])
+
+  @@map("telegram_link")
+}
+
+/// Collateral quality for the risk score: blue | mid | tail. Unknown = tail.
+model CollateralClass {
+  symbol  String  @id
+  address String?
+  quality String
+
+  @@map("collateral_class")
+}
+
+/// Oracle type per Morpho market, set by admin at listing time: chainlink | mixed | dex.
+model MarketOracle {
+  marketId String @id
+  type     String
+
+  @@map("market_oracle")
+}
+
+/// Curator incidents, set manually. Any incident → curator part drops to 10.
+model CuratorIncident {
+  id      Int      @id @default(autoincrement())
+  curator String
+  note    String
+  at      DateTime
+
+  @@index([curator])
+  @@map("curator_incident")
+}

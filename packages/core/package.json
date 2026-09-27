@@ -1,0 +1,25 @@
+{
+  "name": "@olvana/core",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./abis": "./src/abis/index.ts",
+    "./config": "./src/config.ts",
+    "./risk": "./src/risk.ts",
+    "./points": "./src/points.ts"
+  },
+  "scripts": {
+    "typecheck": "tsc -p tsconfig.json",
+    "test": "vitest run",
+    "config:todos": "tsx scripts/config-todos.ts"
+  },
+  "dependencies": {
+    "viem": "^2.56.9"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.15",
+    "vitest": "^5.0.2"
+  }
+}

@@ -1,0 +1,1613 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Olvana — Onchain USDG Earn</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+:root{
+  --bg:#05050A; --ink:#EEF0FF; --muted:#9A9CB8; --dim:#5E607E; --faint:#72749A;
+  --line:rgba(255,255,255,.08); --line2:rgba(255,255,255,.06);
+  --glass:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.015));
+  --gold:#A99BFF; --gold-grad:linear-gradient(135deg,#7B5CFF 0%,#3A6BFF 100%); --gold-ink:#FFFFFF;
+  --gA:#7EE0B8; --gB:#F5D06F; --gC:#FF9270; --warn:#FF9270;
+  --sans:'Instrument Sans',ui-sans-serif,system-ui,-apple-system,'Segoe UI',sans-serif;
+  --serif:'Instrument Serif',Georgia,'Times New Roman',serif;
+  --mono:'Geist Mono',ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+*{box-sizing:border-box}
+html{scroll-behavior:smooth;-webkit-text-size-adjust:100%}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:var(--sans);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+a{color:inherit;text-decoration:none}
+button,input,select{font:inherit;color:inherit}
+button{cursor:pointer}
+:focus-visible{outline:2px solid var(--gold);outline-offset:3px;border-radius:8px}
+.mono{font-family:var(--mono)}
+.serif{font-family:var(--serif);font-style:italic;font-weight:400}
+.wrap{width:min(1200px,calc(100% - 48px));margin:0 auto}
+.muted{color:var(--muted)}
+.gold{color:var(--gold)}
+.sr{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0)}
+
+/* ambient */
+.ambient{position:absolute;inset:0 0 auto 0;height:1300px;pointer-events:none;overflow:hidden;z-index:0}
+.ambient::before{content:"";position:absolute;top:-420px;left:50%;width:1400px;height:1100px;transform:translateX(-50%);background:radial-gradient(ellipse 45% 50% at 38% 50%,rgba(123,92,255,.28) 0%,rgba(123,92,255,.08) 45%,transparent 75%),radial-gradient(ellipse 40% 45% at 64% 55%,rgba(58,120,255,.24) 0%,rgba(58,120,255,.06) 45%,transparent 75%)}
+.ambient::after{content:"";position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.035) 1px,transparent 1px);background-size:80px 80px;-webkit-mask-image:radial-gradient(ellipse at 50% 15%,#000 0%,transparent 65%);mask-image:radial-gradient(ellipse at 50% 15%,#000 0%,transparent 65%)}
+
+/* buttons */
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:10px;height:52px;padding:0 26px;border-radius:999px;font-weight:600;font-size:15px;border:0;white-space:nowrap;transition:transform .15s ease,filter .15s ease,background .15s}
+.btn-gold{background:var(--gold-grad);color:var(--gold-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.55),0 12px 40px rgba(123,92,255,.22)}
+.btn-gold:hover{filter:brightness(1.06)}
+.btn-gold:active{transform:translateY(1px)}
+.btn-glass{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.1);box-shadow:inset 0 1px 0 rgba(255,255,255,.06);font-weight:500}
+.btn-glass:hover{background:rgba(255,255,255,.07)}
+.btn[disabled]{background:rgba(255,255,255,.05);color:var(--dim);box-shadow:none;cursor:not-allowed;filter:none}
+.btn-lg{height:58px;padding:0 32px;font-size:16px}
+.btn-sm{height:40px;padding:0 16px;font-size:13px}
+
+/* nav */
+.nav{position:sticky;top:max(16px,env(safe-area-inset-top));z-index:50;margin-top:20px}
+.nav-inner{height:64px;padding:0 8px 0 22px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,20,.6);border:1px solid var(--line);border-radius:999px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
+.logo{display:flex;align-items:center;gap:10px;font-weight:600;font-size:19px;letter-spacing:-.02em}
+.nav-links{display:flex;gap:30px;font-size:14px;color:#B3B5D0}
+.nav-links a:hover{color:var(--ink)}
+.nav-right{display:flex;align-items:center;gap:6px}
+.nav-right .btn{height:46px;padding:0 20px;font-size:14px}
+.ticker{padding:0 14px;font-size:14px;color:#B3B5D0}
+
+/* hero */
+.hero{position:relative;z-index:1;padding:110px 0 0;text-align:center;display:flex;flex-direction:column;align-items:center;gap:28px}
+.badge{display:inline-flex;align-items:center;gap:10px;height:36px;padding:0 6px 0 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.09);border-radius:999px;font-size:13px;color:#C9CBE6}
+.dot{width:6px;height:6px;border-radius:50%;background:var(--gold);box-shadow:0 0 12px var(--gold);display:inline-block;flex:none}
+.badge b{height:24px;padding:0 10px;display:inline-flex;align-items:center;background:rgba(123,92,255,.12);color:var(--gold);border-radius:999px;font-size:12px;font-weight:500}
+h1.display{margin:0;font-size:clamp(56px,9.2vw,132px);font-weight:600;line-height:.92;letter-spacing:-.05em;background:linear-gradient(180deg,#fff 0%,#9EA2C8 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.goldtext{background:linear-gradient(90deg,#C4B5FF 0%,#7CC4FF 100%);-webkit-background-clip:text;background-clip:text;color:transparent;padding-right:.08em}
+.lede{margin:0;max-width:600px;font-size:clamp(17px,1.6vw,20px);line-height:1.55;color:var(--muted)}
+.cta-row{display:flex;gap:12px;flex-wrap:wrap;justify-content:center;margin-top:10px}
+
+.shot{position:relative;margin-top:72px;width:100%;max-width:1180px}
+.orbit{position:absolute;left:50%;top:-380px;width:1400px;height:1400px;transform:translateX(-50%);pointer-events:none}
+.frame{position:relative;padding:14px;background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.1);border-radius:32px;box-shadow:inset 0 1px 0 rgba(255,255,255,.1),0 60px 120px rgba(0,0,0,.7);backdrop-filter:blur(24px);-webkit-backdrop-filter:blur(24px)}
+.frame-in{background:#0A0A12;border:1px solid rgba(255,255,255,.06);border-radius:22px;padding:28px;display:grid;grid-template-columns:1fr 340px;gap:20px;text-align:left}
+.coin{width:40px;height:40px;border-radius:50%;background:var(--gold-grad);color:var(--gold-ink);display:flex;align-items:center;justify-content:center;font-weight:700;flex:none}
+.tag{font-family:var(--mono);font-size:11px;letter-spacing:.04em;color:var(--muted);border:1px solid rgba(255,255,255,.1);border-radius:999px;padding:5px 10px;white-space:nowrap;display:inline-flex;align-items:center;gap:6px}
+.tag.live{color:var(--gA);border-color:rgba(185,228,201,.35)}
+.kpis{display:flex;align-items:flex-end;gap:48px;flex-wrap:wrap}
+.kpi{display:flex;flex-direction:column;gap:6px}
+.kpi small{font-size:13px;color:var(--muted)}
+.kpi .big{font-size:72px;font-weight:600;letter-spacing:-.04em;line-height:1;color:var(--gold)}
+.kpi .mid{font-family:var(--mono);font-size:22px}
+.mini{background:rgba(255,255,255,.025);border:1px solid rgba(255,255,255,.07);border-radius:20px;padding:20px;display:flex;flex-direction:column;gap:16px}
+.seg{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;padding:4px;background:#05050A;border:1px solid var(--line2);border-radius:999px;font-size:14px;font-weight:600}
+.seg span,.seg button{height:38px;display:flex;align-items:center;justify-content:center;border-radius:999px;background:transparent;border:0;color:var(--muted);font-weight:600;padding:0 12px}
+.seg .on{background:rgba(255,255,255,.09);color:var(--ink)}
+.rows{display:flex;flex-direction:column;font-size:13px}
+.rows > div{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 0;border-bottom:1px solid var(--line2)}
+.rows > div:last-child{border-bottom:0}
+.rows > div > span:first-child{color:var(--muted)}
+.rows > div > span:last-child{font-family:var(--mono);text-align:right}
+.rail{margin-top:72px;display:flex;flex-wrap:wrap;justify-content:center;gap:14px 36px;font-family:var(--mono);font-size:12px;letter-spacing:.12em;color:var(--faint);text-transform:uppercase}
+.rail i{color:var(--gold);font-style:normal}
+
+/* grade chip */
+.grade{display:inline-flex;align-items:center;gap:8px;height:30px;padding:0 12px 0 4px;border-radius:999px;font-size:13px;font-weight:600;border:1px solid currentColor;white-space:nowrap}
+.grade b{width:22px;height:22px;border-radius:50%;display:inline-flex;align-items:center;justify-content:center;font-size:12px;background:currentColor}
+.grade b span{color:#0A0A12}
+.gA{color:var(--gA)}.gB{color:var(--gB)}.gC{color:var(--gC)}
+
+/* sections */
+section{position:relative;z-index:1}
+.sec{padding-top:170px}
+.h2{margin:0;font-size:clamp(40px,5.2vw,72px);font-weight:600;line-height:1;letter-spacing:-.045em}
+.kicker{font-family:var(--mono);font-size:12px;letter-spacing:.12em;color:var(--gold);text-transform:uppercase}
+.sec-head{display:flex;justify-content:space-between;align-items:flex-end;gap:32px;flex-wrap:wrap}
+.sec-head p{margin:0;max-width:420px;font-size:17px;line-height:1.55;color:var(--muted)}
+
+.stats{margin-top:140px;display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.stat{padding:44px 0 44px 36px;display:flex;flex-direction:column;gap:10px;border-right:1px solid var(--line)}
+.stat:first-child{padding-left:0}
+.stat:last-child{border-right:0}
+.stat b{font-size:clamp(44px,4.6vw,64px);font-weight:600;letter-spacing:-.045em;line-height:1}
+.stat b em{font-style:normal;color:var(--gold)}
+.stat span{font-size:14px;color:var(--muted)}
+.foot-note{margin-top:14px;font-family:var(--mono);font-size:11px;color:var(--faint)}
+
+.bento{margin-top:56px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.card{background:var(--glass);border:1px solid var(--line);border-radius:28px;box-shadow:inset 0 1px 0 rgba(255,255,255,.07);padding:36px;display:flex;flex-direction:column;justify-content:space-between;gap:32px;min-height:400px}
+.span2{grid-column:span 2}
+.card h3{margin:0 0 10px;font-size:24px;font-weight:600;letter-spacing:-.02em}
+.card p{margin:0;font-size:16px;line-height:1.55;color:var(--muted);max-width:460px}
+.flow{display:flex;align-items:center;flex-wrap:wrap}
+.node{height:64px;padding:0 22px;display:flex;align-items:center;gap:10px;background:#0A0A12;border:1px solid rgba(255,255,255,.1);border-radius:18px;font-size:15px;font-weight:500;white-space:nowrap}
+.node.hot{background:rgba(123,92,255,.08);border-color:var(--gold);color:var(--gold);box-shadow:0 0 40px rgba(123,92,255,.15)}
+.link{flex:1;min-width:24px;height:1px;background:linear-gradient(90deg,rgba(255,255,255,.15),var(--gold))}
+.link.r{background:linear-gradient(90deg,var(--gold),rgba(255,255,255,.15))}
+.feeline{display:flex;flex-direction:column;gap:14px;font-size:15px}
+.feeline div{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:14px;border-bottom:1px solid var(--line2)}
+.feeline div:last-child{border:0;padding:0}
+.feeline b{font-family:var(--mono);font-weight:400;font-size:20px}
+.feeline .net b{font-family:var(--sans);font-weight:600;font-size:56px;letter-spacing:-.04em;color:var(--gold);line-height:1}
+.checks{display:flex;flex-direction:column;gap:10px}
+.check{height:46px;padding:0 14px;display:flex;align-items:center;justify-content:space-between;background:#0A0A12;border:1px solid rgba(255,255,255,.07);border-radius:12px;font-size:14px}
+.check span:last-child{font-family:var(--mono);font-size:12px;color:var(--gold)}
+.tgmsg{background:#0A0A12;border:1px solid rgba(255,255,255,.07);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:10px;font-size:14px;line-height:1.5}
+.tgmsg .who{display:flex;align-items:center;gap:10px;font-weight:600}
+.tgmsg .av{width:30px;height:30px;border-radius:50%;background:var(--gold-grad);color:var(--gold-ink);display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:700}
+.tgmsg.warn{border-color:rgba(255,146,112,.35)}
+.bar{height:6px;background:rgba(255,255,255,.07);border-radius:999px;overflow:hidden}
+.bar i{display:block;height:100%;background:linear-gradient(90deg,#7B5CFF,#5AA8FF);border-radius:999px}
+.bar.hot i{background:linear-gradient(90deg,#C4523A,var(--warn))}
+
+/* calculator */
+.calc{margin-top:56px;display:grid;grid-template-columns:1.1fr 1fr;gap:20px}
+.calc .panel{padding:36px}
+.field{display:flex;flex-direction:column;gap:10px}
+.field label{font-size:13px;color:var(--muted)}
+.inputbox{display:flex;align-items:center;gap:12px;height:72px;padding:0 20px;background:#0A0A12;border:1px solid var(--line);border-radius:18px}
+.inputbox:focus-within{border-color:rgba(123,92,255,.5)}
+.inputbox input{flex:1;min-width:0;background:transparent;border:0;outline:none;font-size:34px;font-weight:600;letter-spacing:-.03em}
+select.sel{height:52px;padding:0 16px;background:#0A0A12;border:1px solid var(--line);border-radius:14px;appearance:none;-webkit-appearance:none;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12' fill='none'%3E%3Cpath d='M3 4.5l3 3 3-3' stroke='%239A9CB8' stroke-width='1.5'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 16px center;padding-right:40px;width:100%}
+input[type=range]{-webkit-appearance:none;appearance:none;width:100%;height:6px;background:rgba(255,255,255,.08);border-radius:999px;outline:none}
+input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:22px;height:22px;border-radius:50%;background:var(--gold-grad);border:0;box-shadow:0 0 0 4px rgba(123,92,255,.15);cursor:pointer}
+input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;background:#A99BFF;border:0;cursor:pointer}
+.calc-out{display:flex;flex-direction:column;justify-content:space-between;gap:28px}
+.calc-big{font-size:clamp(48px,5.4vw,76px);font-weight:600;letter-spacing:-.045em;line-height:1;color:var(--gold);word-break:break-word}
+
+/* vault cards */
+.vgrid{margin-top:56px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
+.vcard{background:var(--glass);border:1px solid var(--line);border-radius:24px;box-shadow:inset 0 1px 0 rgba(255,255,255,.07);padding:28px;display:flex;flex-direction:column;gap:22px}
+.vcard.sel{border-color:rgba(123,92,255,.5)}
+.vcard-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
+.vcard h3{margin:0;font-size:22px;font-weight:600;letter-spacing:-.02em}
+.vcard .apy{font-size:52px;font-weight:600;letter-spacing:-.04em;line-height:1}
+.collat{display:flex;flex-wrap:wrap;gap:6px}
+.collat span{font-family:var(--mono);font-size:12px;padding:4px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted)}
+
+.steps{margin-top:72px;position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:48px}
+.steps::before{content:"";position:absolute;top:28px;left:16%;right:16%;height:1px;background:linear-gradient(90deg,transparent,var(--gold),transparent)}
+.step{position:relative;text-align:center;display:flex;flex-direction:column;align-items:center;gap:20px}
+.step .num{width:56px;height:56px;border-radius:50%;background:var(--bg);border:1px solid var(--gold);box-shadow:0 0 30px rgba(123,92,255,.25);display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:14px;color:var(--gold)}
+.step h3{margin:0;font-size:26px;font-weight:600;letter-spacing:-.02em}
+.step p{margin:0;max-width:320px;font-size:16px;line-height:1.55;color:var(--muted)}
+
+.faq{display:grid;grid-template-columns:380px 1fr;gap:96px}
+.faq-list{border-top:1px solid var(--line)}
+details{border-bottom:1px solid var(--line)}
+summary{list-style:none;cursor:pointer;padding:28px 0;display:flex;justify-content:space-between;align-items:center;gap:24px;font-size:21px;font-weight:600;letter-spacing:-.015em}
+summary::-webkit-details-marker{display:none}
+summary .pm{flex:none;width:32px;height:32px;border-radius:50%;border:1px solid rgba(255,255,255,.12);display:flex;align-items:center;justify-content:center;transition:transform .2s ease}
+details[open] summary .pm{transform:rotate(45deg);border-color:var(--gold);color:var(--gold)}
+details p{margin:-8px 0 28px;font-size:16px;line-height:1.6;color:var(--muted);max-width:640px}
+
+.final{margin-top:180px;position:relative;overflow:hidden;min-height:520px;padding:80px 24px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:36px;text-align:center;background:linear-gradient(180deg,rgba(255,255,255,.05),rgba(255,255,255,.01));border:1px solid rgba(255,255,255,.09);border-radius:40px;box-shadow:inset 0 1px 0 rgba(255,255,255,.08)}
+.final::before{content:"";position:absolute;bottom:-400px;left:50%;width:1200px;height:800px;transform:translateX(-50%);background:radial-gradient(ellipse 40% 50% at 40% 50%,rgba(123,92,255,.22),transparent 70%),radial-gradient(ellipse 40% 50% at 62% 50%,rgba(58,120,255,.18),transparent 70%);pointer-events:none}
+.final svg{position:absolute;left:50%;top:240px;transform:translateX(-50%);pointer-events:none}
+.final h2{position:relative;margin:0;font-size:clamp(52px,8vw,116px);font-weight:600;line-height:.92;letter-spacing:-.05em;background:linear-gradient(180deg,#fff,#9EA2C8);-webkit-background-clip:text;background-clip:text;color:transparent}
+.final .btn{position:relative}
+
+footer{position:relative;z-index:1;padding:80px 0 calc(48px + env(safe-area-inset-bottom))}
+.foot{display:flex;justify-content:space-between;gap:48px;flex-wrap:wrap}
+.foot-cols{display:flex;gap:80px;flex-wrap:wrap;font-size:14px}
+.foot-cols div{display:flex;flex-direction:column;gap:14px}
+.foot-cols h4{margin:0;font-family:var(--mono);font-size:11px;font-weight:400;letter-spacing:.12em;text-transform:uppercase;color:var(--faint)}
+.foot-cols a:hover{color:var(--gold)}
+.foot-bottom{margin-top:56px;padding-top:24px;border-top:1px solid var(--line);display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-family:var(--mono);font-size:12px;color:var(--faint)}
+
+/* ===== landing v2 ===== */
+.aurora{position:absolute;top:0;left:0;right:0;height:1100px;overflow:hidden;pointer-events:none;z-index:0}
+.aurora i{position:absolute;border-radius:50%;filter:blur(90px);opacity:.55}
+.aurora i:nth-child(1){width:620px;height:620px;left:48%;top:-120px;background:#5B3CFF}
+.aurora i:nth-child(2){width:520px;height:520px;left:68%;top:120px;background:#2F6BFF;opacity:.45}
+.aurora i:nth-child(3){width:420px;height:420px;left:-8%;top:260px;background:#3B2A8F;opacity:.35}
+.aurora::after{content:"";position:absolute;inset:0;background-image:radial-gradient(rgba(255,255,255,.07) 1px,transparent 1px);background-size:28px 28px;-webkit-mask-image:linear-gradient(180deg,#000 0%,transparent 85%);mask-image:linear-gradient(180deg,#000 0%,transparent 85%)}
+.grad{background:linear-gradient(90deg,#C4B5FF 0%,#7CC4FF 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.hero2{position:relative;z-index:1;min-height:760px;padding:90px 0 60px;display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center}
+.hero2-copy{display:flex;flex-direction:column;align-items:flex-start;gap:28px}
+.display2{margin:0;font-size:clamp(46px,5.6vw,84px);font-weight:600;line-height:.96;letter-spacing:-.045em}
+.lede2{margin:0;max-width:540px;font-size:clamp(17px,1.5vw,19px);line-height:1.6;color:var(--muted)}
+.cta-row2{display:flex;gap:12px;flex-wrap:wrap}
+.hero-facts{margin:12px 0 0;display:flex;gap:40px;flex-wrap:wrap}
+.hero-facts div{display:flex;flex-direction:column;gap:4px}
+.hero-facts dt{font-size:12px;color:var(--faint)}
+.hero-facts dd{margin:0;font-size:30px;font-weight:600;letter-spacing:-.03em}
+.hero-facts span{font-size:12px;color:var(--muted)}
+.deck-wrap{display:flex;flex-direction:column;align-items:center;gap:20px}
+.deck{position:relative;width:min(440px,100%);height:520px}
+.dcard{position:absolute;left:0;right:0;top:0;height:470px;padding:28px;border-radius:28px;border:1px solid rgba(255,255,255,.1);background:linear-gradient(160deg,rgba(40,34,80,.92) 0%,rgba(12,12,26,.96) 55%);box-shadow:0 40px 100px rgba(0,0,0,.6),inset 0 1px 0 rgba(255,255,255,.1);display:flex;flex-direction:column;gap:20px;text-align:left;cursor:pointer;transition:transform .45s cubic-bezier(.2,.7,.2,1),opacity .45s,filter .45s;font:inherit;color:inherit;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}
+.dcard[data-pos="0"]{transform:translate(0,40px) rotate(0);z-index:3}
+.dcard[data-pos="1"]{transform:translate(46px,6px) rotate(6deg) scale(.94);z-index:2;filter:brightness(.55)}
+.dcard[data-pos="2"]{transform:translate(-46px,-10px) rotate(-7deg) scale(.9);z-index:1;filter:brightness(.4)}
+.dcard[data-pos="0"]:hover{transform:translate(0,34px)}
+.dcard:not([data-pos="0"]):hover{filter:brightness(.8)}
+.dcard .top{display:flex;justify-content:space-between;align-items:center;gap:12px}
+.dcard h3{margin:0;font-size:20px;font-weight:600}
+.dcard .apy{font-size:72px;font-weight:600;letter-spacing:-.045em;line-height:1}
+.dcard .apy small{font-size:18px;color:var(--muted);font-weight:500;letter-spacing:0;margin-left:6px}
+.dcard .go{margin-top:auto;flex:none;height:50px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:15px;background:var(--gold-grad);color:#fff}
+.deck-hint{margin:0;font-size:12px;color:var(--faint);font-family:var(--mono)}
+.deck-pick{display:flex;gap:6px;padding:5px;border-radius:999px;border:1px solid var(--line);background:rgba(10,10,20,.6)}
+.deck-pick button{height:38px;padding:0 16px;border-radius:999px;border:0;background:transparent;color:var(--muted);font-size:14px;font-weight:500;display:flex;align-items:center;gap:8px}
+.deck-pick button.on{background:rgba(123,92,255,.18);color:var(--ink)}
+.deck-pick i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.marquee{position:relative;z-index:1;margin-top:40px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);overflow:hidden;background:rgba(10,10,20,.5)}
+.marquee-track{display:flex;width:max-content;animation:mq 38s linear infinite}
+.marquee:hover .marquee-track{animation-play-state:paused}
+.mq-item{display:flex;align-items:center;gap:14px;padding:22px 36px;border-right:1px solid var(--line2);white-space:nowrap;font-size:14px}
+.mq-item b{font-family:var(--mono);font-weight:400}
+@keyframes mq{to{transform:translateX(-50%)}}
+.sec2{padding-top:150px}
+.head2{display:grid;grid-template-columns:1.2fr 1fr;gap:48px;align-items:end}
+.head2 p{margin:0;font-size:17px;line-height:1.6;color:var(--muted);max-width:460px}
+.flow2{position:relative;margin-top:56px;padding:48px 0 32px;border-radius:32px;border:1px solid var(--line);background:linear-gradient(180deg,rgba(123,92,255,.06),rgba(58,107,255,.03))}
+.flow2-lines{position:absolute;left:0;top:48px;width:100%;height:220px}
+.flow2-nodes{position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:24px;padding:0 48px}
+.fnode{display:flex;flex-direction:column;align-items:center;text-align:center;gap:10px;padding:26px 16px;border-radius:22px;background:#0A0A12;border:1px solid rgba(255,255,255,.1);max-width:260px;justify-self:center;width:100%}
+.fnode.hot{border-color:rgba(169,155,255,.6);box-shadow:0 0 60px rgba(123,92,255,.25)}
+.fnode b{font-size:20px;font-weight:600}
+.fnode small{font-size:14px;color:var(--muted);line-height:1.45}
+.fi{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-family:var(--mono);font-size:12px;background:var(--gold-grad);color:#fff}
+.flow2-back{position:relative;margin-top:74px;text-align:center;font-family:var(--mono);font-size:13px;color:#A99BFF}
+.grades{margin-top:56px;display:grid;grid-template-columns:300px 1fr;gap:20px}
+.gtabs{display:flex;flex-direction:column;gap:10px}
+.gtab{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:20px;border-radius:20px;border:1px solid var(--line);background:rgba(255,255,255,.02);text-align:left;font:inherit;color:var(--muted);cursor:pointer}
+.gtab .gt-name b{display:block;font-size:17px;color:var(--ink);font-weight:600;margin-bottom:4px}
+.gtab.on{border-color:rgba(169,155,255,.55);background:rgba(123,92,255,.08)}
+.gbody{display:grid;grid-template-columns:260px 1fr;gap:48px;align-items:center;padding:40px;border-radius:28px;border:1px solid var(--line);background:var(--glass)}
+.gauge-wrap{position:relative;width:240px;height:240px}
+.gauge{width:100%;height:100%}
+#gArc{transition:stroke-dashoffset .8s cubic-bezier(.2,.7,.2,1),stroke .3s}
+.gauge-mid{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px}
+.gauge-mid b{font-size:84px;font-weight:600;letter-spacing:-.04em;line-height:1}
+.gauge-mid span{font-family:var(--mono);font-size:13px;color:var(--muted)}
+.gparts{display:flex;flex-direction:column;gap:22px}
+.gmeta{display:flex;gap:28px;flex-wrap:wrap;font-size:14px;color:var(--muted)}
+.gmeta b{display:block;color:var(--ink);font-size:22px;font-weight:600;letter-spacing:-.02em;margin-top:2px}
+.calc2{margin-top:56px;display:grid;grid-template-columns:380px 1fr;border-radius:28px;border:1px solid var(--line);overflow:hidden;background:var(--glass)}
+.calc2-in{padding:36px;display:flex;flex-direction:column;gap:26px;border-right:1px solid var(--line);background:rgba(5,5,10,.4)}
+.calc2-out{padding:36px;display:flex;flex-direction:column;justify-content:space-between;gap:24px;min-width:0}
+.calc2-top{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;align-items:flex-start}
+.feats{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.feat{padding:40px 28px 40px 0;display:flex;flex-direction:column;gap:14px}
+.feat + .feat{padding-left:28px;border-left:1px solid var(--line)}
+.feat h3{margin:8px 0 0;font-size:19px;font-weight:600;letter-spacing:-.015em}
+.feat p{margin:0;font-size:15px;line-height:1.55;color:var(--muted)}
+.rband{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center;padding:56px;border-radius:32px;border:1px solid rgba(169,155,255,.25);background:radial-gradient(ellipse 60% 90% at 0% 0%,rgba(123,92,255,.2),transparent 70%),radial-gradient(ellipse 60% 90% at 100% 100%,rgba(58,107,255,.16),transparent 70%),#0A0A12}
+.rband-l{display:flex;flex-direction:column;align-items:flex-start;gap:20px}
+.rband-l p{margin:0;font-size:16px;line-height:1.6;color:var(--muted);max-width:460px}
+.rband-r{display:flex;flex-direction:column;gap:18px}
+.pill-s{font-family:var(--mono);font-size:12px;color:#C4B5FF;border:1px solid rgba(169,155,255,.4);border-radius:999px;padding:6px 12px}
+.cta2{margin-top:150px;display:flex;justify-content:space-between;align-items:center;gap:40px;flex-wrap:wrap;padding:64px;border-radius:36px;position:relative;overflow:hidden;background:linear-gradient(120deg,#2A1D7A 0%,#1A2F8A 60%,#0F1E5C 100%);border:1px solid rgba(255,255,255,.12)}
+.cta2::before{content:"";position:absolute;right:-120px;top:-160px;width:520px;height:520px;border-radius:50%;border:1px solid rgba(255,255,255,.12);box-shadow:0 0 0 80px rgba(255,255,255,.03),0 0 0 160px rgba(255,255,255,.02)}
+.cta2 > *{position:relative}
+.cta2 h2{margin:0;font-size:clamp(36px,4.6vw,64px);font-weight:600;letter-spacing:-.045em;line-height:1}
+.cta2 p{margin:18px 0 0;font-size:17px;color:#C9CBE6;max-width:480px;line-height:1.55}
+.cta2 .btn-gold{background:#fff;color:#1B1450;box-shadow:0 12px 40px rgba(0,0,0,.35)}
+.faq h2{position:sticky;top:120px;align-self:start}
+@media (prefers-reduced-motion:reduce){.marquee-track{animation:none}}
+@media (max-width:1180px){
+  .hero2{grid-template-columns:1fr;min-height:0;gap:40px}
+  .head2{grid-template-columns:1fr;gap:18px}
+  .grades{grid-template-columns:1fr}
+  .gtabs{flex-direction:row;overflow-x:auto}
+  .gtab{flex:none;min-width:220px}
+  .calc2{grid-template-columns:1fr}
+  .calc2-in{border-right:0;border-bottom:1px solid var(--line)}
+  .feats{grid-template-columns:1fr 1fr}
+  .feat:nth-child(3){padding-left:0;border-left:0;border-top:1px solid var(--line)}
+  .feat:nth-child(4){border-top:1px solid var(--line)}
+  .rband{grid-template-columns:1fr;padding:36px}
+  .faq h2{position:static}
+}
+@media (max-width:760px){
+  .hero2{padding-top:56px}
+  .deck{height:470px}
+  .dcard{height:420px;padding:22px}
+  .dcard .apy{font-size:56px}
+  .sec2{padding-top:100px}
+  .flow2{padding:28px 16px}
+  .flow2-lines{display:none}
+  .flow2-nodes{grid-template-columns:1fr;padding:0}
+  .flow2-back{margin-top:24px}
+  .gbody{grid-template-columns:1fr;justify-items:center;padding:24px}
+  .gauge-wrap{width:200px;height:200px}
+  .gparts{width:100%}
+  .calc2-in,.calc2-out{padding:24px}
+  .feats{grid-template-columns:1fr}
+  .feat,.feat + .feat{padding:28px 0;border-left:0;border-top:1px solid var(--line)}
+  .feat:first-child{border-top:0}
+  .rband{padding:24px}
+  .cta2{padding:36px 24px;margin-top:100px}
+  .hero-facts{gap:24px}
+}
+
+/* ============ APP ============ */
+#appShell{display:none;min-height:100vh;position:relative;background:radial-gradient(ellipse 900px 600px at 20% -10%,rgba(123,92,255,.16),transparent 70%),radial-gradient(ellipse 800px 500px at 85% -5%,rgba(58,120,255,.12),transparent 70%),var(--bg)}
+body.in-app #landing{display:none}
+body.in-app #appShell{display:block}
+.topbar{position:sticky;top:0;z-index:40;height:72px;padding:0 max(24px,env(safe-area-inset-left));display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line2);gap:16px;background:rgba(5,5,10,.75);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);padding-top:env(safe-area-inset-top);box-sizing:content-box}
+.topbar .left{display:flex;align-items:center;gap:36px;min-width:0}
+.tabs{display:flex;gap:4px;font-size:14px;overflow-x:auto;scrollbar-width:none}
+.tabs::-webkit-scrollbar{display:none}
+.tabs a{height:36px;padding:0 14px;display:flex;align-items:center;border-radius:999px;color:var(--muted);white-space:nowrap}
+.tabs a:hover{color:var(--ink)}
+.tabs a.on{background:rgba(255,255,255,.07);color:var(--ink)}
+.pts-pill{height:40px;padding:0 14px;display:flex;align-items:center;gap:8px;border:1px solid rgba(123,92,255,.3);border-radius:999px;font-family:var(--mono);font-size:13px;color:var(--gold);white-space:nowrap}
+.chain{height:40px;padding:0 14px;display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.1);border-radius:999px;font-size:13px;color:var(--muted);white-space:nowrap}
+.wallet-btn{height:44px;padding:0 20px;border:0;border-radius:999px;font-family:var(--mono);font-size:13px;font-weight:500;background:var(--gold-grad);color:var(--gold-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.5);white-space:nowrap}
+.wallet-btn.on{background:rgba(255,255,255,.07);color:var(--ink);box-shadow:none}
+.view{max-width:1440px;margin:0 auto;padding:28px max(24px,env(safe-area-inset-left)) 120px}
+.page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:24px}
+.page-head h1{margin:0;font-size:44px;font-weight:600;letter-spacing:-.04em;line-height:1}
+.page-head p{margin:8px 0 0;color:var(--muted);font-size:15px}
+.panel{background:var(--glass);border:1px solid var(--line);border-radius:24px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);padding:24px}
+.app-grid{display:grid;grid-template-columns:460px 1fr;gap:24px}
+.vpick{display:flex;gap:8px;margin-bottom:20px;overflow-x:auto;scrollbar-width:none;padding-bottom:2px}
+.vpick::-webkit-scrollbar{display:none}
+.vpick button{flex:none;display:flex;align-items:center;gap:10px;height:48px;padding:0 8px 0 16px;border-radius:999px;background:rgba(255,255,255,.03);border:1px solid var(--line);font-size:14px;font-weight:500;color:var(--muted)}
+.vpick button.on{border-color:rgba(123,92,255,.5);color:var(--ink);background:rgba(123,92,255,.06)}
+.vpick .mono{font-size:12px}
+.vpick .grade{height:32px}
+.alert{display:flex;align-items:flex-start;gap:14px;padding:16px 18px;border-radius:18px;background:rgba(255,146,112,.07);border:1px solid rgba(255,146,112,.35);margin-bottom:20px;font-size:14px;line-height:1.5}
+.alert b{color:var(--warn)}
+.alert svg{flex:none;margin-top:2px}
+.action{min-height:600px;display:flex;flex-direction:column;gap:20px}
+.amount-box{border:1px solid var(--line);border-radius:18px;padding:18px;display:flex;flex-direction:column;gap:12px;transition:border-color .15s}
+.amount-box:focus-within{border-color:rgba(123,92,255,.5)}
+.amount-top{display:flex;justify-content:space-between;gap:12px;font-size:13px;color:var(--muted)}
+.amount-row{display:flex;align-items:center;gap:12px}
+.amount-row input{flex:1;min-width:0;background:transparent;border:0;outline:none;font-weight:600;letter-spacing:-.035em;font-size:52px;line-height:1.1;padding:0}
+.amount-row input::placeholder,.inputbox input::placeholder{color:#3A3C58}
+.token{height:38px;padding:0 12px;display:flex;align-items:center;gap:8px;background:rgba(255,255,255,.07);border-radius:999px;font-size:14px;font-weight:600;flex:none}
+.token i{width:18px;height:18px;border-radius:50%;background:var(--gold-grad);color:var(--gold-ink);font-size:11px;font-style:normal;font-weight:700;display:flex;align-items:center;justify-content:center}
+.chips{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.chips button{height:34px;border:1px solid rgba(255,255,255,.1);background:transparent;border-radius:999px;color:var(--muted);font-family:var(--mono);font-size:12px}
+.chips button:hover{border-color:rgba(123,92,255,.5);color:var(--gold)}
+.grow{flex:1}
+.action > .btn{width:100%;height:56px;font-size:16px}
+.review-amt{font-size:56px;font-weight:600;letter-spacing:-.035em;line-height:1}
+.review-amt small{font-size:22px;color:var(--muted);font-weight:500;letter-spacing:0}
+.pf{display:flex;flex-direction:column;gap:8px}
+.pf-item{min-height:42px;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;background:#0A0A12;border:1px solid var(--line2);border-radius:12px;font-size:14px}
+.pf-item .st{font-family:var(--mono);font-size:12px;color:var(--dim);flex:none}
+.pf-item.ok .st{color:var(--gold)}
+.pf-item.bad{border-color:rgba(255,146,112,.4)}
+.pf-item.bad .st{color:var(--warn)}
+.pf-item .ic{display:flex;align-items:center;gap:10px}
+.spin{width:14px;height:14px;border:1.5px solid rgba(255,255,255,.15);border-top-color:var(--gold);border-radius:50%;animation:spin .8s linear infinite;flex:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+.two{display:flex;gap:10px}
+.two .btn{height:56px}
+.done{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;text-align:center}
+.done .ring{width:76px;height:76px;border-radius:50%;border:1px solid var(--gold);display:flex;align-items:center;justify-content:center;box-shadow:0 0 40px rgba(123,92,255,.2)}
+.done h3{margin:0;font-size:36px;font-weight:600;letter-spacing:-.03em}
+.done p{margin:0;max-width:320px;font-size:15px;line-height:1.55;color:var(--muted)}
+.done a{font-family:var(--mono);font-size:12px;color:var(--gold)}
+.pos{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.pos div{display:flex;flex-direction:column;gap:6px;min-width:0}
+.pos small{font-size:12px;color:var(--muted)}
+.pos b{font-family:var(--mono);font-size:16px;font-weight:400;overflow:hidden;text-overflow:ellipsis}
+.right{display:flex;flex-direction:column;gap:20px;min-width:0}
+.vault-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}
+.vault-head h2{margin:0;font-size:40px;font-weight:600;letter-spacing:-.035em;line-height:1}
+.vault-head p{margin:8px 0 0;font-size:14px;color:var(--muted)}
+.vault-head p a{color:var(--gold)}
+.statrow{display:grid;grid-template-columns:repeat(4,1fr);gap:12px}
+.statrow .panel{padding:18px;display:flex;flex-direction:column;gap:8px;border-radius:18px;min-width:0}
+.statrow small{font-size:12px;color:var(--muted)}
+.statrow b{font-family:var(--mono);font-size:22px;font-weight:400}
+.statrow em{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--faint)}
+.chart-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+.ranges{display:flex;gap:4px}
+.ranges button{height:30px;padding:0 12px;border:0;border-radius:999px;background:transparent;color:var(--muted);font-family:var(--mono);font-size:12px}
+.ranges button.on{background:rgba(255,255,255,.09);color:var(--ink)}
+.chart{width:100%;height:190px;display:block}
+.chart-foot{display:flex;justify-content:space-between;margin-top:10px;font-family:var(--mono);font-size:12px;color:var(--muted)}
+.lower{display:grid;grid-template-columns:1fr 1fr;gap:20px}
+.comp{display:flex;height:10px;border-radius:999px;overflow:hidden;gap:3px;margin:18px 0}
+.sw{width:9px;height:9px;border-radius:3px;display:inline-block;margin-right:10px}
+.h4{margin:0;font-size:15px;font-weight:600}
+.rb{display:flex;flex-direction:column;gap:14px;margin-top:18px}
+.rb-row{display:flex;flex-direction:column;gap:8px}
+.rb-row .t{display:flex;justify-content:space-between;font-size:13px}
+.rb-row .t span:last-child{font-family:var(--mono);color:var(--muted)}
+.rb-row small{font-size:12px;color:var(--faint);line-height:1.4}
+.empty{min-height:140px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;text-align:center;font-size:14px;line-height:1.5;color:var(--muted)}
+.act-row{display:flex;justify-content:space-between;align-items:center;gap:12px;padding:12px 0;border-bottom:1px solid var(--line2);font-size:14px}
+.act-row:last-child{border:0}
+.act-row small{display:block;font-size:12px;color:var(--muted);margin-top:2px}
+.act-row .mono{font-size:13px;text-align:right}
+
+/* tables */
+.tbl{width:100%;border-collapse:collapse;font-size:14px}
+.tbl th{text-align:left;font-family:var(--mono);font-weight:400;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:var(--faint);padding:0 12px 14px 0;border-bottom:1px solid var(--line2);white-space:nowrap}
+.tbl td{padding:16px 12px 16px 0;border-bottom:1px solid var(--line2);vertical-align:middle;white-space:nowrap}
+.tbl tr:last-child td{border-bottom:0}
+.tbl .n{font-family:var(--mono)}
+.scrollx{overflow-x:auto}
+
+.kgrid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:20px}
+.kcard{padding:22px;display:flex;flex-direction:column;gap:10px;min-width:0}
+.kcard small{font-size:13px;color:var(--muted)}
+.kcard b{font-size:34px;font-weight:600;letter-spacing:-.035em;line-height:1;overflow:hidden;text-overflow:ellipsis}
+.kcard em{font-style:normal;font-family:var(--mono);font-size:12px;color:var(--faint)}
+.two-col{display:grid;grid-template-columns:1.4fr 1fr;gap:20px;margin-bottom:20px}
+
+.pts-hero{display:flex;flex-direction:column;gap:12px}
+.pts-hero .n{font-size:clamp(56px,7vw,96px);font-weight:600;letter-spacing:-.05em;line-height:1;background:linear-gradient(90deg,#C4B5FF 0%,#7CC4FF 100%);-webkit-background-clip:text;background-clip:text;color:transparent}
+.copybox{display:flex;align-items:center;gap:10px;height:56px;padding:0 8px 0 18px;background:#0A0A12;border:1px solid var(--line);border-radius:16px}
+.copybox code{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-family:var(--mono);font-size:13px;color:var(--muted)}
+.ways{display:flex;flex-direction:column}
+.ways div{display:flex;justify-content:space-between;align-items:center;gap:16px;padding:16px 0;border-bottom:1px solid var(--line2);font-size:14px}
+.ways div:last-child{border:0}
+.ways span:last-child{font-family:var(--mono);color:var(--gold);text-align:right}
+
+.toggle{display:flex;justify-content:space-between;align-items:center;gap:20px;padding:18px 0;border-bottom:1px solid var(--line2)}
+.toggle:last-child{border:0}
+.toggle p{margin:4px 0 0;font-size:13px;color:var(--muted);line-height:1.45}
+.sw-btn{flex:none;width:48px;height:28px;border-radius:999px;border:1px solid var(--line);background:rgba(255,255,255,.06);position:relative;padding:0;transition:background .2s}
+.sw-btn::after{content:"";position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#72749A;transition:transform .2s,background .2s}
+.sw-btn[aria-checked=true]{background:rgba(123,92,255,.25);border-color:rgba(123,92,255,.5)}
+.sw-btn[aria-checked=true]::after{transform:translateX(20px);background:var(--gold)}
+
+.prose{max-width:760px}
+.prose h1{margin:0 0 8px;font-size:44px;font-weight:600;letter-spacing:-.04em}
+.prose h2{margin:40px 0 12px;font-size:22px;font-weight:600;letter-spacing:-.02em}
+.prose p,.prose li{font-size:16px;line-height:1.7;color:#C4C6E0}
+.prose ul{padding-left:20px}
+.prose .note{margin:24px 0;padding:16px 18px;border:1px solid rgba(123,92,255,.3);border-radius:14px;background:rgba(123,92,255,.05);font-size:14px;line-height:1.55;color:var(--gold)}
+
+/* demo controls */
+.demo-fab{position:fixed;left:max(20px,env(safe-area-inset-left));bottom:calc(20px + env(safe-area-inset-bottom));z-index:90;height:44px;padding:0 16px;border-radius:999px;border:1px solid rgba(123,92,255,.35);background:rgba(12,11,24,.85);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);color:var(--gold);font-family:var(--mono);font-size:12px;display:none;align-items:center;gap:8px}
+body.in-app .demo-fab{display:flex}
+.demo-panel{position:fixed;left:max(20px,env(safe-area-inset-left));bottom:calc(74px + env(safe-area-inset-bottom));z-index:90;width:300px;max-width:calc(100vw - 40px);padding:18px;border-radius:20px;background:#0C0B18;border:1px solid rgba(123,92,255,.25);box-shadow:0 30px 80px rgba(0,0,0,.7);display:none;flex-direction:column;gap:10px}
+.demo-panel.open{display:flex}
+.demo-panel p{margin:0 0 4px;font-size:12px;line-height:1.5;color:var(--muted)}
+.demo-panel .btn{width:100%;height:42px;font-size:13px;justify-content:flex-start}
+
+.toast{position:fixed;left:50%;bottom:calc(28px + env(safe-area-inset-bottom));transform:translate(-50%,20px);opacity:0;pointer-events:none;background:#0E0E18;border:1px solid rgba(123,92,255,.4);padding:12px 18px;border-radius:999px;font-size:14px;display:flex;align-items:center;gap:10px;transition:all .25s ease;z-index:100;max-width:calc(100vw - 40px)}
+.toast.warn{border-color:rgba(255,146,112,.5)}
+.toast.show{opacity:1;transform:translate(-50%,0)}
+
+.rise{opacity:0;transform:translateY(16px);animation:rise .9s cubic-bezier(.2,.7,.2,1) forwards}
+.rise.d1{animation-delay:.08s}.rise.d2{animation-delay:.18s}.rise.d3{animation-delay:.28s}.rise.d4{animation-delay:.45s}
+@keyframes rise{to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}.rise{opacity:1;transform:none}html{scroll-behavior:auto}}
+
+@media (max-width:1180px){
+  .frame-in{grid-template-columns:1fr}
+  .bento{grid-template-columns:1fr 1fr}
+  .faq{grid-template-columns:1fr;gap:40px}
+  .app-grid{grid-template-columns:1fr}
+  .nav-links{display:none}
+  .calc{grid-template-columns:1fr}
+  .vgrid{grid-template-columns:1fr 1fr}
+  .kgrid{grid-template-columns:1fr 1fr}
+  .two-col{grid-template-columns:1fr}
+  .chain{display:none}
+}
+@media (max-width:760px){
+  .ticker{display:none}
+  .hero{padding-top:72px}
+  .shot{margin-top:48px}
+  .frame{padding:8px;border-radius:24px}
+  .frame-in{padding:18px;border-radius:18px}
+  .kpi .big{font-size:56px}
+  .kpis{gap:24px}
+  .stats{grid-template-columns:1fr 1fr}
+  .stat{padding:28px 0 28px 20px}
+  .stat:nth-child(2){border-right:0}
+  .stat:nth-child(3){padding-left:0;border-top:1px solid var(--line)}
+  .stat:nth-child(4){border-top:1px solid var(--line)}
+  .sec{padding-top:110px}
+  .bento,.vgrid{grid-template-columns:1fr}
+  .span2{grid-column:auto}
+  .card{padding:26px;min-height:0}
+  .flow{flex-direction:column;align-items:stretch}
+  .flow .link{width:1px;height:24px;flex:none;align-self:center;background:linear-gradient(180deg,rgba(255,255,255,.15),var(--gold))}
+  .node{justify-content:center}
+  .steps{grid-template-columns:1fr;gap:40px}
+  .steps::before{display:none}
+  .final{margin-top:110px;border-radius:28px}
+  .statrow{grid-template-columns:1fr 1fr}
+  .lower{grid-template-columns:1fr}
+  .pts-pill{display:none}
+  .topbar .left{gap:16px}
+  .topbar .logo span{display:none}
+  .amount-row input{font-size:42px}
+  .kcard b{font-size:26px}
+  .page-head h1{font-size:34px}
+  .calc .panel{padding:24px}
+}
+
+/* ===== responsive hardening ===== */
+.app-grid > *,.two-col > *,.calc2 > *,.grades > *,.gbody > *,.hero2 > *,.head2 > *,.rband > *,.lower > *,.statrow > *,.kgrid > *,.vgrid > *,.bento > *,.faq > *,.calc > *{min-width:0}
+.pts-hero .n{overflow-wrap:anywhere}
+@media (max-width:1180px){
+  .app-grid,.two-col,.calc2,.grades,.hero2,.rband,.faq{grid-template-columns:minmax(0,1fr)}
+}
+
+/* ===== responsive pass 2 ===== */
+.topbar .left{flex:1;min-width:0}
+.topbar > div:last-child{flex:none}
+.tabs{min-width:0}
+@media (max-width:1180px){.pts-pill{display:none}}
+
+html{overflow-x:hidden}
+#landing{overflow-x:clip;position:relative}
+.menu-btn{display:none;width:46px;height:46px;border-radius:50%;border:1px solid var(--line);background:rgba(255,255,255,.04);flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:0}
+.menu-btn span{display:block;width:16px;height:1.5px;background:var(--ink);border-radius:2px;transition:transform .2s}
+.menu-btn[aria-expanded=true] span:first-child{transform:translateY(3.25px) rotate(45deg)}
+.menu-btn[aria-expanded=true] span:last-child{transform:translateY(-3.25px) rotate(-45deg)}
+.m-menu{display:none;margin-top:8px;padding:8px;border-radius:24px;border:1px solid var(--line);background:rgba(10,10,20,.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);flex-direction:column}
+.m-menu a{padding:14px 16px;border-radius:14px;font-size:16px}
+.m-menu a:hover{background:rgba(255,255,255,.05)}
+.m-menu.open{display:flex}
+@media (max-width:1180px){
+  .menu-btn{display:flex}
+  .hero2{grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:36px;padding-top:70px}
+  .deck{width:min(400px,100%);height:500px}
+  .dcard{height:450px}
+  .action{min-height:0}
+  .action .grow{min-height:24px;flex:none}
+}
+@media (max-width:980px){
+  .hero2{grid-template-columns:minmax(0,1fr)}
+  .deck-wrap{margin-top:8px}
+}
+@media (max-width:760px){
+  .nav-right .btn{height:42px;padding:0 16px}
+  .cta-row2{width:100%;flex-direction:column}
+  .cta-row2 .btn{width:100%}
+  .hero-facts{width:100%;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:12px;padding-top:20px;border-top:1px solid var(--line)}
+  .hero-facts dd{font-size:22px}
+  .hero-facts span{font-size:11px}
+  .deck{height:450px;width:calc(100% - 24px)}
+  .dcard{height:410px}
+  .dcard[data-pos="1"]{transform:translate(14px,8px) rotate(3deg) scale(.95)}
+  .dcard[data-pos="2"]{transform:translate(-14px,-4px) rotate(-3.5deg) scale(.91)}
+  .dcard[data-pos="0"]{transform:translate(0,30px)}
+  .dcard .collat span{font-size:11px}
+  .deck{height:500px}
+  .dcard{height:460px;gap:16px}
+  .dcard h3{font-size:17px;white-space:nowrap}
+  .dcard .apy{font-size:48px}
+  .dcard .apy small{font-size:15px}
+  .dcard .go{flex:none;height:48px}
+  .dcard .top .grade{height:28px;font-size:12px}
+  .fnode{max-width:none;position:relative}
+  .fnode:not(:last-child)::after{content:"";position:absolute;left:50%;bottom:-25px;width:1px;height:24px;background:linear-gradient(180deg,#7B5CFF,#4D8BFF)}
+  .calc2-top .rows{min-width:0!important;width:100%}
+  .gmeta{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  .gbody .btn{width:100%}
+  .feats{grid-template-columns:1fr 1fr}
+  .feat,.feat + .feat{padding:24px 12px 24px 0;border-left:0;border-top:1px solid var(--line)}
+  .feat:nth-child(even){padding-left:12px;border-left:1px solid var(--line)}
+  .feat:nth-child(-n+2){border-top:0}
+  .feat h3{font-size:16px}
+  .feat p{font-size:13px}
+  .rband .btn,.cta2 .btn{width:100%}
+  .foot-cols{gap:40px}
+  summary{font-size:18px;padding:22px 0}
+  /* app: bottom tab bar */
+  .topbar{height:64px;backdrop-filter:none;-webkit-backdrop-filter:none;background:rgba(5,5,10,.96)}
+  .tabs{position:fixed;left:0;right:0;bottom:0;z-index:60;justify-content:space-around;gap:0;padding:8px 8px calc(8px + env(safe-area-inset-bottom));background:rgba(8,8,16,.92);backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);border-top:1px solid var(--line)}
+  .tabs a{flex:1;justify-content:center;height:44px;padding:0 4px;font-size:13px}
+  .demo-fab{bottom:calc(84px + env(safe-area-inset-bottom));height:40px}
+  .demo-panel{bottom:calc(134px + env(safe-area-inset-bottom))}
+  .toast{bottom:calc(88px + env(safe-area-inset-bottom))}
+  .view{padding-bottom:180px;padding-top:20px}
+  .chart-foot span:nth-child(2){display:none}
+  .vault-head h2{font-size:32px}
+  .pos b{font-size:14px}
+  .statrow b{font-size:18px}
+  .panel{padding:20px}
+  .page-head .btn{width:100%}
+  .two .btn-glass{flex:none}
+}
+body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true">
+  <defs>
+    <symbol id="logo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.5" stroke="#A99BFF" stroke-width="1.2" fill="none"/><circle cx="12" cy="12" r="5.5" stroke="#EEF0FF" stroke-width="1.2" fill="none"/><circle cx="12" cy="12" r="1.8" fill="#A99BFF"/></symbol>
+    <symbol id="tick" viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7" stroke="#A99BFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
+    <symbol id="warn" viewBox="0 0 16 16"><path d="M8 2.2l6.2 11H1.8L8 2.2z" stroke="#FF9270" stroke-width="1.3" stroke-linejoin="round" fill="none"/><path d="M8 6.5v3.2M8 11.4v.1" stroke="#FF9270" stroke-width="1.5" stroke-linecap="round"/></symbol>
+  </defs>
+</svg>
+
+<!-- ================= LANDING ================= -->
+<div id="landing">
+  <div class="aurora" aria-hidden="true"><i></i><i></i><i></i></div>
+
+  <header class="nav wrap">
+    <div class="nav-inner">
+      <a href="#top" class="logo" aria-label="Olvana home"><svg width="24" height="24" aria-hidden="true"><use href="#logo"/></svg>Olvana</a>
+      <nav class="nav-links" aria-label="Main">
+        <a href="#yield">How it works</a>
+        <a href="#grades">Risk grades</a>
+        <a href="#calculator">Calculator</a>
+        <a href="#rewards-preview">Rewards</a>
+        <a href="#faq">FAQ</a>
+      </nav>
+      <div class="nav-right">
+        <a class="ticker" href="#rewards">$[TICKER]</a>
+        <a class="btn btn-gold" href="#app">Launch app</a>
+        <button type="button" class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="mMenu" aria-label="Open menu"><span></span><span></span></button>
+      </div>
+    </div>
+    <nav class="m-menu" id="mMenu" aria-label="Mobile">
+      <a href="#yield">How it works</a><a href="#grades">Risk grades</a><a href="#calculator">Calculator</a><a href="#rewards-preview">Rewards</a><a href="#faq">FAQ</a><a href="#rewards">$[TICKER]</a>
+    </nav>
+  </header>
+
+  <main id="top">
+    <!-- HERO -->
+    <section class="hero2 wrap">
+      <div class="hero2-copy">
+        <a href="#app" class="badge rise"><span class="dot"></span>Live on Robinhood Chain <b>USDG Earn</b></a>
+        <h1 class="display2 rise d1">Earn on dollars.<br><span class="grad">Know the risk.</span></h1>
+        <p class="lede2 rise d2">Olvana puts your USDG into curated onchain lending vaults, and grades every vault A, B or C before you deposit. Your wallet, your keys, your call.</p>
+        <div class="cta-row2 rise d3">
+          <a href="#app" class="btn btn-gold btn-lg">Start earning</a>
+          <a href="#grades" class="btn btn-glass btn-lg">See how we grade</a>
+        </div>
+        <dl class="hero-facts rise d3">
+          <div><dt>Up to</dt><dd id="hfApy">12.78%</dd><span>net APY</span></div>
+          <div><dt>Fee on deposits</dt><dd>0%</dd><span>10% of yield only</span></div>
+          <div><dt>Custody</dt><dd>None</dd><span>non-custodial</span></div>
+        </dl>
+      </div>
+      <div class="deck-wrap rise d4">
+        <div class="deck" id="heroDeck" aria-label="Vaults. Choose a card to bring it forward."></div>
+        <div class="deck-pick" role="group" aria-label="Compare vaults" id="deckPick"></div>
+        <p class="deck-hint"><span id="heroNote">sample data</span></p>
+      </div>
+    </section>
+
+    <!-- MARQUEE -->
+    <div class="marquee" aria-label="Vault stats">
+      <div class="marquee-track" id="marquee"></div>
+    </div>
+
+    <!-- YIELD FLOW -->
+    <section id="yield" class="wrap sec2">
+      <div class="head2">
+        <h2 class="h2">Where your yield <span class="grad">comes from.</span></h2>
+        <p>No emissions, no printing. Borrowers pay interest to use your USDG, and they post more collateral than they borrow.</p>
+      </div>
+      <div class="flow2">
+        <svg class="flow2-lines" viewBox="0 0 1200 220" preserveAspectRatio="none" aria-hidden="true" id="flowSvg">
+          <defs><linearGradient id="fl" gradientUnits="userSpaceOnUse" x1="300" y1="0" x2="900" y2="0"><stop offset="0" stop-color="#7B5CFF"/><stop offset="1" stop-color="#4D8BFF"/></linearGradient></defs>
+          <path id="fp1" d="M356 80 L469 80" stroke="url(#fl)" stroke-width="1.5" fill="none"/>
+          <path id="fp2" d="M733 80 L844 80" stroke="url(#fl)" stroke-width="1.5" fill="none"/>
+          <path id="fp3" d="M976 165 C 800 215, 400 215, 224 165" stroke="#A99BFF" stroke-opacity=".5" stroke-width="1.2" stroke-dasharray="4 6" fill="none"/>
+          <circle r="4" fill="#C4B5FF"><animateMotion dur="1.6s" repeatCount="indefinite"><mpath href="#fp1"/></animateMotion></circle>
+          <circle r="4" fill="#7CC4FF"><animateMotion dur="1.6s" begin=".8s" repeatCount="indefinite"><mpath href="#fp2"/></animateMotion></circle>
+          <circle r="3.5" fill="#A99BFF"><animateMotion dur="4s" repeatCount="indefinite"><mpath href="#fp3"/></animateMotion></circle>
+        </svg>
+        <div class="flow2-nodes">
+          <div class="fnode"><span class="fi">1</span><b>You</b><small>Deposit USDG from your wallet</small></div>
+          <div class="fnode hot"><span class="fi">2</span><b>Morpho vault</b><small>Curator allocates to lending markets</small></div>
+          <div class="fnode"><span class="fi">3</span><b>Borrowers</b><small>Lock over 100% collateral, pay interest</small></div>
+        </div>
+        <div class="flow2-back">Interest flows back to your vault shares, every block</div>
+      </div>
+    </section>
+
+    <!-- RISK GRADES -->
+    <section id="grades" class="wrap sec2">
+      <div class="head2">
+        <h2 class="h2">A grade on <span class="grad">every vault.</span></h2>
+        <p>Scored out of 100 from the four things that actually break lending vaults. You see the breakdown, not just the letter.</p>
+      </div>
+      <div class="grades">
+        <div class="gtabs" role="tablist" aria-label="Vaults" id="gTabs"></div>
+        <div class="gbody">
+          <div class="gauge-wrap">
+            <svg viewBox="0 0 220 220" class="gauge" aria-hidden="true">
+              <circle cx="110" cy="110" r="92" stroke="rgba(255,255,255,.07)" stroke-width="14" fill="none"/>
+              <circle id="gArc" cx="110" cy="110" r="92" stroke="#7EE0B8" stroke-width="14" fill="none" stroke-linecap="round" transform="rotate(-90 110 110)" stroke-dasharray="578" stroke-dashoffset="578"/>
+            </svg>
+            <div class="gauge-mid"><b id="gLetter">A</b><span id="gScore">97 / 100</span></div>
+          </div>
+          <div class="gparts">
+            <div class="gmeta" id="gMeta"></div>
+            <div id="gParts" class="rb" style="margin:0"></div>
+            <a href="#app" class="btn btn-gold" id="gCta" style="align-self:flex-start">Deposit</a>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- CALCULATOR -->
+    <section id="calculator" class="wrap sec2">
+      <div class="head2">
+        <h2 class="h2">Run the <span class="grad">numbers.</span></h2>
+        <p>Projection at today's net rate, compounded daily. Rates move with borrow demand, so treat it as an estimate.</p>
+      </div>
+      <div class="calc2">
+        <div class="calc2-in">
+          <div class="field">
+            <label for="cAmt">Amount (USDG)</label>
+            <div class="inputbox"><span class="mono muted">$</span><input id="cAmt" inputmode="decimal" value="1,000" autocomplete="off"></div>
+          </div>
+          <div class="field">
+            <label for="cMonths">Duration: <span id="cMonthsLbl" style="color:var(--ink)">12 months</span></label>
+            <input type="range" id="cMonths" min="1" max="36" value="12">
+          </div>
+          <div class="field">
+            <label for="cVault">Vault</label>
+            <select id="cVault" class="sel"></select>
+          </div>
+        </div>
+        <div class="calc2-out">
+          <div class="calc2-top">
+            <div><span class="muted" style="font-size:14px">Estimated earnings</span><div class="calc-big" id="cEarn">+$76.98</div></div>
+            <div class="rows" style="font-size:14px;min-width:240px">
+              <div><span>Balance after <span id="cMonthsLbl2">12 months</span></span><span id="cFinal">$1,076.98</span></div>
+              <div><span>Net APY</span><span id="cApy">7.42%</span></div>
+              <div><span>Points</span><span class="gold" id="cPts">365,000</span></div>
+            </div>
+          </div>
+          <svg id="cChart" class="chart" viewBox="0 0 820 190" preserveAspectRatio="none" aria-hidden="true" style="height:170px"></svg>
+        </div>
+      </div>
+    </section>
+
+    <!-- FEATURES -->
+    <section class="wrap sec2">
+      <div class="feats">
+        <div class="feat"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z" stroke="#A99BFF" stroke-width="1.5" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="#7CC4FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><h3>Checked before you sign</h3><p>Allowlist, simulation, liquidity and oracle checks run on every transaction.</p></div>
+        <div class="feat"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 4L3 11l6 2.5L11.5 20 21 4z" stroke="#A99BFF" stroke-width="1.5" stroke-linejoin="round"/><path d="M9 13.5l4-3" stroke="#7CC4FF" stroke-width="1.5" stroke-linecap="round"/></svg><h3>Telegram alerts</h3><p>Daily earnings, and a warning when utilization spikes so you can exit early.</p></div>
+        <div class="feat"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="3" stroke="#A99BFF" stroke-width="1.5"/><path d="M16 12.5h2" stroke="#7CC4FF" stroke-width="1.8" stroke-linecap="round"/><path d="M6 6V5a2 2 0 012-2h9" stroke="#A99BFF" stroke-width="1.5" stroke-linecap="round"/></svg><h3>Your wallet, always</h3><p>Olvana never holds funds. Every deposit and withdrawal is signed by you.</p></div>
+        <div class="feat"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 19V5M4 19h16" stroke="#A99BFF" stroke-width="1.5" stroke-linecap="round"/><path d="M7 15l4-4 3 3 5-6" stroke="#7CC4FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><h3>One honest fee</h3><p>10% of yield, set in the vault contract. Nothing on deposits, withdrawals or principal.</p></div>
+      </div>
+    </section>
+
+    <!-- REWARDS -->
+    <section id="rewards-preview" class="wrap sec2">
+      <div class="rband">
+        <div class="rband-l">
+          <span class="pill-s">Season 1</span>
+          <h2 class="h2" style="font-size:clamp(36px,4.4vw,60px)">Earn yield. <span class="grad">Stack points.</span></h2>
+          <p>One point per dollar, per day, from your first deposit. Invite friends and get 10% of what they earn. $[TICKER] holders get a boost.</p>
+          <a href="#rewards" class="btn btn-gold">View rewards</a>
+        </div>
+        <div class="rband-r">
+          <div class="ways">
+            <div><span>Deposit in any vault</span><span>1 pt / $ / day</span></div>
+            <div><span>Friend deposits with your link</span><span>+10% of their points</span></div>
+            <div><span>Hold $[TICKER]</span><span>[boost]×</span></div>
+          </div>
+          <div class="copybox"><code>olvana.org/?ref=OLV-7A3F</code><span class="tag">Your link</span></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- FAQ -->
+    <section id="faq" class="wrap sec2">
+      <div class="faq">
+        <h2 class="h2">Questions, <span class="grad">answered.</span></h2>
+        <div class="faq-list">
+          <details open><summary>Who pays the yield?<span class="pm" aria-hidden="true">+</span></summary><p>Borrowers. They lock collateral worth more than their loan and pay interest on the USDG they borrow. That interest accrues to vault shares.</p></details>
+          <details><summary>How is the risk grade calculated?<span class="pm" aria-hidden="true">+</span></summary><p>Out of 100 points: utilization (25), collateral quality (30), oracle type (25) and curator track record (20). 80 and above is A, 60 to 79 is B, below 60 is C. A grade is a summary, not a guarantee.</p></details>
+          <details><summary>Can I lose money?<span class="pm" aria-hidden="true">+</span></summary><p>Yes. Contract bugs, bad collateral, oracle failures or curator mistakes can cause losses or delay withdrawals. Read the <a href="#risk" class="gold">risk disclosure</a> before depositing.</p></details>
+          <details><summary>Can I always withdraw?<span class="pm" aria-hidden="true">+</span></summary><p>Instantly when the vault has idle liquidity. At 100% utilization, exits wait until borrowers repay. Turn on utilization alerts to get warned early.</p></details>
+          <details><summary>How does Olvana make money?<span class="pm" aria-hidden="true">+</span></summary><p>A 10% performance fee on yield, set in the vault contract. No fee on deposits or withdrawals, and nothing is taken from your principal.</p></details>
+          <details><summary>What does $[TICKER] do?<span class="pm" aria-hidden="true">+</span></summary><p>It boosts the points you earn and lets holders vote on which vaults Olvana lists. It does not pay out vault revenue.</p></details>
+        </div>
+      </div>
+    </section>
+
+    <!-- CTA -->
+    <section class="wrap">
+      <div class="cta2">
+        <div>
+          <h2>Your USDG could be<br><span class="grad">working right now.</span></h2>
+          <p>Connect a wallet, pick a grade you're comfortable with, and deposit in three signatures.</p>
+        </div>
+        <a href="#app" class="btn btn-gold btn-lg">Launch Olvana</a>
+      </div>
+    </section>
+  </main>
+
+  <footer class="wrap">
+    <div class="foot">
+      <div style="display:flex;flex-direction:column;gap:16px;max-width:380px">
+        <a href="#top" class="logo"><svg width="24" height="24" aria-hidden="true"><use href="#logo"/></svg>Olvana</a>
+        <p class="muted" style="margin:0;font-size:14px;line-height:1.6">Non-custodial software. Olvana does not hold your assets, give investment advice, or guarantee returns.</p>
+        <p class="mono" style="margin:0;font-size:11px;color:var(--faint)" id="dataNote">Figures shown are sample data until live vault data is connected.</p>
+      </div>
+      <div class="foot-cols">
+        <div><h4>Product</h4><a href="#app">Earn</a><a href="#vaults">Vaults</a><a href="#portfolio">Portfolio</a><a href="#rewards">Rewards</a></div>
+        <div><h4>Verify</h4><a href="https://robinhoodchain.blockscout.com" target="_blank" rel="noopener">Explorer</a><a href="#grades">Risk grades</a><a href="#alerts">Alerts</a></div>
+        <div><h4>Legal</h4><a href="#terms">Terms</a><a href="#risk">Risk disclosure</a></div>
+      </div>
+    </div>
+    <div class="foot-bottom"><span>© 2026 Olvana</span><span style="display:flex;align-items:center;gap:8px"><span class="dot"></span>All systems operational</span></div>
+  </footer>
+</div>
+
+<!-- ================= APP ================= -->
+<div id="appShell">
+  <header class="topbar">
+    <div class="left">
+      <a href="#top" class="logo" aria-label="Back to Olvana home"><svg width="24" height="24" aria-hidden="true"><use href="#logo"/></svg><span>Olvana</span></a>
+      <nav class="tabs" aria-label="App">
+        <a href="#app" data-route="app">Earn</a>
+        <a href="#vaults" data-route="vaults">Vaults</a>
+        <a href="#portfolio" data-route="portfolio">Portfolio</a>
+        <a href="#rewards" data-route="rewards">Rewards</a>
+        <a href="#alerts" data-route="alerts">Alerts</a>
+      </nav>
+    </div>
+    <div style="display:flex;align-items:center;gap:10px">
+      <span class="pts-pill" title="Season 1 points">✦ <span id="topPts">0</span> pts</span>
+      <span class="chain"><span class="dot"></span>Robinhood Chain</span>
+      <button class="wallet-btn" id="walletBtn" type="button">Connect wallet</button>
+    </div>
+  </header>
+  <main class="view" id="view"></main>
+</div>
+
+<button class="demo-fab" id="demoFab" type="button" aria-expanded="false" aria-controls="demoPanel">✦ Demo controls</button>
+<div class="demo-panel" id="demoPanel">
+  <p>Prototype controls. Transactions are simulated; nothing touches a real wallet balance.</p>
+  <button class="btn btn-glass" type="button" id="dmFF">Fast-forward 30 days</button>
+  <button class="btn btn-glass" type="button" id="dmStress">Stress test: spike utilization</button>
+  <button class="btn btn-glass" type="button" id="dmRef">Simulate a referral deposit</button>
+  <button class="btn btn-glass" type="button" id="dmReset">Reset demo</button>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script>
+(() => {
+/* =====================================================================
+   CONFIG — Michael: fill these in for production
+   ===================================================================== */
+const CONFIG = {
+  chainName: 'Robinhood Chain',
+  chainId: null,                 // Robinhood Chain id (number). While null, live Morpho data is skipped.
+  explorer: 'https://robinhoodchain.blockscout.com',
+  morphoApi: 'https://api.morpho.org/graphql',
+  perfFee: 0.10,                 // 10% of yield
+  siteUrl: 'https://olvana.org',
+  telegramBot: '[your_bot]',     // e.g. 'OlvanaAlertsBot'. Placeholder = demo mode.
+  refShare: 0.10                 // referrer gets 10% of referee points
+};
+
+// Sample vaults. `address` → real Morpho vault address to enable live data.
+const COLLAT_Q = { blue: 1, mid: 0.6, tail: 0.2 };
+const VAULTS = [
+  { id:'core',  name:'USDG Core',  curator:'[Curator A]', address:null, gross:8.24, tvl:12.84e6, util:82, liq:2.31e6,
+    oracle:'Chainlink', oracleScore:25, incidents:0,
+    collateral:[{a:'WETH',s:46,l:86,q:'blue'},{a:'WBTC',s:31,l:86,q:'blue'},{a:'TSLA (tokenized)',s:23,l:77,q:'mid'}] },
+  { id:'prime', name:'USDG Prime', curator:'[Curator B]', address:null, gross:6.40, tvl:5.06e6, util:61, liq:1.97e6,
+    oracle:'Chainlink', oracleScore:25, incidents:0,
+    collateral:[{a:'WETH',s:60,l:86,q:'blue'},{a:'WBTC',s:40,l:86,q:'blue'}] },
+  { id:'boost', name:'USDG Boost', curator:'[Curator C]', address:null, gross:14.20, tvl:3.21e6, util:93, liq:0.22e6,
+    oracle:'DEX TWAP', oracleScore:8, incidents:1,
+    collateral:[{a:'TSLA (tokenized)',s:40,l:77,q:'mid'},{a:'NVDA (tokenized)',s:25,l:77,q:'mid'},{a:'[Small-cap token]',s:35,l:70,q:'tail'}] }
+];
+const SW_COLORS = ['#A99BFF','#4D8BFF','#3A3D5C'];
+
+/* ===================== helpers ===================== */
+const $ = id => document.getElementById(id);
+const fmt = (n, d = 2) => Number(n).toLocaleString('en-US', { minimumFractionDigits: d, maximumFractionDigits: d });
+const fmtInt = n => Math.floor(n).toLocaleString('en-US');
+const fmtUsdShort = n => n >= 1e6 ? '$' + (n / 1e6).toFixed(2) + 'M' : n >= 1e3 ? '$' + (n / 1e3).toFixed(1) + 'K' : '$' + fmt(n);
+const short = a => a ? a.slice(0, 6) + '…' + a.slice(-4) : '';
+const esc = s => String(s).replace(/[&<>"']/g, c => ({ '&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;' }[c]));
+const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
+const tickSvg = (s = 16) => `<svg width="${s}" height="${s}" aria-hidden="true"><use href="#tick"/></svg>`;
+const warnSvg = (s = 18) => `<svg width="${s}" height="${s}" aria-hidden="true"><use href="#warn"/></svg>`;
+const randHex = n => Array.from({ length: n }, () => '0123456789abcdef'[Math.random() * 16 | 0]).join('');
+
+/* ===================== state ===================== */
+const KEY = 'olvana-demo-v2';
+const fresh = () => ({
+  connected:false, address:null, real:false, wallet:5000,
+  positions:{},               // id -> {bal, principal}
+  history:[], points:0, refPoints:0, invites:0, referredBy:null,
+  day:0, snapshots:[{ day:0, value:0 }],
+  vaultId:'core', tab:'deposit',
+  alerts:{ tg:false, daily:true, util:true, collateral:true, threshold:95 },
+  stress:false, alerted:{}
+});
+let S = fresh();
+try { const saved = JSON.parse(localStorage.getItem(KEY)); if (saved) S = Object.assign(fresh(), saved); } catch (e) {}
+const save = () => { try { localStorage.setItem(KEY, JSON.stringify(S)); } catch (e) {} };
+let UI = { amount:'', stage:'form', range:'30D', last:null };
+
+/* ===================== vault math ===================== */
+const vault = id => {
+  const v = VAULTS.find(x => x.id === id) || VAULTS[0];
+  if (S.stress && v.id === 'boost') return { ...v, util: 98.6, liq: 0.04e6 };
+  return v;
+};
+const netApy = v => v.netOverride != null ? v.netOverride : v.gross * (1 - CONFIG.perfFee);
+function risk(v) {
+  const u = v.util < 85 ? 25 : v.util < 95 ? 15 : 5;
+  const cq = v.collateral.reduce((t, c) => t + (c.s / 100) * COLLAT_Q[c.q], 0);
+  const c = Math.round(cq * 30 * 10) / 10;
+  const o = v.oracleScore;
+  const cu = v.incidents === 0 ? 20 : 10;
+  const score = Math.round(u + c + o + cu);
+  const grade = score >= 80 ? 'A' : score >= 60 ? 'B' : 'C';
+  return { score, grade, parts: [
+    { k:'Utilization', p:u, m:25, note: v.util < 85 ? 'Healthy room for withdrawals' : v.util < 95 ? 'Getting tight; exits may slow' : 'Near full; exits can be delayed' },
+    { k:'Collateral quality', p:c, m:30, note: v.collateral.map(x => x.a).join(', ') },
+    { k:'Oracle', p:o, m:25, note: v.oracle === 'Chainlink' ? 'Established push oracle' : 'DEX-based pricing, easier to distort' },
+    { k:'Curator record', p:cu, m:20, note: v.incidents === 0 ? 'No recorded incidents' : v.incidents + ' past incident on record' }
+  ]};
+}
+const gradeChip = (v, withScore = true) => { const r = risk(v); return `<span class="grade g${r.grade}" title="Risk score ${r.score}/100"><b><span>${r.grade}</span></b>${withScore ? r.score + '/100' : 'Grade ' + r.grade}</span>`; };
+const totalBal = () => Object.values(S.positions).reduce((t, p) => t + p.bal, 0);
+const totalPrincipal = () => Object.values(S.positions).reduce((t, p) => t + p.principal, 0);
+const refCode = () => 'OLV-' + (S.address ? S.address.slice(-4).toUpperCase() : '0000');
+const refLink = () => `${CONFIG.siteUrl}/?ref=${refCode()}`;
+
+/* ===================== toast ===================== */
+function toast(msg, warn = false) {
+  const t = $('toast');
+  t.innerHTML = (warn ? warnSvg(16) : tickSvg(16)) + '<span>' + msg + '</span>';
+  t.classList.toggle('warn', warn);
+  t.classList.add('show');
+  clearTimeout(t._h); t._h = setTimeout(() => t.classList.remove('show'), 3200);
+}
+
+/* ===================== wallet ===================== */
+async function connect() {
+  if (S.connected) {
+    if (confirm('Disconnect wallet? Demo balances stay saved in this browser.')) { S.connected = false; save(); render(); }
+    return;
+  }
+  let addr = null, real = false;
+  if (window.ethereum) {
+    try { const a = await window.ethereum.request({ method: 'eth_requestAccounts' }); addr = a && a[0]; real = !!addr; }
+    catch (e) { toast('Wallet request was rejected', true); return; }
+  }
+  if (!addr) addr = '0x' + randHex(36) + '7a3f';
+  Object.assign(S, { connected:true, address:addr, real });
+  save(); render();
+  toast(real ? 'Wallet connected · balances are simulated' : 'Demo wallet connected');
+}
+$('walletBtn').addEventListener('click', connect);
+
+/* ===================== accrual ===================== */
+function accrue(days) {
+  let pts = 0;
+  for (const [id, p] of Object.entries(S.positions)) {
+    const r = netApy(vault(id)) / 100 / 365;
+    const start = p.bal;
+    p.bal = p.bal * Math.pow(1 + r, days);
+    pts += (start + p.bal) / 2 * days;
+  }
+  S.points += pts;
+  if (S.invites > 0) S.refPoints += S.invites * 1500 * days * CONFIG.refShare;
+}
+function snapshot() { S.snapshots.push({ day: S.day, value: totalBal() }); if (S.snapshots.length > 200) S.snapshots.shift(); }
+
+// real-time trickle (1 second of accrual per second) — updates counters only
+setInterval(() => {
+  if (!Object.keys(S.positions).length) return;
+  accrue(1 / 86400);
+  updateLive();
+}, 1000);
+setInterval(save, 10000);
+
+function updateLive() {
+  const tb = totalBal(), earned = tb - totalPrincipal() + 0;
+  const set = (id, v) => { const el = $(id); if (el) el.textContent = v; };
+  set('topPts', fmtInt(S.points + S.refPoints));
+  set('lvBal', fmt(tb, 4));
+  set('lvEarn', '+' + fmt(Math.max(0, earned), 6));
+  set('lvPts', fmtInt(S.points + S.refPoints));
+  set('lvPtsBig', fmtInt(S.points + S.refPoints));
+  const p = S.positions[S.vaultId];
+  set('posDep', p ? fmt(p.bal, 4) : '0.00');
+}
+
+/* ===================== alerts engine ===================== */
+function checkAlerts(silent) {
+  for (const v0 of VAULTS) {
+    const v = vault(v0.id);
+    const over = v.util >= S.alerts.threshold;
+    const key = v.id + ':util';
+    if (over && !S.alerted[key]) {
+      S.alerted[key] = true;
+      if (!silent && S.alerts.util) {
+        const held = S.positions[v.id] ? ` You hold ${fmt(S.positions[v.id].bal)} USDG there.` : '';
+        toast(`${v.name} utilization ${v.util.toFixed(1)}%. Withdrawals may be delayed.${held}${S.alerts.tg ? ' Sent to Telegram.' : ''}`, true);
+      }
+    }
+    if (!over) delete S.alerted[key];
+  }
+}
+
+/* ===================== router ===================== */
+const APP_ROUTES = ['app','vaults','portfolio','rewards','alerts','risk','terms'];
+let lastRoute = null;
+function route() {
+  const h = location.hash.replace('#', '');
+  const inApp = APP_ROUTES.includes(h);
+  const dp = document.getElementById('demoPanel'); if (dp) { dp.classList.remove('open'); document.getElementById('demoFab').setAttribute('aria-expanded', false); }
+  document.body.classList.toggle('in-app', inApp);
+  if (inApp) {
+    if (h !== lastRoute) { UI.stage = 'form'; window.scrollTo(0, 0); }
+    lastRoute = h;
+    render();
+  } else {
+    lastRoute = null;
+    renderLanding();
+  }
+}
+window.addEventListener('hashchange', route);
+
+/* ===================== render: shell ===================== */
+function render() {
+  const h = location.hash.replace('#', '');
+  document.querySelectorAll('.tabs a').forEach(a => a.classList.toggle('on', a.dataset.route === h));
+  const w = $('walletBtn');
+  w.textContent = S.connected ? short(S.address) : 'Connect wallet';
+  w.classList.toggle('on', S.connected);
+  ({ app:viewEarn, vaults:viewVaults, portfolio:viewPortfolio, rewards:viewRewards, alerts:viewAlerts, risk:viewRisk, terms:viewTerms }[h] || viewEarn)();
+  updateLive();
+}
+
+/* ===================== EARN ===================== */
+function seriesFor(v, r) {
+  const n = { '7D': 8, '30D': 30, '90D': 45 }[r];
+  const base = netApy(v), amp = v.id === 'boost' ? 2.2 : v.id === 'prime' ? 0.5 : 0.9;
+  const seed = v.id.charCodeAt(0);
+  return Array.from({ length: n }, (_, i) => base - amp * 0.6 + amp * (Math.sin(i * 0.7 + seed) * 0.5 + Math.sin(i * 0.23 + seed * 2) * 0.35 + i / n * 0.6));
+}
+function chartPaths(vals, w = 820, h = 190, pad = 18) {
+  const mn = Math.min(...vals), mx = Math.max(...vals), span = (mx - mn) || 1;
+  const step = w / (vals.length - 1);
+  const pts = vals.map((y, i) => [i * step, pad + (1 - (y - mn) / span) * (h - pad * 2)]);
+  const line = 'M' + pts.map(p => p[0].toFixed(1) + ',' + p[1].toFixed(1)).join(' L');
+  return { line, area: line + ` L${w},${h} L0,${h} Z`, mn, mx };
+}
+
+function viewEarn() {
+  const v = vault(S.vaultId), r = risk(v), n = netApy(v);
+  const hot = v.util >= S.alerts.threshold;
+  const ch = chartPaths(seriesFor(v, UI.range));
+  const pos = S.positions[v.id];
+  $('view').innerHTML = `
+    <div class="vpick" role="tablist" aria-label="Choose vault">
+      ${VAULTS.map(x => { const vx = vault(x.id); return `<button type="button" role="tab" aria-selected="${x.id === v.id}" class="${x.id === v.id ? 'on' : ''}" data-v="${x.id}">${x.name} <span class="mono">${fmt(netApy(vx))}%</span>${gradeChip(vx, false)}</button>`; }).join('')}
+    </div>
+    ${hot ? `<div class="alert" role="alert">${warnSvg()}<div><b>${v.name} utilization is ${v.util.toFixed(1)}%.</b> Only ${fmtUsdShort(v.liq)} can leave right now. New deposits still work, but withdrawals may wait until borrowers repay.</div></div>` : ''}
+    <div class="app-grid">
+      <div>
+        <div class="panel action" id="action"></div>
+        <div class="panel pos">
+          <div><small>Your balance</small><b id="posDep">${pos ? fmt(pos.bal, 4) : '0.00'}</b></div>
+          <div><small>Est. per day</small><b class="gold">+${fmt((pos ? pos.bal : 0) * n / 100 / 365)}</b></div>
+          <div><small>Wallet USDG</small><b>${S.connected ? fmt(S.wallet) : '—'}</b></div>
+        </div>
+      </div>
+      <div class="right">
+        <div class="vault-head">
+          <div><h2>${v.name}</h2><p>Curated by ${esc(v.curator)} · ${v.address ? `<a href="${CONFIG.explorer}/address/${v.address}" target="_blank" rel="noopener">${short(v.address)} ↗</a>` : 'vault address [pending]'} · non-custodial</p></div>
+          <div style="display:flex;gap:8px;align-items:center">${gradeChip(v)}<span class="tag ${v.live ? 'live' : ''}">${v.live ? '● Live' : 'Sample data'}</span></div>
+        </div>
+        <div class="statrow">
+          <div class="panel"><small>Net APY (7d)</small><b class="gold">${fmt(n)}%</b><em>${fmt(v.gross)}% gross − 10% fee</em></div>
+          <div class="panel"><small>Total deposits</small><b>${fmtUsdShort(v.tvl)}</b></div>
+          <div class="panel"><small>Utilization</small><b style="${hot ? 'color:var(--warn)' : ''}">${v.util.toFixed(1)}%</b><div class="bar ${hot ? 'hot' : ''}"><i style="width:${Math.min(100, v.util)}%"></i></div></div>
+          <div class="panel"><small>Withdrawable now</small><b>${fmtUsdShort(v.liq)}</b></div>
+        </div>
+        <div class="panel">
+          <div class="chart-head">
+            <h3 class="h4">Net APY history</h3>
+            <div class="ranges" role="group" aria-label="Chart range">${['7D','30D','90D'].map(x => `<button type="button" data-r="${x}" class="${UI.range === x ? 'on' : ''}">${x}</button>`).join('')}</div>
+          </div>
+          <svg class="chart" viewBox="0 0 820 190" preserveAspectRatio="none" role="img" aria-label="Net APY history, ${UI.range}">
+            <path d="M0 40H820M0 95H820M0 150H820" stroke="rgba(255,255,255,.06)"/>
+            <path d="${ch.area}" fill="#A99BFF" fill-opacity=".08"/>
+            <path d="${ch.line}" stroke="#A99BFF" stroke-width="2" fill="none" stroke-linejoin="round" vector-effect="non-scaling-stroke"/>
+          </svg>
+          <div class="chart-foot"><span>${{ '7D':'7 days ago','30D':'30 days ago','90D':'90 days ago' }[UI.range]}</span><span>Range ${fmt(ch.mn)}–${fmt(ch.mx)}%</span><span>Today</span></div>
+        </div>
+        <div class="lower">
+          <div class="panel">
+            <h3 class="h4">Risk breakdown</h3>
+            <div class="rb">${r.parts.map(p => `<div class="rb-row"><div class="t"><span>${p.k}</span><span>${Math.round(p.p)}/${p.m}</span></div><div class="bar ${p.p / p.m < 0.5 ? 'hot' : ''}"><i style="width:${p.p / p.m * 100}%"></i></div><small>${esc(p.note)}</small></div>`).join('')}</div>
+          </div>
+          <div class="panel">
+            <h3 class="h4">Collateral exposure</h3>
+            <div class="comp">${v.collateral.map((c, i) => `<div style="width:${c.s}%;background:${SW_COLORS[i]}"></div>`).join('')}</div>
+            <div class="rows" style="font-size:14px">${v.collateral.map((c, i) => `<div><span style="color:var(--ink)"><i class="sw" style="background:${SW_COLORS[i]}"></i>${esc(c.a)}</span><span class="muted">${c.s}% · LLTV ${c.l}%</span></div>`).join('')}
+              <div><span>Oracle</span><span>${v.oracle}</span></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>`;
+  $('view').querySelectorAll('[data-v]').forEach(b => b.onclick = () => { S.vaultId = b.dataset.v; UI.amount = ''; UI.stage = 'form'; save(); render(); });
+  $('view').querySelectorAll('[data-r]').forEach(b => b.onclick = () => { UI.range = b.dataset.r; render(); });
+  ({ form: renderForm, review: renderReview, done: renderDone })[UI.stage]();
+}
+
+const amt = () => parseFloat(UI.amount) || 0;
+const maxAmt = () => S.tab === 'deposit' ? S.wallet : (S.positions[S.vaultId]?.bal || 0);
+
+function formState() {
+  const isDep = S.tab === 'deposit', a = amt(), max = maxAmt(), v = vault(S.vaultId);
+  const liqBlock = !isDep && a > v.liq;
+  const valid = S.connected && a > 0 && a <= max + 1e-9 && !liqBlock;
+  let label;
+  if (!S.connected) label = 'Connect wallet';
+  else if (a <= 0) label = 'Enter an amount';
+  else if (a > max + 1e-9) label = isDep ? 'Insufficient USDG' : 'Exceeds your balance';
+  else if (liqBlock) label = 'Not enough vault liquidity';
+  else label = isDep ? 'Review deposit' : 'Review withdrawal';
+  return { isDep, a, max, valid, label, enabled: !S.connected || valid, v };
+}
+
+function renderForm() {
+  const f = formState(), n = netApy(f.v);
+  $('action').innerHTML = `
+    <div class="seg" role="tablist" aria-label="Action">
+      <button type="button" role="tab" aria-selected="${f.isDep}" class="${f.isDep ? 'on' : ''}" data-tab="deposit">Deposit</button>
+      <button type="button" role="tab" aria-selected="${!f.isDep}" class="${!f.isDep ? 'on' : ''}" data-tab="withdraw">Withdraw</button>
+    </div>
+    <div class="amount-box">
+      <div class="amount-top"><label for="amt">${f.isDep ? 'You deposit' : 'You withdraw'}</label><span class="mono">${S.connected ? (f.isDep ? 'Wallet ' : 'Balance ') + fmt(f.max) : 'Wallet not connected'}</span></div>
+      <div class="amount-row"><input id="amt" inputmode="decimal" autocomplete="off" placeholder="0.00" value="${esc(UI.amount)}" aria-describedby="pv"><span class="token"><i>$</i>USDG</span></div>
+      <div class="chips">${[25, 50, 75, 100].map(p => `<button type="button" data-p="${p}">${p === 100 ? 'MAX' : p + '%'}</button>`).join('')}</div>
+    </div>
+    <div class="rows" style="font-size:14px">
+      <div><span>Net APY</span><span class="gold">${fmt(n)}%</span></div>
+      <div><span id="pvL">${f.isDep ? 'Est. yearly earnings' : 'You receive'}</span><span id="pv">${f.isDep ? '+' + fmt(f.a * n / 100) + ' USDG' : fmt(f.a) + ' USDG'}</span></div>
+      <div><span>${f.isDep ? 'Points per day' : 'Deposit / withdraw fee'}</span><span id="pv2" class="${f.isDep ? 'gold' : ''}">${f.isDep ? '+' + fmtInt(f.a) : '0.00 USDG'}</span></div>
+      <div><span>Risk grade</span><span>${gradeChip(f.v)}</span></div>
+    </div>
+    <div class="grow"></div>
+    <button type="button" class="btn btn-gold" id="primary" ${f.enabled ? '' : 'disabled'}>${f.label}</button>`;
+
+  $('action').querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { S.tab = b.dataset.tab; UI.amount = ''; renderForm(); });
+  $('action').querySelectorAll('[data-p]').forEach(b => b.onclick = () => {
+    if (!S.connected) return connect();
+    const m = maxAmt(); if (m <= 0) return toast(S.tab === 'deposit' ? 'No USDG in wallet' : 'Nothing to withdraw from this vault', true);
+    UI.amount = (Math.floor(m * +b.dataset.p) / 100).toFixed(2);
+    $('amt').value = UI.amount; updateForm();
+  });
+  const inp = $('amt');
+  inp.addEventListener('input', () => {
+    let v = inp.value.replace(/[^0-9.]/g, ''); const parts = v.split('.');
+    if (parts.length > 2) v = parts[0] + '.' + parts.slice(1).join('');
+    if (v !== inp.value) inp.value = v;
+    UI.amount = v; updateForm();
+  });
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') $('primary').click(); });
+  $('primary').onclick = () => {
+    const s = formState();
+    if (!S.connected) connect(); else if (s.valid) { UI.stage = 'review'; renderReview(); }
+  };
+}
+function updateForm() {
+  const f = formState(), n = netApy(f.v);
+  $('pv').textContent = f.isDep ? '+' + fmt(f.a * n / 100) + ' USDG' : fmt(f.a) + ' USDG';
+  if (f.isDep) $('pv2').textContent = '+' + fmtInt(f.a);
+  const b = $('primary'); b.textContent = f.label; b.disabled = !f.enabled;
+}
+
+function renderReview() {
+  const isDep = S.tab === 'deposit', v = vault(S.vaultId), a = amt(), r = risk(v);
+  const checks = [
+    { l: 'Vault contract on allowlist', ok: true },
+    { l: 'Transaction simulated', ok: true },
+    { l: isDep ? 'Vault accepting deposits' : 'Liquidity available to exit', ok: true },
+    { l: 'Oracle prices in range', ok: v.oracle === 'Chainlink', warn: 'DEX-priced collateral' }
+  ];
+  $('action').innerHTML = `
+    <div><div class="mono muted" style="font-size:12px;margin-bottom:10px">${isDep ? 'Review deposit' : 'Review withdrawal'} · ${v.name}</div>
+    <div class="review-amt">${fmt(a)} <small>USDG</small></div></div>
+    <div class="rows" style="font-size:14px;border-top:1px solid var(--line2)">
+      <div><span>Vault</span><span>${v.name} · Morpho</span></div>
+      <div><span>Risk grade</span><span>${gradeChip(v)}</span></div>
+      <div><span>Est. network fee</span><span>~$0.01</span></div>
+    </div>
+    <div style="font-size:13px;font-weight:600">Pre-flight checks</div>
+    <div class="pf">${checks.map((c, i) => `<div class="pf-item" id="pf${i}"><span class="ic"><span class="spin"></span>${c.l}</span><span class="st">Checking</span></div>`).join('')}</div>
+    ${isDep && r.grade === 'C' ? `<div class="alert" style="margin:0">${warnSvg()}<div><b>Grade C vault.</b> Higher yield comes from riskier collateral and pricing. Only deposit what you can afford to have locked or lost.</div></div>` : ''}
+    <div class="grow"></div>
+    <div class="two">
+      <button type="button" class="btn btn-glass" id="back">Back</button>
+      <button type="button" class="btn btn-gold" id="confirm" style="flex:1" disabled>Running checks</button>
+    </div>`;
+  $('back').onclick = () => { UI.stage = 'form'; renderForm(); };
+  checks.forEach((c, i) => setTimeout(() => {
+    const el = $('pf' + i); if (!el) return;
+    if (c.ok) { el.classList.add('ok'); el.querySelector('.spin').outerHTML = tickSvg(); el.querySelector('.st').textContent = 'Passed'; }
+    else { el.classList.add('bad'); el.querySelector('.spin').outerHTML = warnSvg(16); el.querySelector('.st').textContent = c.warn; }
+    if (i === checks.length - 1) { const b = $('confirm'); b.disabled = false; b.textContent = 'Confirm in wallet'; b.onclick = confirmTx; }
+  }, reduceMotion ? 0 : 320 + i * 360));
+}
+
+function confirmTx() {
+  const isDep = S.tab === 'deposit', a = amt(), v = vault(S.vaultId);
+  const p = S.positions[v.id] || (S.positions[v.id] = { bal: 0, principal: 0 });
+  if (isDep) { S.wallet -= a; p.bal += a; p.principal += a; }
+  else { const share = a / p.bal; p.principal -= p.principal * share; p.bal -= a; S.wallet += a; if (p.bal < 0.005) delete S.positions[v.id]; }
+  const hash = '0x' + randHex(64);
+  S.history.unshift({ day: S.day, date: new Date(Date.now() + S.day * 864e5).toISOString().slice(0, 10), kind: isDep ? 'Deposit' : 'Withdrawal', vault: v.name, amount: a, hash, sim: true });
+  S.history = S.history.slice(0, 100);
+  snapshot(); save();
+  UI.last = { dep: isDep, amt: fmt(a), vault: v.name, hash };
+  UI.stage = 'done'; UI.amount = '';
+  render();
+  toast(isDep ? 'Deposit confirmed' : 'Withdrawal confirmed');
+}
+
+function renderDone() {
+  const l = UI.last;
+  $('action').innerHTML = `
+    <div class="done">
+      <div class="ring">${tickSvg(30)}</div>
+      <h3>${l.dep ? 'Deposit confirmed' : 'Withdrawal confirmed'}</h3>
+      <p>${l.dep ? `${l.amt} USDG is now earning in ${l.vault}. Points start accruing today.` : `${l.amt} USDG is back in your wallet.`}</p>
+      <span class="mono muted" style="font-size:12px">Simulated tx ${short(l.hash)}</span>
+      <div class="two"><a href="#portfolio" class="btn btn-glass">View portfolio</a><button type="button" class="btn btn-gold" id="again">Done</button></div>
+    </div>`;
+  $('again').onclick = () => { UI.stage = 'form'; renderForm(); };
+}
+
+/* ===================== VAULTS ===================== */
+function vaultCard(v0, inApp) {
+  const v = vault(v0.id), r = risk(v), hot = v.util >= S.alerts.threshold;
+  return `<article class="vcard ${inApp && S.vaultId === v.id ? 'sel' : ''}">
+    <div class="vcard-top"><div><h3>${v.name}</h3><div class="muted" style="font-size:13px;margin-top:4px">${esc(v.curator)}</div></div>${gradeChip(v)}</div>
+    <div><div class="apy">${fmt(netApy(v))}<span class="gold">%</span></div><div class="muted" style="font-size:13px;margin-top:6px">Net APY · ${fmt(v.gross)}% gross</div></div>
+    <div class="rows" style="font-size:13px">
+      <div><span>Total deposits</span><span>${fmtUsdShort(v.tvl)}</span></div>
+      <div><span>Utilization</span><span style="${hot ? 'color:var(--warn)' : ''}">${v.util.toFixed(1)}%</span></div>
+      <div><span>Oracle</span><span>${v.oracle}</span></div>
+    </div>
+    <div class="collat">${v.collateral.map(c => `<span>${esc(c.a)} ${c.s}%</span>`).join('')}</div>
+    <a href="#app" class="btn ${r.grade === 'C' ? 'btn-glass' : 'btn-gold'}" data-pick="${v.id}" style="width:100%">Deposit in ${v.name.replace('USDG ', '')}</a>
+  </article>`;
+}
+function bindPicks(root) { root.querySelectorAll('[data-pick]').forEach(a => a.addEventListener('click', () => { S.vaultId = a.dataset.pick; S.tab = 'deposit'; save(); })); }
+
+function viewVaults() {
+  $('view').innerHTML = `
+    <div class="page-head"><div><h1>Vaults</h1><p>Compare yield against risk. Grades update as utilization and collateral change.</p></div><span class="tag">Sample data</span></div>
+    <div class="vgrid" style="margin-top:0">${VAULTS.map(v => vaultCard(v, true)).join('')}</div>
+    <div class="panel" style="margin-top:20px">
+      <h3 class="h4" style="margin-bottom:18px">Side by side</h3>
+      <div class="scrollx"><table class="tbl">
+        <thead><tr><th>Vault</th><th>Net APY</th><th>Grade</th><th>Utilization</th><th>Withdrawable</th><th>Oracle</th><th>Blue-chip collateral</th></tr></thead>
+        <tbody>${VAULTS.map(v0 => { const v = vault(v0.id), r = risk(v); const blue = v.collateral.filter(c => c.q === 'blue').reduce((t, c) => t + c.s, 0);
+          return `<tr><td>${v.name}</td><td class="n gold">${fmt(netApy(v))}%</td><td>${gradeChip(v)}</td><td class="n">${v.util.toFixed(1)}%</td><td class="n">${fmtUsdShort(v.liq)}</td><td>${v.oracle}</td><td class="n">${blue}%</td></tr>`; }).join('')}</tbody>
+      </table></div>
+    </div>`;
+  bindPicks($('view'));
+}
+
+/* ===================== PORTFOLIO ===================== */
+function viewPortfolio() {
+  const tb = totalBal(), pr = totalPrincipal();
+  const ids = Object.keys(S.positions);
+  const snaps = S.snapshots.filter(s => s.value > 0 || s.day > 0);
+  let chart = `<div class="empty">Make a deposit, then use <b style="color:var(--gold)">Demo controls → Fast-forward</b> to watch your balance grow.</div>`;
+  if (snaps.length >= 2) {
+    const vals = snaps.map(s => s.value);
+    const c = chartPaths(vals);
+    chart = `<svg class="chart" viewBox="0 0 820 190" preserveAspectRatio="none" role="img" aria-label="Balance over time"><path d="M0 40H820M0 95H820M0 150H820" stroke="rgba(255,255,255,.06)"/><path d="${c.area}" fill="#A99BFF" fill-opacity=".08"/><path d="${c.line}" stroke="#A99BFF" stroke-width="2" fill="none" vector-effect="non-scaling-stroke"/></svg>
+      <div class="chart-foot"><span>Day ${snaps[0].day}</span><span>Low ${fmt(c.mn)} · High ${fmt(c.mx)}</span><span>Day ${S.day}</span></div>`;
+  }
+  const weighted = tb ? ids.reduce((t, id) => t + S.positions[id].bal * netApy(vault(id)), 0) / tb : 0;
+  $('view').innerHTML = `
+    <div class="page-head"><div><h1>Portfolio</h1><p>${S.connected ? 'Wallet ' + short(S.address) : 'Connect a wallet to start'} · day ${S.day} of Season 1</p></div>
+      <button type="button" class="btn btn-glass btn-sm" id="csv" ${S.history.length ? '' : 'disabled'}>Export history (CSV)</button></div>
+    <div class="kgrid">
+      <div class="panel kcard"><small>Total balance</small><b id="lvBal">${fmt(tb, 4)}</b><em>USDG</em></div>
+      <div class="panel kcard"><small>Total earned</small><b class="gold" id="lvEarn">+${fmt(Math.max(0, tb - pr), 6)}</b><em>since first deposit</em></div>
+      <div class="panel kcard"><small>Blended net APY</small><b>${fmt(weighted)}%</b><em>weighted by balance</em></div>
+      <div class="panel kcard"><small>Season 1 points</small><b id="lvPts">${fmtInt(S.points + S.refPoints)}</b><em><a href="#rewards" class="gold">View rewards</a></em></div>
+    </div>
+    <div class="two-col">
+      <div class="panel"><div class="chart-head"><h3 class="h4">Balance over time</h3></div>${chart}</div>
+      <div class="panel">
+        <h3 class="h4" style="margin-bottom:12px">Positions</h3>
+        ${ids.length ? `<div class="rows" style="font-size:14px">${ids.map(id => { const v = vault(id), p = S.positions[id]; return `<div><span style="color:var(--ink);display:flex;align-items:center;gap:10px">${v.name} ${gradeChip(v, false)}</span><span>${fmt(p.bal)}<br><small class="gold" style="font-size:11px">+${fmt(p.bal - p.principal, 4)}</small></span></div>`; }).join('')}</div>`
+        : `<div class="empty">No open positions.<a href="#app" class="btn btn-gold btn-sm">Make a deposit</a></div>`}
+      </div>
+    </div>
+    <div class="panel">
+      <h3 class="h4" style="margin-bottom:18px">Transaction history</h3>
+      ${S.history.length ? `<div class="scrollx"><table class="tbl"><thead><tr><th>Date</th><th>Action</th><th>Vault</th><th>Amount</th><th>Transaction</th></tr></thead><tbody>
+        ${S.history.map(h => `<tr><td class="n">${h.date}</td><td>${h.kind}</td><td>${h.vault}</td><td class="n ${h.kind === 'Deposit' ? 'gold' : ''}">${h.kind === 'Deposit' ? '+' : '−'}${fmt(h.amount)} USDG</td><td class="n muted">${h.sim ? short(h.hash) + ' <span style="font-size:11px">(simulated)</span>' : `<a href="${CONFIG.explorer}/tx/${h.hash}" target="_blank" rel="noopener" class="gold">${short(h.hash)} ↗</a>`}</td></tr>`).join('')}
+      </tbody></table></div>` : `<div class="empty">Deposits and withdrawals show up here.</div>`}
+    </div>`;
+  const b = $('csv');
+  if (b) b.onclick = () => {
+    const rows = [['date', 'action', 'vault', 'amount_usdg', 'tx_hash', 'simulated']].concat(S.history.map(h => [h.date, h.kind, h.vault, h.amount.toFixed(2), h.hash, h.sim ? 'yes' : 'no']));
+    const blob = new Blob([rows.map(r => r.join(',')).join('\n')], { type: 'text/csv' });
+    const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'olvana-history.csv';
+    document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+    toast('History exported');
+  };
+}
+
+/* ===================== REWARDS ===================== */
+function viewRewards() {
+  const tb = totalBal();
+  $('view').innerHTML = `
+    <div class="page-head"><div><h1>Rewards</h1><p>Season 1 · ends [date]. Points are tracked per wallet.</p></div></div>
+    <div class="two-col">
+      <div class="panel" style="padding:32px;display:flex;flex-direction:column;gap:28px">
+        <div class="pts-hero"><span class="muted" style="font-size:14px">Your points</span><span class="n" id="lvPtsBig">${fmtInt(S.points + S.refPoints)}</span>
+          <span class="muted" style="font-size:14px">Earning <b class="gold" style="font-weight:600">+${fmtInt(tb)}</b> per day at your current balance</span></div>
+        <div class="ways">
+          <div><span>From deposits</span><span>${fmtInt(S.points)}</span></div>
+          <div><span>From referrals (${S.invites} friend${S.invites === 1 ? '' : 's'})</span><span>${fmtInt(S.refPoints)}</span></div>
+          <div><span>$[TICKER] holder boost</span><span class="muted" style="color:var(--muted)">[not holding]</span></div>
+        </div>
+      </div>
+      <div class="panel" style="padding:32px;display:flex;flex-direction:column;gap:20px">
+        <h3 class="h4" style="font-size:20px">Invite friends</h3>
+        <p class="muted" style="margin:0;font-size:15px;line-height:1.55">You get 10% of the points your friends earn. They keep 100% of theirs.</p>
+        ${S.connected ? `<div class="copybox"><code id="refLink">${esc(refLink())}</code><button type="button" class="btn btn-gold btn-sm" id="copyRef">Copy</button></div>
+          <div class="rows" style="font-size:14px"><div><span>Your code</span><span class="gold">${refCode()}</span></div><div><span>Friends deposited</span><span>${S.invites}</span></div>${S.referredBy ? `<div><span>Referred by</span><span>${esc(S.referredBy)}</span></div>` : ''}</div>`
+          : `<button type="button" class="btn btn-gold" id="refConnect">Connect wallet to get your link</button>`}
+      </div>
+    </div>
+    <div class="panel">
+      <h3 class="h4" style="margin-bottom:12px">How points work</h3>
+      <div class="ways">
+        <div><span>Deposit in any vault</span><span>1 pt per $ per day</span></div>
+        <div><span>Referral bonus</span><span>10% of friends' points</span></div>
+        <div><span>Hold $[TICKER]</span><span>[boost]× multiplier</span></div>
+        <div><span>What points are for</span><span style="color:var(--muted)">[Season 1 rewards — to be announced]</span></div>
+      </div>
+    </div>`;
+  const c = $('copyRef');
+  if (c) c.onclick = async () => { try { await navigator.clipboard.writeText(refLink()); toast('Referral link copied'); } catch (e) { toast('Copy failed — select the link manually', true); } };
+  const rc = $('refConnect'); if (rc) rc.onclick = connect;
+}
+
+/* ===================== ALERTS ===================== */
+function viewAlerts() {
+  const A = S.alerts;
+  const demoBot = CONFIG.telegramBot.startsWith('[');
+  const sw = (key, title, desc) => `<div class="toggle"><div><div style="font-weight:600;font-size:15px">${title}</div><p>${desc}</p></div><button type="button" class="sw-btn" role="switch" aria-checked="${A[key]}" aria-label="${title}" data-sw="${key}"></button></div>`;
+  $('view').innerHTML = `
+    <div class="page-head"><div><h1>Alerts</h1><p>Get warned before liquidity locks up, not after.</p></div></div>
+    <div class="two-col">
+      <div class="panel" style="padding:32px">
+        <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding-bottom:22px;border-bottom:1px solid var(--line2)">
+          <div><div style="font-weight:600;font-size:18px">Telegram</div><p class="muted" style="margin:6px 0 0;font-size:14px">${A.tg ? 'Connected. Alerts go to your Telegram.' : 'Link the Olvana bot to receive alerts in Telegram.'}</p></div>
+          <button type="button" class="btn ${A.tg ? 'btn-glass' : 'btn-gold'} btn-sm" id="tgBtn">${A.tg ? 'Disconnect' : 'Connect Telegram'}</button>
+        </div>
+        ${sw('daily', 'Daily earnings report', 'One message a day with your balance, earnings and points.')}
+        ${sw('util', 'Utilization warning', 'When a vault you hold crosses the threshold below.')}
+        ${sw('collateral', 'Collateral change', 'When the curator adds a new collateral type or raises a market cap.')}
+        <div style="padding-top:22px;display:flex;flex-direction:column;gap:14px">
+          <div style="display:flex;justify-content:space-between;font-size:14px"><label for="thr">Utilization threshold</label><span class="mono gold" id="thrLbl">${A.threshold}%</span></div>
+          <input type="range" id="thr" min="80" max="99" value="${A.threshold}">
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:14px">
+        <span class="muted" style="font-size:13px">Preview</span>
+        <div class="tgmsg"><div class="who"><span class="av">O</span>Olvana Alerts</div><div>Daily report · day ${S.day}<br>Balance <b>${fmt(totalBal())} USDG</b> · earned today <b class="gold">+${fmt(Object.entries(S.positions).reduce((t, [id, p]) => t + p.bal * netApy(vault(id)) / 100 / 365, 0))}</b><br>Points ${fmtInt(S.points + S.refPoints)}</div></div>
+        <div class="tgmsg warn"><div class="who"><span class="av">O</span>Olvana Alerts</div><div>USDG Boost utilization is <b style="color:var(--warn)">${vault('boost').util.toFixed(1)}%</b> (your threshold ${A.threshold}%). Withdrawable right now: ${fmtUsdShort(vault('boost').liq)}.</div></div>
+        ${demoBot ? '<p class="muted" style="font-size:12px;line-height:1.5;margin:0">Demo: set CONFIG.telegramBot to your bot username to open the real link.</p>' : ''}
+      </div>
+    </div>`;
+  $('view').querySelectorAll('[data-sw]').forEach(b => b.onclick = () => { const k = b.dataset.sw; A[k] = !A[k]; b.setAttribute('aria-checked', A[k]); save(); });
+  const thr = $('thr');
+  thr.oninput = () => { A.threshold = +thr.value; $('thrLbl').textContent = A.threshold + '%'; };
+  thr.onchange = () => { S.alerted = {}; save(); checkAlerts(false); render(); };
+  $('tgBtn').onclick = () => {
+    if (A.tg) { A.tg = false; save(); render(); toast('Telegram disconnected'); return; }
+    if (!S.connected) return connect();
+    if (!demoBot) window.open(`https://t.me/${CONFIG.telegramBot}?start=${refCode()}`, '_blank', 'noopener');
+    A.tg = true; save(); render(); toast(demoBot ? 'Telegram linked (demo)' : 'Finish linking in Telegram');
+  };
+}
+
+/* ===================== LEGAL ===================== */
+function viewRisk() {
+  $('view').innerHTML = `<article class="prose">
+    <h1>Risk disclosure</h1><p class="muted">Last updated [date]</p>
+    <div class="note">Draft for review. Have a lawyer familiar with your jurisdiction check this before launch.</div>
+    <p>Olvana is software that helps you supply USDG to third-party lending vaults on ${CONFIG.chainName}. Olvana never takes custody of your funds. Using it carries real risk of loss.</p>
+    <h2>Smart contract risk</h2><p>The vaults, markets and token contracts are code. Bugs or exploits in Morpho, the vault, USDG or any collateral token can result in partial or total loss.</p>
+    <h2>Collateral and liquidation risk</h2><p>Borrowers post collateral. If collateral falls in value faster than it can be liquidated, the vault can take bad debt, which reduces what depositors can withdraw.</p>
+    <h2>Oracle risk</h2><p>Markets rely on price oracles. A stale, manipulated or misconfigured oracle can let borrowers take loans against collateral priced too high.</p>
+    <h2>Liquidity risk</h2><p>You can only withdraw USDG that is not currently lent out. At high utilization, withdrawals may be delayed until borrowers repay.</p>
+    <h2>Curator risk</h2><p>Each vault's curator chooses which markets it lends to. A poor choice by the curator can expose your deposit to risky collateral.</p>
+    <h2>Stablecoin risk</h2><p>USDG may lose its peg to the US dollar.</p>
+    <h2>Rates and grades</h2><p>APY is variable and reflects past performance, not a promise. Risk grades summarize public data using Olvana's methodology. They are not a guarantee, a rating by a regulated agency, or investment advice.</p>
+    <h2>Points and $[TICKER]</h2><p>Points have no cash value and may change. $[TICKER] does not entitle holders to vault revenue or profits.</p>
+    <h2>Regulatory risk</h2><p>Laws around digital assets vary by country and may change. You are responsible for complying with the rules where you live.</p>
+  </article>`;
+}
+function viewTerms() {
+  $('view').innerHTML = `<article class="prose">
+    <h1>Terms of use</h1><p class="muted">Last updated [date] · [Company legal name]</p>
+    <div class="note">Template placeholder. Replace with terms drafted by counsel.</div>
+    <h2>1. The service</h2><p>Olvana provides a non-custodial interface to third-party smart contracts. We do not hold, control or transfer your assets.</p>
+    <h2>2. Eligibility</h2><p>You must be of legal age and not located in, or a resident of, [restricted jurisdictions].</p>
+    <h2>3. Your responsibilities</h2><p>You control your wallet and keys. Every transaction is signed by you, and blockchain transactions cannot be reversed.</p>
+    <h2>4. No advice</h2><p>Nothing on Olvana is financial, investment, legal or tax advice.</p>
+    <h2>5. Fees</h2><p>A performance fee of ${CONFIG.perfFee * 100}% of yield is set in each Olvana-curated vault. Network fees are paid to the blockchain, not to Olvana.</p>
+    <h2>6. Limitation of liability</h2><p>[To be drafted by counsel.]</p>
+    <h2>7. Changes</h2><p>We may update these terms. Continued use after changes means you accept them.</p>
+    <h2>8. Contact</h2><p>[contact email]</p>
+  </article>`;
+}
+
+/* ===================== LANDING ===================== */
+let heroOrder = ['core', 'prime', 'boost'];
+let gSel = 'core';
+function renderLanding() {
+  const vs = VAULTS.map(v => vault(v.id));
+  const maxNet = Math.max(...vs.map(netApy));
+  $('hfApy').textContent = fmt(maxNet) + '%';
+  $('heroNote').textContent = vs.some(v => v.live) ? 'live data' : 'sample data';
+  // deck
+  $('heroDeck').innerHTML = heroOrder.map((id, pos) => {
+    const v = vault(id), hot = v.util >= S.alerts.threshold;
+    return `<button type="button" class="dcard" data-pos="${pos}" data-id="${id}" aria-label="${v.name}, net APY ${fmt(netApy(v))}%, grade ${risk(v).grade}">
+      <div class="top"><div style="display:flex;align-items:center;gap:12px"><div class="coin">$</div><div><h3>${v.name}</h3><div class="muted" style="font-size:13px">${esc(v.curator)}</div></div></div>${gradeChip(v, false)}</div>
+      <div><div class="apy">${fmt(netApy(v))}%<small>net APY</small></div></div>
+      <div class="rows" style="font-size:13px">
+        <div><span>Total deposits</span><span>${fmtUsdShort(v.tvl)}</span></div>
+        <div><span>Utilization</span><span style="${hot ? 'color:var(--warn)' : ''}">${v.util.toFixed(1)}%</span></div>
+        <div><span>Withdrawable now</span><span>${fmtUsdShort(v.liq)}</span></div>
+      </div>
+      <div class="collat">${v.collateral.map(c => `<span>${esc(c.a)} ${c.s}%</span>`).join('')}</div>
+      <span class="go">Deposit in ${v.name.replace('USDG ', '')}</span>
+    </button>`;
+  }).join('');
+  const gcol = { A:'#7EE0B8', B:'#F5D06F', C:'#FF9270' };
+  const bringFront = id => {
+    heroOrder = [id, ...heroOrder.filter(x => x !== id)];
+    heroOrder.forEach((vid, pos) => { const el = $('heroDeck').querySelector(`[data-id="${vid}"]`); el.dataset.pos = pos; el.tabIndex = pos === 0 ? 0 : -1; el.setAttribute('aria-hidden', pos !== 0); });
+    $('deckPick').querySelectorAll('button').forEach(b => { const on = b.dataset.id === id; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
+  };
+  $('deckPick').innerHTML = ['core','prime','boost'].map(id => { const v = vault(id); return `<button type="button" data-id="${id}"><i style="background:${gcol[risk(v).grade]}"></i>${v.name.replace('USDG ', '')}</button>`; }).join('');
+  $('deckPick').querySelectorAll('button').forEach(b => b.onclick = () => bringFront(b.dataset.id));
+  $('heroDeck').querySelectorAll('.dcard').forEach(c => c.onclick = () => {
+    const id = c.dataset.id;
+    if (c.dataset.pos === '0') { S.vaultId = id; S.tab = 'deposit'; save(); location.hash = '#app'; return; }
+    bringFront(id);
+  });
+  bringFront(heroOrder[0]);
+  // marquee
+  const items = vs.map(v => `<div class="mq-item">${gradeChip(v, false)}<span>${v.name}</span><b class="gold">${fmt(netApy(v))}%</b><span class="muted">APY</span><b>${fmtUsdShort(v.tvl)}</b><span class="muted">TVL</span><b>${v.util.toFixed(1)}%</b><span class="muted">utilized</span></div>`).join('')
+    + `<div class="mq-item"><span class="dot"></span><span>Robinhood Chain</span></div><div class="mq-item"><span class="muted">Performance fee</span><b>10%</b><span class="muted">of yield</span></div>`;
+  $('marquee').innerHTML = items + items;
+  // grades
+  renderGrades();
+  // calculator
+  const sel = $('cVault');
+  sel.innerHTML = VAULTS.map(v => `<option value="${v.id}">${v.name} · ${fmt(netApy(vault(v.id)))}% · Grade ${risk(vault(v.id)).grade}</option>`).join('');
+  if (calcVault) sel.value = calcVault;
+  calc();
+  if (reduceMotion) document.querySelectorAll('#flowSvg animateMotion').forEach(a => a.parentNode.remove());
+}
+function renderGrades() {
+  $('gTabs').innerHTML = VAULTS.map(v0 => { const v = vault(v0.id), r = risk(v);
+    return `<button type="button" role="tab" aria-selected="${gSel === v.id}" class="gtab ${gSel === v.id ? 'on' : ''}" data-g="${v.id}"><span class="gt-name"><b>${v.name}</b>${fmt(netApy(v))}% net APY</span>${gradeChip(v, false)}</button>`; }).join('');
+  $('gTabs').querySelectorAll('[data-g]').forEach(b => b.onclick = () => { gSel = b.dataset.g; renderGrades(); });
+  const v = vault(gSel), r = risk(v);
+  const col = { A: '#7EE0B8', B: '#F5D06F', C: '#FF9270' }[r.grade];
+  const arc = $('gArc');
+  arc.setAttribute('stroke', col);
+  requestAnimationFrame(() => arc.setAttribute('stroke-dashoffset', 578 * (1 - r.score / 100)));
+  $('gLetter').textContent = r.grade; $('gLetter').style.color = col;
+  $('gScore').textContent = r.score + ' / 100';
+  $('gMeta').innerHTML = `<div>Net APY<b class="gold">${fmt(netApy(v))}%</b></div><div>Oracle<b>${v.oracle}</b></div><div>Curator<b>${esc(v.curator)}</b></div>`;
+  $('gParts').innerHTML = r.parts.map(p => `<div class="rb-row"><div class="t"><span>${p.k}</span><span>${Math.round(p.p)}/${p.m}</span></div><div class="bar ${p.p / p.m < 0.5 ? 'hot' : ''}"><i style="width:${p.p / p.m * 100}%"></i></div><small>${esc(p.note)}</small></div>`).join('');
+  const cta = $('gCta');
+  cta.textContent = 'Deposit in ' + v.name.replace('USDG ', '');
+  cta.className = 'btn ' + (r.grade === 'C' ? 'btn-glass' : 'btn-gold');
+  cta.onclick = () => { S.vaultId = v.id; S.tab = 'deposit'; save(); };
+}
+let calcVault = null;
+function calc() {
+  const usd = parseFloat(($('cAmt').value || '').replace(/[^0-9.]/g, '')) || 0;
+  const months = +$('cMonths').value;
+  calcVault = $('cVault').value || 'core';
+  const v = vault(calcVault), r = netApy(v) / 100 / 365;
+  const days = months * 30.4167;
+  const final = usd * Math.pow(1 + r, days);
+  $('cEarn').textContent = '+$' + fmt(final - usd);
+  $('cFinal').textContent = '$' + fmt(final);
+  const ml = months + (months === 1 ? ' month' : ' months');
+  $('cMonthsLbl').textContent = ml; $('cMonthsLbl2').textContent = ml;
+  $('cApy').textContent = fmt(netApy(v)) + '% · Grade ' + risk(v).grade;
+  $('cPts').textContent = fmtInt(usd * days);
+  const vals = Array.from({ length: months + 1 }, (_, m) => usd * Math.pow(1 + r, m * 30.4167));
+  if (vals.length < 2) vals.push(vals[0]);
+  const c = chartPaths(vals.map(x => x || 0));
+  $('cChart').innerHTML = `<defs><linearGradient id="cg" x1="0" x2="1"><stop offset="0" stop-color="#A99BFF"/><stop offset="1" stop-color="#7CC4FF"/></linearGradient></defs>
+    <path d="M0 40H820M0 95H820M0 150H820" stroke="rgba(255,255,255,.06)"/>
+    <path d="${c.area}" fill="#7B5CFF" fill-opacity=".1"/>
+    <path d="${c.line}" stroke="url(#cg)" stroke-width="2.2" fill="none" vector-effect="non-scaling-stroke"/>`;
+}
+$('cAmt').addEventListener('input', e => {
+  const digits = e.target.value.replace(/[^0-9.]/g, '');
+  const [i, d] = digits.split('.');
+  e.target.value = (i ? (+i).toLocaleString('en-US') : '') + (d !== undefined ? '.' + d.slice(0, 2) : '');
+  calc();
+});
+$('cMonths').addEventListener('input', calc);
+$('cVault').addEventListener('change', calc);
+
+/* ===================== demo controls ===================== */
+const fab = $('demoFab'), panel = $('demoPanel');
+fab.onclick = () => { const o = panel.classList.toggle('open'); fab.setAttribute('aria-expanded', o); };
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && panel.classList.contains('open')) { panel.classList.remove('open'); fab.setAttribute('aria-expanded', false); fab.focus(); } });
+$('dmFF').onclick = () => {
+  if (!Object.keys(S.positions).length) return toast('Make a deposit first', true);
+  const before = totalBal();
+  for (let i = 0; i < 6; i++) { accrue(5); S.day += 5; snapshot(); }
+  save(); render();
+  toast(`30 days later: +${fmt(totalBal() - before)} USDG earned${S.alerts.tg && S.alerts.daily ? ' · daily reports sent' : ''}`);
+};
+$('dmStress').onclick = () => {
+  S.stress = !S.stress;
+  $('dmStress').textContent = S.stress ? 'Stress test: restore utilization' : 'Stress test: spike utilization';
+  save(); checkAlerts(false); render(); renderLanding();
+  if (!S.stress) toast('Utilization back to normal');
+};
+$('dmRef').onclick = () => {
+  if (!S.connected) return toast('Connect a wallet first', true);
+  S.invites += 1; S.refPoints += 1500 * 7 * CONFIG.refShare; save(); render();
+  toast('A friend deposited 1,500 USDG with your link');
+};
+$('dmReset').onclick = () => { if (!confirm('Reset all demo data?')) return; S = fresh(); UI = { amount:'', stage:'form', range:'30D', last:null }; save(); $('dmStress').textContent = 'Stress test: spike utilization'; render(); toast('Demo reset'); };
+if (S.stress) $('dmStress').textContent = 'Stress test: restore utilization';
+
+/* ===================== live data (Morpho) ===================== */
+async function fetchLive() {
+  // Morpho vaults — needs CONFIG.chainId and vault addresses
+  if (!CONFIG.chainId) return;
+  const Q = `query($a:String!,$c:Int!){vaultByAddress(address:$a,chainId:$c){state{netApy totalAssetsUsd allocation{supplyAssetsUsd market{lltv collateralAsset{symbol} state{utilization}}}}}}`;
+  let any = false;
+  for (const v of VAULTS) {
+    if (!v.address) continue;
+    try {
+      const r = await fetch(CONFIG.morphoApi, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ query: Q, variables: { a: v.address, c: CONFIG.chainId } }) });
+      const st = (await r.json())?.data?.vaultByAddress?.state; if (!st) continue;
+      v.netOverride = st.netApy * 100; v.tvl = st.totalAssetsUsd;
+      const al = (st.allocation || []).filter(x => x.supplyAssetsUsd > 0 && x.market.collateralAsset);
+      const sum = al.reduce((t, x) => t + x.supplyAssetsUsd, 0) || 1;
+      v.util = al.reduce((t, x) => t + x.market.state.utilization * x.supplyAssetsUsd, 0) / sum * 100;
+      v.liq = al.reduce((t, x) => t + x.supplyAssetsUsd * (1 - x.market.state.utilization), 0);
+      v.collateral = al.slice(0, 3).map(x => ({ a: x.market.collateralAsset.symbol, s: Math.round(x.supplyAssetsUsd / sum * 100), l: Math.round(x.market.lltv / 1e16), q: /^(WETH|WBTC|wstETH|cbBTC)$/i.test(x.market.collateralAsset.symbol) ? 'blue' : 'mid' }));
+      v.live = true; any = true;
+    } catch (e) {}
+  }
+  if (any) { $('dataNote').textContent = 'Live vault data from Morpho.'; route(); }
+}
+
+/* ===================== mobile menu ===================== */
+const menuBtn = $('menuBtn'), mMenu = $('mMenu');
+const setMenu = o => { mMenu.classList.toggle('open', o); menuBtn.setAttribute('aria-expanded', o); menuBtn.setAttribute('aria-label', o ? 'Close menu' : 'Open menu'); };
+menuBtn.onclick = () => setMenu(!mMenu.classList.contains('open'));
+mMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => setMenu(false)));
+document.addEventListener('keydown', e => { if (e.key === 'Escape' && mMenu.classList.contains('open')) { setMenu(false); menuBtn.focus(); } });
+
+/* ===================== boot ===================== */
+const ref = new URLSearchParams(location.search).get('ref');
+if (ref && !S.referredBy) { S.referredBy = ref.slice(0, 20); save(); setTimeout(() => toast('Referral ' + esc(S.referredBy) + ' applied'), 600); }
+checkAlerts(true);
+route();
+fetchLive();
+})();
+</script>
+</body>
+</html>
