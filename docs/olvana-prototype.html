@@ -5,9 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Olvana — Onchain Stablecoin Earn</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22 width=%2264%22 height=%2264%22%3E%3Cstyle%3E.a%7Bfill:%23A99BFF%7D.b%7Bfill:%237B5CFF%7D.c%7Bfill:%233A6BFF%7D%40media %28prefers-color-scheme:dark%29%7B.a%7Bfill:%23C4B5FF%7D.b%7Bfill:%238B7BFF%7D.c%7Bfill:%234D6BFF%7D%7D%3C/style%3E%3Cpath class=%22a%22 d=%22M32 5H32A27 27 0 0 1 55.664 19H8.336A27 27 0 0 1 32 5Z%22/%3E%3Cpath class=%22b%22 d=%22M6.212 24H57.788A27 27 0 0 1 58.533 37H5.467A27 27 0 0 1 6.212 24Z%22/%3E%3Cpath class=%22c%22 d=%22M6.92 42H57.08A27 27 0 0 1 32 59H32A27 27 0 0 1 6.92 42Z%22/%3E%3C/svg%3E">
-<meta name="description" content="Earn on stablecoins (USDG, USDC and more) through curated Morpho vaults on Robinhood Chain, with an A/B/C risk grade on every vault. Non-custodial.">
+<meta name="description" content="Earn on stablecoins (USDG, USDC and more) through curated Morpho vaults on Robinhood Chain, Ethereum, Base and Arbitrum, with an A/B/C risk grade on every vault. Non-custodial.">
 <meta property="og:title" content="Olvana — Earn on dollars. Know the risk.">
-<meta property="og:description" content="Non-custodial stablecoin earn on Robinhood Chain, with an A/B/C risk grade on every vault.">
+<meta property="og:description" content="Non-custodial stablecoin earn on Robinhood Chain, Ethereum, Base and Arbitrum, with an A/B/C risk grade on every vault.">
 <meta property="og:image" content="https://olvana.org/brand/og-image.png">
 <meta property="og:url" content="https://olvana.org/">
 <meta name="twitter:card" content="summary_large_image">
@@ -638,6 +638,16 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
 @media (max-width:760px){
   .banner{padding-top:20px}
 }
+
+/* ===== networks: chain chip, hero badge ===== */
+.tag.cn{padding:2px 8px;font-size:10px;vertical-align:middle;color:#C4B5FF;border-color:rgba(169,155,255,.3)}
+.bl-short{display:none}
+.vpick.nets{margin-bottom:10px}
+.amount-top{flex-wrap:wrap;row-gap:4px}   /* "Switch to … to see your balance" wraps under the label on phones */
+@media (max-width:760px){
+  .bl-full{display:none}
+  .bl-short{display:inline}
+}
 </style>
 </head>
 <body>
@@ -678,9 +688,9 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
     <!-- HERO -->
     <section class="hero2 wrap">
       <div class="hero2-copy">
-        <a href="#app" class="badge rise"><span class="dot"></span><span>Live on Robinhood Chain</span> <b>Stablecoin Earn</b></a>
+        <a href="#app" class="badge rise" title="Live on Robinhood Chain, Ethereum, Base &amp; Arbitrum"><span class="dot"></span><span class="bl-full">Live on Robinhood Chain, Ethereum, Base &amp; Arbitrum</span><span class="bl-short">Live on 4 networks</span> <b>Stablecoin Earn</b></a>
         <h1 class="display2 rise d1">Earn on dollars.<br><span class="grad">Know the risk.</span></h1>
-        <p class="lede2 rise d2">Olvana puts your stablecoins (USDG, USDC, …) into curated onchain lending vaults, and grades every vault A, B or C before you deposit. Your wallet, your keys, your call.</p>
+        <p class="lede2 rise d2">Olvana puts your stablecoins (USDG, USDC, …) into curated onchain lending vaults on Robinhood Chain, Ethereum, Base and Arbitrum, and grades every vault A, B or C before you deposit. Your wallet, your keys, your call.</p>
         <div class="cta-row2 rise d3">
           <a href="#app" class="btn btn-gold btn-lg">Start earning</a>
           <a href="#grades" class="btn btn-glass btn-lg">See how we grade</a>
@@ -826,10 +836,10 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
         <h2 class="h2">Questions, <span class="grad">answered.</span></h2>
         <div class="faq-list">
           <details open><summary><span>Who pays the yield?</span><span class="pm" aria-hidden="true">+</span></summary><p>Borrowers. They lock collateral worth more than their loan and pay interest on the stablecoins they borrow. That interest accrues to vault shares.</p></details>
-          <details><summary><span>How is the risk grade calculated?</span><span class="pm" aria-hidden="true">+</span></summary><p>Out of 100 points: utilization (25), collateral quality (30), oracle type (25) and curator track record (20). 80 and above is A, 60 to 79 is B, below 60 is C. A grade is a summary, not a guarantee. We also flag risks the score doesn't capture, like tokenized-stock collateral that can't be repriced when markets are closed.</p></details>
+          <details><summary><span>How is the risk grade calculated?</span><span class="pm" aria-hidden="true">+</span></summary><p>Out of 100 points: utilization (25), collateral quality (30), oracle type (25) and curator track record (20). Points come off when one collateral backs more than 80% of lending (−10), when the vault is under 90 days old (−5) and when it holds under $1M in deposits (−5). 80 and above is A, 60 to 79 is B, below 60 is C. A grade is a summary, not a guarantee. We also flag risks the score doesn't capture, like tokenized-stock collateral that can't be repriced when markets are closed.</p></details>
           <details><summary><span>Can I lose money?</span><span class="pm" aria-hidden="true">+</span></summary><p>Yes. Contract bugs, bad collateral, oracle failures or curator mistakes can cause losses or delay withdrawals. Read the <a href="#risk" class="gold">risk disclosure</a> before depositing.</p></details>
           <details><summary><span>Can I always withdraw?</span><span class="pm" aria-hidden="true">+</span></summary><p>Instantly when the vault has idle liquidity. At 100% utilization, exits wait until borrowers repay. Turn on utilization alerts to get warned early.</p></details>
-          <details><summary><span>How do I get stablecoins on Robinhood Chain?</span><span class="pm" aria-hidden="true">+</span></summary><p>Get USDG or another listed stablecoin from [where to buy], then bridge it to Robinhood Chain with [bridge link]. Keep a little [gas token] in the same wallet to pay network fees. Olvana never asks you to send funds to anyone.</p></details>
+          <details><summary><span>How do I get stablecoins on the right network?</span><span class="pm" aria-hidden="true">+</span></summary><p>Each vault lives on one network, shown next to its token: Robinhood Chain, Ethereum, Base or Arbitrum. Get USDG, USDC or another listed stablecoin from [where to buy], and if it sits on a different network, bridge it to the vault's network with [bridge link]. Keep a little ETH on that network to pay fees. Olvana never asks you to send funds to anyone.</p></details>
           <details><summary><span>How does Olvana make money?</span><span class="pm" aria-hidden="true">+</span></summary><p>Olvana charges no fee today. Each vault's own curator fee is shown on the vault and is already included in net APY.</p></details>
           <details><summary><span>What does $[TICKER] do?</span><span class="pm" aria-hidden="true">+</span></summary><p>It boosts the points you earn and lets holders vote on which vaults Olvana lists. It does not pay out vault revenue.</p></details>
         </div>
@@ -853,11 +863,11 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
       <div style="display:flex;flex-direction:column;gap:16px;max-width:380px">
         <a href="#top" class="logo"><svg width="24" height="24" aria-hidden="true"><use href="#logo"/></svg>Olvana</a>
         <p class="muted" style="margin:0;font-size:14px;line-height:1.6">Non-custodial software. Olvana does not hold your assets, give investment advice, or guarantee returns.</p>
-        <p class="mono" style="margin:0;font-size:11px;color:var(--faint)" id="dataNote">Live data from Morpho's public API. APY is the 7-day realized average after fees; it changes and is not guaranteed.</p>
+        <p class="mono" style="margin:0;font-size:11px;color:var(--faint)" id="dataNote">Live data from Morpho's public API for Robinhood Chain, Ethereum, Base and Arbitrum. APY is the 7-day realized average after fees; it changes and is not guaranteed.</p>
       </div>
       <div class="foot-cols">
         <div><h4>Product</h4><a href="#app">Earn</a><a href="#vaults">Vaults</a><a href="#portfolio">Portfolio</a><a href="#rewards">Rewards</a></div>
-        <div><h4>Verify</h4><a href="https://robinhoodchain.blockscout.com" target="_blank" rel="noopener">Explorer</a><a href="#security">Security</a><a href="#grades">Risk grades</a><a href="#alerts">Alerts</a></div>
+        <div><h4>Verify</h4><a href="#security">Contracts &amp; security</a><a href="#grades">Risk grades</a><a href="#alerts">Alerts</a></div>
         <div><h4>Legal</h4><a href="#terms">Terms</a><a href="#privacy">Privacy</a><a href="#risk">Risk disclosure</a></div>
         <div><h4>Community</h4><span class="muted">[X]</span><span class="muted">[Telegram channel]</span><span class="muted">[Discord]</span></div>
       </div>
@@ -881,7 +891,7 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
     </div>
     <div style="display:flex;align-items:center;gap:10px">
       <span class="pts-pill" title="Season 1 points">✦ <span id="topPts">0</span> pts</span>
-      <span class="chain"><span class="dot"></span>Robinhood Chain</span>
+      <span class="chain" id="chainPill" title="Robinhood Chain, Ethereum, Base, Arbitrum"><span class="dot"></span><span id="chainName">4 networks</span></span>
       <button class="wallet-btn" id="walletBtn" type="button">Connect wallet</button>
     </div>
   </header>
@@ -897,27 +907,55 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
    CONFIG — Michael: fill these in for production
    ===================================================================== */
 const CONFIG = {
-  chainName: 'Robinhood Chain',
-  chainId: 4663,                 // Robinhood Chain mainnet — verified, see docs/VERIFICATION.md.
-  explorer: 'https://robinhoodchain.blockscout.com',
+  homeChainId: 4663,             // Robinhood Chain mainnet — the home network (USDG vaults first). Verified, see docs/VERIFICATION.md.
+  // Morpho Vault V2 factories / Blue / stablecoin pins from Morpho's official address registry
+  // (morpho-org/sdks packages/morpho-ts, commit 61a904b) — see docs/VERIFICATION.md.
+  // pins: a vault whose asset symbol has a pin must hold exactly that token address (anyone can deploy a token named "USDC").
+  // rpcUrl: only for networks wallets may not know yet — handed to the wallet when it needs to add the network.
+  chains: [
+    { id: 4663,  key: 'robinhood', name: 'Robinhood Chain', short: 'Robinhood', explorer: 'https://robinhoodchain.blockscout.com',
+      vaultV2Factory: '0x0FBad98595b0186dA120E41f77C102beb49f803c', morphoBlue: '0x9D53d5E3bd5E8d4Cbfa6DB1ca238AEA02E651010',
+      rpcUrl: 'https://rpc.mainnet.chain.robinhood.com',
+      pins: { USDG: '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168' } },
+    { id: 1,     key: 'ethereum',  name: 'Ethereum', short: 'Ethereum', explorer: 'https://etherscan.io',
+      vaultV2Factory: '0xA1D94F746dEfa1928926b84fB2596c06926C0405', morphoBlue: '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb',
+      pins: { USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7', DAI: '0x6B175474E89094C44Da98b954EedeAC495271d0F' } },
+    { id: 8453,  key: 'base',      name: 'Base', short: 'Base', explorer: 'https://basescan.org',
+      vaultV2Factory: '0x4501125508079A99ebBebCE205DeC9593C2b5857', morphoBlue: '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb',
+      pins: { USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' } },
+    { id: 42161, key: 'arbitrum',  name: 'Arbitrum One', short: 'Arbitrum', explorer: 'https://arbiscan.io',
+      vaultV2Factory: '0x6b46fa3cc9EBF8aB230aBAc664E37F2966Bf7971', morphoBlue: '0x6c247b1F6182318877311737BaC0844bAa518F5e',
+      pins: { USDC: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' } },
+  ],
   morphoApi: 'https://api.morpho.org/graphql',   // fallback when the same-origin /api/morpho proxy is unavailable
   siteUrl: 'https://olvana.org',
   telegramBot: '[your_bot]',     // e.g. 'OlvanaAlertsBot'. Placeholder = Telegram alerts not live yet.
   refShare: 0.10,                // referrer gets 10% of referee points
-  stablecoins: ['USDG','USDC','USDT','USDT0','USDe','PYUSD','DAI','USDS'],
-  syntheticStables: ['USDe'],     // not cash-backed — shown with a flag // stablecoins Olvana lists; a vault's asset must match one of these symbols AND trade within 2% of $1
+  stablecoins: ['USDG','USDC','USDT','USDT0','USDe','PYUSD','DAI','USDS'],   // stablecoins Olvana lists; a vault's asset must match one of these symbols AND trade within 2% of $1
+  syntheticStables: ['USDe'],     // not cash-backed — shown with a flag
   minTvlUsd: 10000,             // vaults below this TVL are hidden (many empty/test vaults exist onchain)
-  usdgAddress: '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168', // USDG on Robinhood Chain — verified onchain, see docs/VERIFICATION.md. A USDG vault's asset must match it.
-  rpcUrl: 'https://rpc.mainnet.chain.robinhood.com', // public RPC, verified working — only handed to the wallet when it needs to add the network
-  morphoBlue: '0x9D53d5E3bd5E8d4Cbfa6DB1ca238AEA02E651010', // Morpho Blue core — verified, see docs/VERIFICATION.md.
-  vaultV2Factory: '0x0FBad98595b0186dA120E41f77C102beb49f803c', // Morpho Vault V2 factory — verified, see docs/VERIFICATION.md
-  collateralClass: {},           // admin overrides: { SYMBOL: {q:'mid', kind:'equity'} } for tokenized stocks etc.
+  // admin table: collateral symbol → quality (q) and kind; looked up case-insensitively, after the blue-chip list (WETH/WBTC/wstETH/cbBTC).
+  // Anything not listed is 'tail'. Add tokenized stocks as { q:'mid', kind:'equity' }. Default table approved by owner 2026-09-27.
+  collateralClass: {
+    // cash-backed stablecoins as collateral
+    USDC: {q:'blue', kind:'stable'}, USDT: {q:'blue', kind:'stable'}, USDG: {q:'blue', kind:'stable'}, PYUSD: {q:'blue', kind:'stable'}, DAI: {q:'blue', kind:'stable'}, USDS: {q:'blue', kind:'stable'},
+    // synthetic / yield-bearing dollars
+    USDe: {q:'mid', kind:'stable'}, sUSDe: {q:'mid', kind:'stable'}, syrupUSDG: {q:'mid', kind:'stable'}, syrupUSDC: {q:'mid', kind:'stable'}, spUSDG: {q:'mid', kind:'stable'}, sUSDS: {q:'mid', kind:'stable'}, mGLO: {q:'mid', kind:'stable'},
+  },
   usdgPrice: null,               // optional USDG/USD price override (the API query doesn't fetch prices yet). Flag when >0.5% off $1.
   status: { level: null, message: '' }  // global app banner: level null | 'info' | 'warn'
 };
+const chainById = id => CONFIG.chains.find(c => c.id === Number(id)) || null;
+const HOME = chainById(CONFIG.homeChainId);
+const explorerFor = id => (chainById(id) || HOME).explorer;
+const chainShort = id => { const c = chainById(id); return c ? c.short : 'Unknown network'; };
+const chainNm = id => { const c = chainById(id); return c ? c.name : 'an unsupported network'; };
+// "Robinhood Chain, Ethereum, Base and Arbitrum One" (or / and)
+const listNames = (names, and = 'and') => names.length < 2 ? names.join('') : names.slice(0, -1).join(', ') + ' ' + and + ' ' + names[names.length - 1];
+const NETS = listNames(CONFIG.chains.map(c => c.name));
 
 // Vaults are loaded live from Morpho's public API (see "live data" below). Nothing is hardcoded.
-// Vault object: { id, address, name, curator, curatorVerified, live, net, gross, net1d, perfFee, mgmtFee,
+// Vault object: { id ("chainId:address"), chainId, address, name, curator, curatorVerified, live, net, gross, net1d, perfFee, mgmtFee,
 //   tvl, liq, util, collateral:[{a,s,l,q,kind,logo}], oracle, oracleScore, incidents, ageDays, paused, asset:{symbol,address,decimals,logo,price} }
 const COLLAT_Q = { blue: 1, mid: 0.6, tail: 0.2 };
 let VAULTS = [];
@@ -945,6 +983,8 @@ const assetLogo = (v, s = 40) => { const u = v && v.asset && safeUrl(v.asset.log
 const assetTokenI = v => { const u = v && v.asset && safeUrl(v.asset.logo); return u ? imgTag(u, sym(v), 18, 'tok') : '<i>$</i>'; };
 // "Steakhouse USDC" stays as is; a name without its token gets " · USDC"
 const vLabel = v => String(v.name).toUpperCase().includes(sym(v).toUpperCase()) ? v.name : v.name + ' · ' + sym(v);
+// small network chip next to the asset symbol ("Base", "Ethereum", …)
+const chainChip = v => { const c = chainById(v && v.chainId); return `<span class="tag cn" title="Network: ${esc(c ? c.name : 'unknown')}">${esc(c ? c.short : '?')}</span>`; };
 const collatLogo = (c, s = 14) => { const u = safeUrl(c.logo); return u ? imgTag(u, '', s, '') : ''; };
 document.addEventListener('error', e => {
   const el = e.target;
@@ -960,39 +1000,55 @@ const fresh = () => ({
   connected:false, address:null,
   points:0, refPoints:0, invites:0, referredBy:null,
   vaultId:null, tab:'deposit',
-  alerts:{ tg:false, daily:true, util:true, collateral:true, liquidity:true, threshold:95 },
+  alerts:{ tg:false, daily:true, util:true, collateral:true, liquidity:true, threshold:95 },   // default alert threshold (matches AlertSettings.threshold default in the DB)
   alerted:{}
 });
 let S = fresh();
-let UI = { amount:'', stage:'form', chainId:null, asset:'All' };  // chainId: the injected wallet's current chain
+let UI = { amount:'', stage:'form', chainId:null, asset:'All', net:'All' };  // chainId: the injected wallet's current chain · net: Vaults page network filter
 
 /* ===================== vault math ===================== */
 const vault = id => VAULTS.find(x => x.id === id) || VAULTS[0];
 const netApy = v => v.net;
 function risk(v) {
-  const u = v.util < 85 ? 25 : v.util < 95 ? 15 : 5;
+  // Morpho's rate curve targets 90% utilization — thresholds sit just above it (owner-approved 2026-09-27)
+  const u = v.util < 92 ? 25 : v.util < 97 ? 15 : 5;
   const cq = v.collateral.reduce((t, c) => t + (c.s / 100) * COLLAT_Q[c.q], 0);
   const c = Math.round(cq * 30 * 10) / 10;
   const o = v.oracleScore;
   const cu = v.incidents === 0 ? 20 : 10;
-  const score = Math.round(u + c + o + cu);
+  const deductions = riskDeductions(v);
+  const score = Math.max(0, Math.round(u + c + o + cu - deductions.reduce((t, d) => t + d.p, 0)));
   const grade = score >= 80 ? 'A' : score >= 60 ? 'B' : 'C';
-  return { score, grade, parts: [
-    { k:'Utilization', p:u, m:25, note: v.util < 85 ? 'Healthy room for withdrawals' : v.util < 95 ? 'Getting tight; exits may slow' : 'Near full; exits can be delayed' },
-    { k:'Collateral quality', p:c, m:30, note: v.collateral.length ? v.collateral.map(x => x.a).join(', ') : 'No collateralized markets right now' },
+  return { score, grade, deductions, parts: [
+    { k:'Utilization', p:u, m:25, note: v.util < 92 ? 'Healthy room for withdrawals' : v.util < 97 ? 'Getting tight; exits may slow' : 'Near full; exits can be delayed' },
+    { k:'Collateral quality', p:c, m:30, note: v.collateral.length ? (v.collateral.filter(x => x.s >= MIN_SHOW).map(x => x.a).join(', ') || 'Only small positions, each under 0.5%') : 'No collateralized markets right now' },
     { k:'Oracle', p:o, m:25, note: v.oracle === 'Chainlink' ? 'Established push oracle' : v.oracle === 'Mixed' ? 'Mix of push-oracle and other pricing' : 'Custom or unverified oracle' },
     { k:'Curator record', p:cu, m:20, note: v.incidents === 0 ? 'No recorded incidents' : v.incidents + ' past incident on record' }
   ]};
 }
-// Risk flags: shown next to the grade. They do NOT change the score above.
+// Deductions, subtracted from the four parts (owner-approved 2026-09-27; mirrors riskDeductions in packages/core/src/risk.ts):
+// one collateral above 80% of lending −10 · vault under 90 days old −5 · under $1M in deposits −5.
+function riskDeductions(v) {
+  const out = [];
+  const top = v.collateral.reduce((m, x) => x.s > (m ? m.s : 0) ? x : m, null);
+  if (top && top.s > 80)
+    out.push({ k:'concentration', label:'Concentration', p:10, note:`${(Math.round(top.s * 10) / 10).toFixed(1)}% backed by ${top.a}` });
+  if (v.ageDays != null && v.ageDays < 90)
+    out.push({ k:'new', label:'Track record', p:5, note:`${Math.max(0, Math.floor(v.ageDays))} days old` });
+  if (v.tvl != null && v.tvl < 1000000)
+    out.push({ k:'small', label:'Vault size', p:5, note:'Under $1M in deposits' });
+  return out;
+}
+// breakdown rows for the deductions, under the four parts: "Concentration −10 · 98.6% backed by USDe"
+const deductRows = r => r.deductions.map(d => `<div class="rb-row"><div class="t"><span>${esc(d.label)}</span><span style="color:var(--warn)">−${d.p}</span></div><small>${esc(d.note)}</small></div>`).join('');
+// Risk flags: shown next to the grade. They do NOT change the score above, and never repeat a risk that is
+// already deducted (concentration and new-vault are scored as deductions now, so they are not flags).
 function riskFlags(v) {
   const f = [];
   if (v.collateral.some(c => c.kind === 'equity' || /\(tokenized\)/i.test(c.a)))
     f.push({ k:'equity', text:'Tokenized stock collateral: prices can gap when stock markets are closed (nights, weekends, holidays), so liquidations may lag.' });
   if (v.collateral.some(c => c.kind !== 'stable' && c.l > 86))   // stable-vs-stable markets normally run above 86%
     f.push({ k:'lltv', text:'High loan-to-value markets (above 86% LLTV) leave less room before bad debt.' });
-  if (v.ageDays != null && v.ageDays < 90)
-    f.push({ k:'new', text:'New vault: less than 90 days of track record.' });
   const a = v.asset || { symbol: 'USDG' };
   const px = a.symbol === 'USDG' && CONFIG.usdgPrice != null ? CONFIG.usdgPrice : a.price;
   if (px != null && Math.abs(px - 1) > 0.005)
@@ -1003,17 +1059,21 @@ function riskFlags(v) {
 }
 const flagRows = list => list.map(f => `<div class="flag">${warnSvg(14)}<span>${esc(f.text)}</span></div>`).join('');
 const gradeChip = (v, withScore = true) => { const r = risk(v); return `<span class="grade g${r.grade}" title="Risk score ${r.score}/100"><b><span>${r.grade}</span></b>${withScore ? r.score + '/100' : 'Grade ' + r.grade}</span>`; };
-const collatChips = v => v.collateral.map(c => `<span>${collatLogo(c)}${esc(c.a)} ${c.s}%</span>`).join('');
+// Display only: collateral under 0.5% of lending is hidden (it still counts in the score).
+const MIN_SHOW = 0.5;
+const shownCollat = v => v.collateral.filter(c => c.s >= MIN_SHOW);
+const collatChips = v => shownCollat(v).map(c => `<span>${collatLogo(c)}${esc(c.a)} ${c.s}%</span>`).join('');
+const collatRow = v => { const h = collatChips(v); return h ? `<div class="collat">${h}</div>` : ''; };
 const refCode = () => 'OLV-' + (S.address ? S.address.slice(-4).toUpperCase() : '0000');
 const refLink = () => `${CONFIG.siteUrl}/?ref=${refCode()}`;
 
 /* ===================== live data status ===================== */
-const LIVE = { at:null, err:null, busy:false, loaded:false };   // at: time of last successful fetch
+const LIVE = { at:null, err:null, busy:false, loaded:false, failed:[] };   // at: time of last successful fetch · failed: chain ids whose list query failed last time
 const STALE_MS = 15 * 60e3, DROP_MS = 60 * 60e3, REFRESH_MS = 5 * 60e3;
 const MSG = {
   loading: 'Loading live vaults…',
   offline: 'Live vault data is unavailable right now. No numbers are shown rather than stale or sample ones.',
-  empty: 'No listed stablecoin vaults found on Robinhood Chain yet.'
+  empty: `No listed stablecoin vaults found on ${listNames(CONFIG.chains.map(c => c.name), 'or')} yet.`
 };
 function liveState() {
   if (VAULTS.length) return Date.now() - LIVE.at > STALE_MS ? 'stale' : 'live';
@@ -1051,10 +1111,12 @@ window.addEventListener('eip6963:announceProvider', e => {
 });
 window.dispatchEvent(new Event('eip6963:requestProvider'));
 let W = null;                                             // { info, provider } of the connected wallet
-const BAL = { eth:null, tok:{}, pos:{}, err:null, busy:false, at:0 };   // bigint balances, keys = lowercase addresses
+// bigint balances for the wallet's current network (BAL.chainId); keys = "chainId:lowercase address"
+const BAL = { chainId:null, eth:null, tok:{}, pos:{}, err:null, busy:false, again:false, at:0 };
 const safeIcon = s => typeof s === 'string' && /^data:image\/(png|svg\+xml|webp|jpeg|gif)[;,]/i.test(s) ? s : '';
 const isMobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
-const hexChain = () => '0x' + CONFIG.chainId.toString(16);
+const hexChain = id => '0x' + Number(id).toString(16);
+const bk = (chainId, a) => chainId + ':' + lcA(a);
 const lcA = a => String(a || '').toLowerCase();
 
 function walletList() {
@@ -1098,7 +1160,7 @@ function openWalletMenu() {
   openDlg(esc(W ? W.info.name : 'Wallet'), `<div class="wd-addr">${W ? wIcon(W, 22) : ''}<code>${esc(S.address)}</code></div>
     <div class="wd-list">
       <button type="button" class="wd-item" id="wdCopy"><span>Copy address</span></button>
-      <a class="wd-item" href="${CONFIG.explorer}/address/${esc(S.address)}" target="_blank" rel="noopener"><span>View on explorer ↗</span></a>
+      <a class="wd-item" href="${esc(explorerFor(UI.chainId))}/address/${esc(S.address)}" target="_blank" rel="noopener"><span>View on explorer ↗</span></a>
       ${walletList().length > 1 ? '<button type="button" class="wd-item" id="wdSwap"><span>Switch wallet</span></button>' : ''}
       <button type="button" class="wd-item wd-danger" id="wdOut"><span>Disconnect</span></button>
     </div>`);
@@ -1149,58 +1211,71 @@ function disconnect(quiet) {
 }
 $('walletBtn').addEventListener('click', connect);
 
-// Network guard
-const wrongNet = () => !!(S.connected && CONFIG.chainId && UI.chainId != null && UI.chainId !== CONFIG.chainId);
+// Network guard: each vault lives on one network. Only the Earn page acts on a vault (its selected one),
+// so only there can the wallet be on the "wrong" network; other pages never block.
+const actChainId = () => location.hash.replace('#', '') === 'app' && VAULTS.length ? vault(S.vaultId).chainId : null;
+const wrongNet = () => { const t = actChainId(); return !!(S.connected && t != null && UI.chainId != null && UI.chainId !== t); };
 async function readChain() {
   if (!W) return;
   try { UI.chainId = parseInt(await W.provider.request({ method: 'eth_chainId' }), 16); } catch (e) {}
 }
-async function switchNet() {
-  if (!W || !CONFIG.chainId) return;
-  try { await W.provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: hexChain() }] }); }
+async function switchNet(targetChainId) {
+  const ch = chainById(targetChainId);
+  if (!W || !ch) return;
+  try { await W.provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: hexChain(ch.id) }] }); }
   catch (e) {
     const missing = e && (e.code === 4902 || (e.data && e.data.originalError && e.data.originalError.code === 4902) || /unrecognized|not been added|unknown chain/i.test(e.message || ''));
     if (e && e.code === 4001) return toast('Network switch was cancelled', true);
-    if (!missing) return toast('Could not switch network — switch to ' + CONFIG.chainName + ' in your wallet', true);
+    if (!missing) return toast('Could not switch network — switch to ' + esc(ch.name) + ' in your wallet', true);
+    // Only a network wallets may not ship with (Robinhood Chain) carries an rpcUrl to add it; the others are built in.
+    if (!ch.rpcUrl) return toast('Add ' + esc(ch.name) + ' to your wallet first', true);
     try {
-      await W.provider.request({ method: 'wallet_addEthereumChain', params: [{ chainId: hexChain(), chainName: CONFIG.chainName,
-        nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 }, rpcUrls: [CONFIG.rpcUrl], blockExplorerUrls: [CONFIG.explorer] }] });
-    } catch (e2) { return toast(e2 && e2.code === 4001 ? 'Adding the network was cancelled' : 'Could not add ' + CONFIG.chainName + ' to your wallet', true); }
+      await W.provider.request({ method: 'wallet_addEthereumChain', params: [{ chainId: hexChain(ch.id), chainName: ch.name,
+        nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 }, rpcUrls: [ch.rpcUrl], blockExplorerUrls: [ch.explorer] }] });
+    } catch (e2) { return toast(e2 && e2.code === 4001 ? 'Adding the network was cancelled' : 'Could not add ' + esc(ch.name) + ' to your wallet', true); }
   }
   await readChain(); resetBal(); refreshBalances(); render();
 }
 
-/* ----- balances, read through the wallet ----- */
-function resetBal() { BAL.eth = null; BAL.tok = {}; BAL.pos = {}; BAL.err = null; BAL.at = 0; }
+/* ----- balances, read through the wallet (current network only) ----- */
+function resetBal() { Object.assign(BAL, { chainId: null, eth: null, tok: {}, pos: {}, err: null, at: 0 }); }
 const pad32 = h => h.replace(/^0x/, '').padStart(64, '0');
 const hexBig = h => (h && h !== '0x') ? BigInt(h) : 0n;
 const ethCall = (to, data) => W.provider.request({ method: 'eth_call', params: [{ to, data }, 'latest'] });
 const toUnits = (v, d) => v == null ? null : Number(v) / 10 ** d;
 async function refreshBalances() {
-  if (!S.connected || !W || UI.chainId !== CONFIG.chainId || BAL.busy) return;
-  BAL.busy = true;
-  const me = S.address;
+  if (!S.connected || !W || !chainById(UI.chainId)) return;   // unsupported network: nothing to read
+  if (BAL.busy) { BAL.again = true; return; }                  // re-run once the current read ends (e.g. network changed)
+  BAL.busy = true; BAL.again = false;
+  const me = S.address, cid = UI.chainId;
+  const here = VAULTS.filter(v => v.chainId === cid);
   try {
     const eth = await W.provider.request({ method: 'eth_getBalance', params: [me, 'latest'] });
     const tok = {}, pos = {};
-    const assets = [...new Set(VAULTS.map(v => lcA(v.asset.address)).filter(Boolean))];
-    await Promise.all(assets.map(async a => { tok[a] = hexBig(await ethCall(a, '0x70a08231' + pad32(me))); }));
-    await Promise.all(VAULTS.map(async v => {
+    const assets = [...new Set(here.map(v => lcA(v.asset.address)).filter(Boolean))];
+    await Promise.all(assets.map(async a => { tok[bk(cid, a)] = hexBig(await ethCall(a, '0x70a08231' + pad32(me))); }));
+    await Promise.all(here.map(async v => {
       const shares = hexBig(await ethCall(v.address, '0x70a08231' + pad32(me)));
-      pos[lcA(v.address)] = shares > 0n ? hexBig(await ethCall(v.address, '0x07a2d13a' + pad32(shares.toString(16)))) : 0n;
+      pos[bk(cid, v.address)] = shares > 0n ? hexBig(await ethCall(v.address, '0x07a2d13a' + pad32(shares.toString(16)))) : 0n;
     }));
-    if (S.address !== me) return;                           // account changed meanwhile
-    Object.assign(BAL, { eth: hexBig(eth), tok, pos, err: null, at: Date.now() });
+    if (S.address === me && UI.chainId === cid)                // skip if the account or network changed meanwhile
+      Object.assign(BAL, { chainId: cid, eth: hexBig(eth), tok, pos, err: null, at: Date.now() });
   } catch (e) {
-    BAL.err = 'Could not read balances from your wallet';
+    if (S.address === me && UI.chainId === cid) BAL.err = 'Could not read balances from your wallet';
   } finally {
     BAL.busy = false;
   }
+  if (BAL.again) return refreshBalances();
   if (document.body.classList.contains('in-app')) render();
 }
 setInterval(() => { if (S.connected && !document.hidden) refreshBalances(); }, 30000);
-const walletBal = v => { const b = BAL.tok[lcA(v.asset.address)]; return b == null ? null : toUnits(b, v.asset.decimals); };
-const posBal = v => { const b = BAL.pos[lcA(v.address)]; return b == null ? null : toUnits(b, v.asset.decimals); };
+// null when unknown — including vaults on another network than the wallet's current one
+const onWalletNet = v => !!(v && BAL.chainId != null && v.chainId === BAL.chainId && UI.chainId === v.chainId);
+const walletBal = v => { if (!onWalletNet(v)) return null; const b = BAL.tok[bk(v.chainId, v.asset.address)]; return b == null ? null : toUnits(b, v.asset.decimals); };
+const posBal = v => { if (!onWalletNet(v)) return null; const b = BAL.pos[bk(v.chainId, v.address)]; return b == null ? null : toUnits(b, v.asset.decimals); };
+// the wallet is connected on a known network but the vault sits on another one
+const otherNet = v => !!(S.connected && v && UI.chainId != null && v.chainId !== UI.chainId);
+const switchToSee = v => 'Switch to ' + chainNm(v.chainId) + ' to see your balance';
 
 // Pick up a wallet that is already authorised for this site (no prompt).
 setTimeout(async () => {
@@ -1259,6 +1334,9 @@ function render() {
   w.setAttribute('aria-label', S.connected ? `Wallet ${S.address}, open wallet menu` : 'Connect wallet');
   w.classList.toggle('on', S.connected);
   $('topPts').textContent = fmtInt(S.points + S.refPoints);
+  // header pill: the wallet's current network, or how many networks Olvana covers when disconnected
+  $('chainName').textContent = !S.connected ? CONFIG.chains.length + ' networks' : UI.chainId == null ? 'Network…' : chainById(UI.chainId) ? chainById(UI.chainId).name : 'Unsupported network';
+  $('chainPill').title = S.connected && UI.chainId != null ? 'Wallet network' + (chainById(UI.chainId) ? '' : ' (chain id ' + UI.chainId + ')') : CONFIG.chains.map(c => c.name).join(', ');
   renderBanner();
   ({ app:viewEarn, vaults:viewVaults, portfolio:viewPortfolio, rewards:viewRewards, alerts:viewAlerts, risk:viewRisk, terms:viewTerms, privacy:viewPrivacy, security:viewSecurity }[h] || viewEarn)();
 }
@@ -1269,9 +1347,10 @@ function renderBanner() {
   if (st.level) out.push(st.level === 'warn'
     ? `<div class="alert" role="alert">${warnSvg()}<div>${esc(st.message)}</div></div>`
     : `<div class="alert info" role="status"><span class="dot"></span><div>${esc(st.message)}</div></div>`);
-  if (wrongNet()) out.push(`<div class="alert" role="alert">${warnSvg()}<div class="alert-row"><div><b>Wrong network.</b> Your wallet is on another network. Switch to ${esc(CONFIG.chainName)} to deposit or withdraw.</div><button type="button" class="btn btn-gold btn-sm" id="switchNet">Switch to ${esc(CONFIG.chainName)}</button></div></div>`);
+  const target = actChainId();
+  if (wrongNet()) out.push(`<div class="alert" role="alert">${warnSvg()}<div class="alert-row"><div><b>Wrong network.</b> This vault is on ${esc(chainNm(target))}. Your wallet is on ${esc(chainNm(UI.chainId))}.</div><button type="button" class="btn btn-gold btn-sm" id="switchNet">Switch to ${esc(chainNm(target))}</button></div></div>`);
   $('banner').innerHTML = out.join('');
-  const b = $('switchNet'); if (b) b.onclick = switchNet;
+  const b = $('switchNet'); if (b) b.onclick = () => switchNet(target);
 }
 
 /* ===================== EARN ===================== */
@@ -1285,7 +1364,7 @@ function chartPaths(vals, w = 820, h = 190, pad = 18) {
 
 function viewEarn() {
   if (!VAULTS.length) {
-    $('view').innerHTML = `<div class="page-head"><div><h1>Earn</h1><p>Deposit stablecoins into a graded Morpho vault on ${esc(CONFIG.chainName)}.</p></div>${liveBadge()}</div>${statusPanel()}`;
+    $('view').innerHTML = `<div class="page-head"><div><h1>Earn</h1><p>Deposit stablecoins into a graded Morpho vault on ${esc(listNames(CONFIG.chains.map(c => c.name), 'or'))}.</p></div>${liveBadge()}</div>${statusPanel()}`;
     return;
   }
   const v = vault(S.vaultId), r = risk(v), n = netApy(v);
@@ -1293,7 +1372,7 @@ function viewEarn() {
   const hot = v.util >= S.alerts.threshold;
   $('view').innerHTML = `
     <div class="vpick" role="tablist" aria-label="Choose vault">
-      ${VAULTS.map(x => `<button type="button" role="tab" aria-selected="${x.id === v.id}" class="${x.id === v.id ? 'on' : ''}" data-v="${x.id}">${assetLogo(x, 18)}${esc(x.name)} <span class="mono">${esc(sym(x))} · ${fmt(netApy(x))}%</span>${gradeChip(x, false)}</button>`).join('')}
+      ${CONFIG.chains.flatMap(c => VAULTS.filter(x => x.chainId === c.id)).map(x => `<button type="button" role="tab" aria-selected="${x.id === v.id}" class="${x.id === v.id ? 'on' : ''}" data-v="${x.id}">${assetLogo(x, 18)}${esc(x.name)} <span class="mono">${esc(sym(x))} · ${fmt(netApy(x))}%</span>${chainChip(x)}${gradeChip(x, false)}</button>`).join('')}
     </div>
     ${hot ? `<div class="alert" role="alert">${warnSvg()}<div><b>${esc(v.name)} utilization is ${v.util.toFixed(1)}%.</b> Only ${fmtUsdShort(v.liq)} can leave right now. New deposits still work, but withdrawals may wait until borrowers repay.</div></div>` : ''}
     ${v.paused ? `<div class="alert" role="alert">${warnSvg()}<div><b>Deposits to ${esc(v.name)} are paused by the curator.</b> Withdrawals still work if liquidity is available.</div></div>` : ''}
@@ -1304,11 +1383,12 @@ function viewEarn() {
           <div><small>In this vault</small><b>${S.connected && posBal(v) != null ? fmt(posBal(v)) : '—'}</b></div>
           <div><small>Est. per day</small><b class="gold">${S.connected && posBal(v) != null ? '+' + fmt(posBal(v) * n / 100 / 365, 4) : '—'}</b></div>
           <div><small>Wallet ${esc(sym(v))}</small><b>${S.connected && walletBal(v) != null ? fmt(walletBal(v)) : '—'}</b></div>
+          ${otherNet(v) ? `<small style="grid-column:1/-1">${esc(switchToSee(v))}.</small>` : ''}
         </div>
       </div>
       <div class="right">
         <div class="vault-head">
-          <div style="display:flex;align-items:center;gap:14px;min-width:0">${assetLogo(v, 40)}<div style="min-width:0"><h2>${esc(v.name)}</h2><p>${esc(sym(v))} · curated by ${esc(v.curator)} · <a href="${esc(CONFIG.explorer)}/address/${esc(v.address)}" target="_blank" rel="noopener">${esc(short(v.address))} ↗</a> · non-custodial</p></div></div>
+          <div style="display:flex;align-items:center;gap:14px;min-width:0">${assetLogo(v, 40)}<div style="min-width:0"><h2>${esc(v.name)}</h2><p>${esc(sym(v))} ${chainChip(v)} · curated by ${esc(v.curator)} · <a href="${esc(explorerFor(v.chainId))}/address/${esc(v.address)}" target="_blank" rel="noopener">${esc(short(v.address))} ↗</a> · non-custodial</p></div></div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${gradeChip(v)}${liveBadge()}</div>
         </div>
         <div class="statrow">
@@ -1330,13 +1410,13 @@ function viewEarn() {
         <div class="lower">
           <div class="panel">
             <h3 class="h4">Risk breakdown</h3>
-            <div class="rb">${r.parts.map(p => `<div class="rb-row"><div class="t"><span>${p.k}</span><span>${Math.round(p.p)}/${p.m}</span></div><div class="bar ${p.p / p.m < 0.5 ? 'hot' : ''}"><i style="width:${p.p / p.m * 100}%"></i></div><small>${esc(p.note)}</small></div>`).join('')}</div>
+            <div class="rb">${r.parts.map(p => `<div class="rb-row"><div class="t"><span>${p.k}</span><span>${Math.round(p.p)}/${p.m}</span></div><div class="bar ${p.p / p.m < 0.5 ? 'hot' : ''}"><i style="width:${p.p / p.m * 100}%"></i></div><small>${esc(p.note)}</small></div>`).join('')}${deductRows(r)}</div>
             <div class="flags" style="margin-top:18px">${flagRows(riskFlags(v))}</div>
           </div>
           <div class="panel">
             <h3 class="h4">Collateral exposure</h3>
-            ${v.collateral.length ? `<div class="comp">${v.collateral.map((c, i) => `<div style="width:${c.s}%;background:${SW_COLORS[i % SW_COLORS.length]}"></div>`).join('')}</div>` : '<p class="muted" style="font-size:13px;margin:14px 0">No lending markets with collateral right now.</p>'}
-            <div class="rows" style="font-size:14px">${v.collateral.map((c, i) => `<div><span style="color:var(--ink);display:flex;align-items:center;gap:8px"><i class="sw" style="background:${SW_COLORS[i % SW_COLORS.length]};margin-right:2px"></i>${collatLogo(c, 16)}${esc(c.a)}</span><span class="muted">${c.s}% · LLTV ${c.l}%</span></div>`).join('')}
+            ${shownCollat(v).length ? `<div class="comp">${shownCollat(v).map((c, i) => `<div style="width:${c.s}%;background:${SW_COLORS[i % SW_COLORS.length]}"></div>`).join('')}</div>` : v.collateral.length ? '' : '<p class="muted" style="font-size:13px;margin:14px 0">No lending markets with collateral right now.</p>'}
+            <div class="rows" style="font-size:14px">${shownCollat(v).map((c, i) => `<div><span style="color:var(--ink);display:flex;align-items:center;gap:8px"><i class="sw" style="background:${SW_COLORS[i % SW_COLORS.length]};margin-right:2px"></i>${collatLogo(c, 16)}${esc(c.a)}</span><span class="muted">${c.s}% · LLTV ${c.l}%</span></div>`).join('')}
               <div><span>Oracle</span><span>${v.oracle}</span></div>
             </div>
           </div>
@@ -1372,7 +1452,7 @@ function renderForm() {
   const f = formState(), n = netApy(f.v);
   const u = esc(sym(f.v));
   const bal = f.max == null ? (BAL.err ? 'unavailable' : wrongNet() ? 'switch network' : '…') : fmt(f.max);
-  const walletLine = !S.connected ? 'Wallet not connected' : f.isDep ? `${assetLogo(f.v, 14)}<span>Wallet balance ${bal} ${u}</span>` : `<span>In vault ${bal} ${u}</span>`;
+  const walletLine = !S.connected ? 'Wallet not connected' : otherNet(f.v) ? `<span>${esc(switchToSee(f.v))}</span>` : f.isDep ? `${assetLogo(f.v, 14)}<span>Wallet balance ${bal} ${u}</span>` : `<span>In vault ${bal} ${u}</span>`;
   $('action').innerHTML = `
     <div class="seg" role="tablist" aria-label="Action">
       <button type="button" role="tab" aria-selected="${f.isDep}" class="${f.isDep ? 'on' : ''}" data-tab="deposit">Deposit</button>
@@ -1389,8 +1469,8 @@ function renderForm() {
       <div><span>${f.isDep ? 'Points per day' : 'Deposit / withdraw fee'}</span><span id="pv2" class="${f.isDep ? 'gold' : ''}">${f.isDep ? '+' + fmtInt(f.a) : '0.00 ' + u}</span></div>
       <div><span>Risk grade</span><span>${gradeChip(f.v)}</span></div>
     </div>
-    ${S.connected && f.isDep && f.max === 0 ? `<div class="alert info" style="margin:0">${warnSvg(16)}<div><b>No ${u} in this wallet on ${esc(CONFIG.chainName)}.</b> <a href="#faq" class="gold">How to get stablecoins</a></div></div>` : ''}
-    ${S.connected && BAL.eth === 0n ? `<div class="alert" style="margin:0">${warnSvg(16)}<div><b>No ETH for network fees.</b> Keep a little ETH on ${esc(CONFIG.chainName)} to sign transactions.</div></div>` : ''}
+    ${S.connected && f.isDep && f.max === 0 ? `<div class="alert info" style="margin:0">${warnSvg(16)}<div><b>No ${u} in this wallet on ${esc(chainNm(f.v.chainId))}.</b> <a href="#faq" class="gold">How to get stablecoins</a></div></div>` : ''}
+    ${S.connected && BAL.eth === 0n && onWalletNet(f.v) ? `<div class="alert" style="margin:0">${warnSvg(16)}<div><b>No ETH for network fees.</b> Keep a little ETH on ${esc(chainNm(f.v.chainId))} to sign transactions.</div></div>` : ''}
     ${S.connected && BAL.err ? `<div class="alert" style="margin:0">${warnSvg(16)}<div>${esc(BAL.err)}. <button type="button" class="linkbtn gold" id="balRetry">Retry</button></div></div>` : ''}
     <div class="grow"></div>
     <button type="button" class="btn btn-gold" id="primary" ${f.enabled ? '' : 'disabled'}>${f.label}</button>`;
@@ -1400,8 +1480,9 @@ function renderForm() {
   $('action').querySelectorAll('[data-p]').forEach(b => b.onclick = () => {
     if (!S.connected) return connect();
     const m = maxAmt();
-    if (m == null) return toast(wrongNet() ? 'Switch to ' + CONFIG.chainName + ' to read your balance' : 'Reading your balance…', true);
-    if (m <= 0) return toast(S.tab === 'deposit' ? 'You have no ' + sym(vault(S.vaultId)) + ' on ' + CONFIG.chainName : 'Nothing to withdraw from this vault', true);
+    const cv = vault(S.vaultId);
+    if (m == null) return toast(otherNet(cv) ? esc(switchToSee(cv)) : 'Reading your balance…', true);
+    if (m <= 0) return toast(S.tab === 'deposit' ? 'You have no ' + esc(sym(cv)) + ' on ' + esc(chainNm(cv.chainId)) : 'Nothing to withdraw from this vault', true);
     UI.amount = (Math.floor(m * +b.dataset.p) / 100).toFixed(2);
     $('amt').value = UI.amount; updateForm();
   });
@@ -1439,6 +1520,7 @@ function renderReview() {
     <div class="review-amt">${fmt(a)} <small>${esc(sym(v))}</small></div></div>
     <div class="rows" style="font-size:14px;border-top:1px solid var(--line2)">
       <div><span>Vault</span><span>${esc(v.name)} · Morpho</span></div>
+      <div><span>Network</span><span>${esc(chainNm(v.chainId))}</span></div>
       <div><span>Token</span><span style="display:inline-flex;align-items:center;gap:6px">${assetLogo(v, 16)}${esc(sym(v))}</span></div>
       <div><span>Risk grade</span><span>${gradeChip(v)}</span></div>
       <div><span>Network fee</span><span>Shown in your wallet</span></div>
@@ -1466,14 +1548,14 @@ function renderReview() {
 function vaultCard(v, inApp) {
   const r = risk(v), hot = v.util >= S.alerts.threshold;
   return `<article class="vcard ${inApp && S.vaultId === v.id ? 'sel' : ''}">
-    <div class="vcard-top"><div style="display:flex;align-items:center;gap:12px;min-width:0">${assetLogo(v, 36)}<div style="min-width:0"><h3>${esc(v.name)}</h3><div class="muted" style="font-size:13px;margin-top:4px">${esc(sym(v))} · ${esc(v.curator)}</div></div></div>${gradeChip(v)}</div>
+    <div class="vcard-top"><div style="display:flex;align-items:center;gap:12px;min-width:0">${assetLogo(v, 36)}<div style="min-width:0"><h3>${esc(v.name)}</h3><div class="muted" style="font-size:13px;margin-top:4px">${esc(sym(v))} ${chainChip(v)} · ${esc(v.curator)}</div></div></div>${gradeChip(v)}</div>
     <div><div class="apy">${fmt(netApy(v))}<span class="gold">%</span></div><div class="muted" style="font-size:13px;margin-top:6px">Net APY · ${fmt(v.gross)}% gross</div><div style="font-size:11px;color:var(--faint);margin-top:4px">7-day average, after ${fmtFee(v.perfFee)} performance fee</div></div>
     <div class="rows" style="font-size:13px">
       <div><span>Total deposits</span><span>${fmtUsdShort(v.tvl)}</span></div>
       <div><span>Utilization</span><span style="${hot ? 'color:var(--warn)' : ''}">${v.util.toFixed(1)}%</span></div>
       <div><span>Oracle</span><span>${v.oracle}</span></div>
     </div>
-    <div class="collat">${collatChips(v)}</div>
+    ${collatRow(v)}
     <div class="flags">${flagRows(riskFlags(v))}</div>
     <a href="#app" class="btn ${r.grade === 'C' || v.paused ? 'btn-glass' : 'btn-gold'}" data-pick="${v.id}" style="width:100%">${v.paused ? 'Deposits paused · view vault' : 'Deposit in ' + esc(shortName(v.name))}</a>
   </article>`;
@@ -1483,39 +1565,50 @@ function bindPicks(root) { root.querySelectorAll('[data-pick]').forEach(a => a.a
 function viewVaults() {
   const head = `<div class="page-head"><div><h1>Vaults</h1><p>Compare yield against risk. Grades update as utilization and collateral change.</p></div>${liveBadge()}</div>`;
   if (!VAULTS.length) { $('view').innerHTML = head + statusPanel(); return; }
-  const syms = [...new Set(VAULTS.map(sym))];            // VAULTS is grouped by asset: USDG first
+  // two filters that combine: network, then stablecoin (only options that currently have vaults)
+  const nets = CONFIG.chains.filter(c => VAULTS.some(v => v.chainId === c.id));
+  if (UI.net !== 'All' && !nets.some(c => String(c.id) === UI.net)) UI.net = 'All';
+  const onNet = UI.net === 'All' ? VAULTS : VAULTS.filter(v => String(v.chainId) === UI.net);
+  const syms = [...new Set(onNet.map(sym))];             // VAULTS order: home-network USDG first, then by TVL
   if (UI.asset !== 'All' && !syms.includes(UI.asset)) UI.asset = 'All';
-  const list = UI.asset === 'All' ? VAULTS : VAULTS.filter(v => sym(v) === UI.asset);
-  const filt = `<div class="vpick" role="tablist" aria-label="Filter by stablecoin">${['All', ...syms].map(s0 => { const on = UI.asset === s0, ex = VAULTS.find(v => sym(v) === s0);
+  const list = UI.asset === 'All' ? onNet : onNet.filter(v => sym(v) === UI.asset);
+  const netFilt = `<div class="vpick nets" role="tablist" aria-label="Filter by network">${[{ id: 'All', short: 'All networks' }, ...nets].map(c => { const on = UI.net === String(c.id);
+    return `<button type="button" role="tab" aria-selected="${on}" class="${on ? 'on' : ''}" data-net="${esc(c.id)}" style="padding:0 16px">${esc(c.short)}</button>`; }).join('')}</div>`;
+  const filt = `<div class="vpick" role="tablist" aria-label="Filter by stablecoin">${['All', ...syms].map(s0 => { const on = UI.asset === s0, ex = onNet.find(v => sym(v) === s0);
     return `<button type="button" role="tab" aria-selected="${on}" class="${on ? 'on' : ''}" data-asset="${esc(s0)}" style="padding:0 16px">${ex ? assetLogo(ex, 18) : ''}${esc(s0)}</button>`; }).join('')}</div>`;
-  $('view').innerHTML = `${head}${filt}
+  const failed = LIVE.failed.length ? `<p class="muted" style="margin:-8px 0 16px;font-size:13px">${warnSvg(14)} Couldn't load ${esc(listNames(LIVE.failed.map(chainNm)))} vaults right now. Showing the other networks.</p>` : '';
+  $('view').innerHTML = `${head}${failed}${netFilt}${filt}
     <div class="vgrid" style="margin-top:0">${list.map(v => vaultCard(v, true)).join('')}</div>
     <div class="panel" style="margin-top:20px">
       <h3 class="h4" style="margin-bottom:6px">Side by side</h3>
       <p class="muted" style="margin:0 0 18px;font-size:12px">Net APY is a 7-day average, after fees. Flags are risks the grade doesn't score.</p>
       <div class="scrollx"><table class="tbl">
-        <thead><tr><th>Vault</th><th title="7-day average, after fees">Net APY</th><th>Grade</th><th>Flags</th><th>Utilization</th><th>Withdrawable</th><th>Oracle</th><th>Blue-chip collateral</th></tr></thead>
+        <thead><tr><th>Vault</th><th title="7-day average, after fees">Net APY</th><th>Grade</th><th>Flags</th><th>Utilization</th><th>Withdrawable</th><th>Oracle</th><th>Blue-chip / cash-backed</th></tr></thead>
         <tbody>${list.map(v => { const blue = Math.round(v.collateral.filter(c => c.q === 'blue').reduce((t, c) => t + c.s, 0) * 10) / 10; const fl = riskFlags(v);
-          return `<tr><td><span style="display:inline-flex;align-items:center;gap:8px">${assetLogo(v, 18)}${esc(v.name)} <span class="mono muted" style="font-size:12px">${esc(sym(v))}</span></span></td><td class="n gold">${fmt(netApy(v))}%</td><td>${gradeChip(v)}</td><td class="n" style="${fl.length ? 'color:var(--warn)' : ''}" title="${esc(fl.map(f => f.text).join(' '))}">${fl.length ? warnSvg(14) + ' ' + fl.length : '—'}</td><td class="n">${v.util.toFixed(1)}%</td><td class="n">${fmtUsdShort(v.liq)}</td><td>${v.oracle}</td><td class="n">${blue}%</td></tr>`; }).join('')}</tbody>
+          return `<tr><td><span style="display:inline-flex;align-items:center;gap:8px">${assetLogo(v, 18)}${esc(v.name)} <span class="mono muted" style="font-size:12px">${esc(sym(v))}</span>${chainChip(v)}</span></td><td class="n gold">${fmt(netApy(v))}%</td><td>${gradeChip(v)}</td><td class="n" style="${fl.length ? 'color:var(--warn)' : ''}" title="${esc(fl.map(f => f.text).join(' '))}">${fl.length ? warnSvg(14) + ' ' + fl.length : '—'}</td><td class="n">${v.util.toFixed(1)}%</td><td class="n">${fmtUsdShort(v.liq)}</td><td>${v.oracle}</td><td class="n">${blue}%</td></tr>`; }).join('')}</tbody>
       </table></div>
     </div>`;
   bindPicks($('view'));
   $('view').querySelectorAll('[data-asset]').forEach(b => b.onclick = () => { UI.asset = b.dataset.asset; viewVaults(); });
+  $('view').querySelectorAll('[data-net]').forEach(b => b.onclick = () => { UI.net = b.dataset.net; viewVaults(); });
 }
 
 /* ===================== PORTFOLIO ===================== */
 function viewPortfolio() {
   const c = S.connected;
-  const known = c && BAL.at > 0;
-  const held = known ? VAULTS.map(v => ({ v, amt: posBal(v) || 0 })).filter(x => x.amt > 0) : [];
+  const net = c ? chainById(UI.chainId) : null;               // positions are read on the wallet's current network only
+  const known = c && !!net && BAL.at > 0 && BAL.chainId === net.id;
+  const held = known ? VAULTS.filter(v => v.chainId === net.id).map(v => ({ v, amt: posBal(v) || 0 })).filter(x => x.amt > 0) : [];
   const usd = x => x.amt * (x.v.asset.price || 1);
   const total = held.reduce((t, x) => t + usd(x), 0);
   const blended = total ? held.reduce((t, x) => t + usd(x) * netApy(x.v), 0) / total : null;
-  const status = !c ? '' : wrongNet() ? 'Switch to ' + esc(CONFIG.chainName) + ' to read your positions.' : BAL.err ? esc(BAL.err) + '.' : !known ? 'Reading your positions…' : '';
+  const others = CONFIG.chains.filter(ch => !net || ch.id !== net.id).map(ch => ch.name);
+  const status = !c ? '' : UI.chainId == null ? 'Reading your wallet network…' : !net ? `Your wallet is on an unsupported network. Switch to ${esc(listNames(others, 'or'))} to see your positions there.` : BAL.err ? esc(BAL.err) + '.' : !known ? 'Reading your positions…' : '';
+  const netNote = c && net ? `<p class="muted" id="pfNets" style="margin:14px 0 0;font-size:12px;line-height:1.5">Showing ${esc(net.name)}. Switch network in your wallet to see positions on ${esc(listNames(others))}.</p>` : '';
   $('view').innerHTML = `
-    <div class="page-head"><div><h1>Portfolio</h1><p>${c ? 'Wallet ' + esc(short(S.address)) + (W ? ' · ' + esc(W.info.name) : '') : 'Connect a wallet to start'}</p></div></div>
+    <div class="page-head"><div><h1>Portfolio</h1><p>${c ? 'Wallet ' + esc(short(S.address)) + (W ? ' · ' + esc(W.info.name) : '') + (net ? ' · ' + esc(net.name) : '') : 'Connect a wallet to start'}</p></div></div>
     <div class="kgrid">
-      <div class="panel kcard"><small>Total balance</small><b>${known ? '$' + fmt(total) : '—'}</b><em>across listed vaults</em></div>
+      <div class="panel kcard"><small>Total balance</small><b>${known ? '$' + fmt(total) : '—'}</b><em>across listed vaults${net ? ' on ' + esc(net.short) : ''}</em></div>
       <div class="panel kcard"><small>Est. per day</small><b class="gold">${known && blended != null ? '+$' + fmt(total * blended / 100 / 365) : '—'}</b><em>at current net APY</em></div>
       <div class="panel kcard"><small>Blended net APY</small><b>${blended != null ? fmt(blended) + '%' : '—'}</b><em>weighted by balance</em></div>
       <div class="panel kcard"><small>Season 1 points</small><b>${fmtInt(S.points + S.refPoints)}</b><em><a href="#rewards" class="gold">View rewards</a></em></div>
@@ -1526,13 +1619,14 @@ function viewPortfolio() {
         <h3 class="h4" style="margin-bottom:12px">Positions</h3>
         ${!c ? `<div class="empty">Connect a wallet to see your positions.<button type="button" class="btn btn-gold btn-sm" id="pfConnect">Connect wallet</button></div>`
           : status ? `<div class="empty">${status}</div>`
-          : held.length ? `<div class="rows" style="font-size:14px">${held.map(x => `<div><span style="color:var(--ink);display:flex;align-items:center;gap:10px">${assetLogo(x.v, 18)}${esc(x.v.name)} ${gradeChip(x.v, false)}</span><span>${fmt(x.amt)} ${esc(sym(x.v))}<br><small class="muted" style="font-size:11px">${fmt(netApy(x.v))}% net APY</small></span></div>`).join('')}</div>`
-          : `<div class="empty">No positions in listed vaults yet.<a href="#app" class="btn btn-gold btn-sm">Make a deposit</a></div>`}
+          : held.length ? `<div class="rows" style="font-size:14px">${held.map(x => `<div><span style="color:var(--ink);display:flex;align-items:center;gap:10px;flex-wrap:wrap">${assetLogo(x.v, 18)}${esc(x.v.name)} ${chainChip(x.v)}${gradeChip(x.v, false)}</span><span>${fmt(x.amt)} ${esc(sym(x.v))}<br><small class="muted" style="font-size:11px">${fmt(netApy(x.v))}% net APY</small></span></div>`).join('')}</div>`
+          : `<div class="empty">No positions in listed vaults on ${esc(net.name)} yet.<a href="#app" class="btn btn-gold btn-sm">Make a deposit</a></div>`}
+        ${netNote}
       </div>
     </div>
     <div class="panel">
       <h3 class="h4" style="margin-bottom:18px">Transaction history</h3>
-      <div class="empty">${c ? `Your deposits and withdrawals: <a class="gold" href="${CONFIG.explorer}/address/${esc(S.address)}" target="_blank" rel="noopener">view on explorer ↗</a>` : 'Deposits and withdrawals show up here.'}</div>
+      <div class="empty">${c ? `Your deposits and withdrawals: <a class="gold" href="${esc(explorerFor(UI.chainId))}/address/${esc(S.address)}" target="_blank" rel="noopener">view on ${esc(net ? net.short : HOME.short)} explorer ↗</a>` : 'Deposits and withdrawals show up here.'}</div>
     </div>`;
   const pc = $('pfConnect'); if (pc) pc.onclick = connect;
 }
@@ -1626,13 +1720,14 @@ function viewRisk() {
   $('view').innerHTML = `<article class="prose">
     <h1>Risk disclosure</h1><p class="muted">Last updated [date]</p>
     <div class="note">Draft for review. Have a lawyer familiar with your jurisdiction check this before launch.</div>
-    <p>Olvana is software that helps you supply stablecoins such as USDG and USDC to third-party lending vaults on ${CONFIG.chainName}. Olvana never takes custody of your funds. Using it carries real risk of loss.</p>
+    <p>Olvana is software that helps you supply stablecoins such as USDG and USDC to third-party lending vaults on ${esc(NETS)}. Olvana never takes custody of your funds. Using it carries real risk of loss.</p>
     <h2>Smart contract risk</h2><p>The vaults, markets and token contracts are code. Bugs or exploits in Morpho, the vault, the stablecoin you deposit or any collateral token can result in partial or total loss.</p>
     <h2>Collateral and liquidation risk</h2><p>Borrowers post collateral. If collateral falls in value faster than it can be liquidated, the vault can take bad debt, which reduces what depositors can withdraw.</p>
     <h2>Tokenized stock collateral risk</h2><p>Some vaults lend against tokenized stocks. Their prices follow stock markets, which close at night, on weekends and on holidays. While those markets are closed, the collateral can't be repriced, and prices can gap when trading reopens. Liquidations may lag behind the real price move, and the vault can take bad debt. Olvana flags vaults that hold this collateral next to the grade. The flag does not change the score.</p>
     <h2>Oracle risk</h2><p>Markets rely on price oracles. A stale, manipulated or misconfigured oracle can let borrowers take loans against collateral priced too high.</p>
     <h2>Liquidity risk</h2><p>You can only withdraw funds that are not currently lent out. At high utilization, withdrawals may be delayed until borrowers repay.</p>
     <h2>Curator risk</h2><p>Each vault's curator chooses which markets it lends to. A poor choice by the curator can expose your deposit to risky collateral.</p>
+    <h2>Bridge &amp; multi-network risk</h2><p>Each vault lives on one network (Robinhood Chain, Ethereum, Base or Arbitrum), and you can only deposit a token that is on that same network. Moving funds between networks uses bridges, which are separate protocols with their own smart contract, operator and delay risks, and a bridged token can differ from the native one. Olvana does not run or vet bridges. Always check the network shown next to a vault before you deposit, and that your wallet is on it.</p>
     <h2>Stablecoin risk</h2><p>Any stablecoin, including USDG and USDC, may lose its peg to the US dollar. Olvana only lists vaults whose token trades within 2% of $1, and flags a token more than 0.5% off.</p>
     <h2>Rates and grades</h2><p>APY is variable and reflects past performance, not a promise. Risk grades summarize public data using Olvana's methodology. They are not a guarantee, a rating by a regulated agency, or investment advice.</p>
     <h2>Points and $[TICKER]</h2><p>Points have no cash value and may change. $[TICKER] does not entitle holders to vault revenue or profits.</p>
@@ -1674,7 +1769,7 @@ function viewPrivacy() {
       <li>To send the alerts you turned on.</li>
       <li>To prevent abuse, fraud and attacks on the service.</li>
     </ul>
-    <h2>4. Onchain data is public</h2><p>Transactions on ${esc(CONFIG.chainName)} are public and permanent. Anyone can see deposits and withdrawals made from your address. Olvana cannot hide, change or delete them.</p>
+    <h2>4. Onchain data is public</h2><p>Transactions on ${esc(NETS)} are public and permanent. Anyone can see deposits and withdrawals made from your address. Olvana cannot hide, change or delete them.</p>
     <h2>5. How long we keep it</h2><p>We keep offchain data (referral link, alert settings, Telegram link) while you use Olvana, or until you ask us to delete it. Server logs are kept for [log retention period], then deleted.</p>
     <h2>6. Who we share it with</h2><p>We don't sell your data. We share only what's needed with infrastructure providers that run the service, such as our hosting provider, our RPC provider (which sees the requests your browser makes for your address) and Telegram (to deliver alerts you asked for). [List of providers.] We may disclose data if the law requires it.</p>
     <h2>7. Your controls</h2><ul>
@@ -1689,7 +1784,7 @@ function viewPrivacy() {
   </article>`;
 }
 function viewSecurity() {
-  const addr = a => a ? `<a href="${esc(CONFIG.explorer)}/address/${esc(a)}" target="_blank" rel="noopener" class="gold">${esc(short(a))} ↗</a>` : '<span class="muted">[pending]</span>';
+  const addr = (a, chainId) => a ? `<a href="${esc(explorerFor(chainId))}/address/${esc(lcA(a))}" target="_blank" rel="noopener" class="gold">${esc(short(lcA(a)))} ↗</a>` : '<span class="muted">[pending]</span>';
   const site = CONFIG.siteUrl.replace(/^https?:\/\//, '');
   const checks = [
     ['Vault contract on allowlist', 'Blocks if not listed'],
@@ -1698,9 +1793,13 @@ function viewSecurity() {
     ['Vault accepting deposits', 'Blocks if paused'],
     ['Oracle prices in range', 'Warns']
   ];
-  const vaultRows = VAULTS.length
-    ? VAULTS.map(v => `<tr><td>${esc(vLabel(v))} vault</td><td>${esc(v.curator)}</td><td class="n">${addr(v.address)}</td></tr>`).join('')
-    : `<tr><td colspan="3" class="muted" style="white-space:normal">${esc(liveMsg())}</td></tr>`;
+  // contracts grouped per network: listed vaults, then the pinned stablecoins and Morpho core contracts on that network
+  const vaultRows = (VAULTS.length ? '' : `<tr><td colspan="3" class="muted" style="white-space:normal">${esc(liveMsg())}</td></tr>`) + CONFIG.chains.map(ch => `
+        <tr><th colspan="3" style="padding-top:22px;color:var(--ink)">${esc(ch.name)} <span class="muted">· chain ${ch.id}</span></th></tr>
+        ${VAULTS.filter(v => v.chainId === ch.id).map(v => `<tr><td>${esc(vLabel(v))} vault ${chainChip(v)}</td><td>${esc(v.curator)}</td><td class="n">${addr(v.address, ch.id)}</td></tr>`).join('')}
+        ${Object.entries(ch.pins || {}).map(([sy, a]) => `<tr><td>${esc(sy)} token</td><td class="muted">—</td><td class="n">${addr(a, ch.id)}</td></tr>`).join('')}
+        <tr><td>Morpho Blue core</td><td class="muted">—</td><td class="n">${addr(ch.morphoBlue, ch.id)}</td></tr>
+        <tr><td>Morpho Vault V2 factory</td><td class="muted">—</td><td class="n">${addr(ch.vaultV2Factory, ch.id)}</td></tr>`).join('');
   const feeRows = VAULTS.length
     ? VAULTS.map(v => `<div><span>${esc(v.name)} performance fee</span><span>${fmtFee(v.perfFee)} of yield${v.mgmtFee ? ' · ' + fmtFee(v.mgmtFee) + ' a year management' : ''}</span></div>`).join('')
     : `<div><span>${esc(liveMsg())}</span><span></span></div>`;
@@ -1709,14 +1808,11 @@ function viewSecurity() {
     <div class="note">Anything marked [pending] is not live yet. Only send funds to a contract address listed on this page.</div>
     <p>Olvana is a non-custodial interface. Your funds move only when you sign a transaction in your own wallet. Here is every contract the app talks to, what it charges, and how each transaction is checked.</p>
     <h2>Contracts</h2>
-    <p style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px">${liveBadge()}<span class="muted" style="font-size:14px">Vaults are Morpho Vault V2s listed by Morpho and created by the factory below.</span></p>
+    <p style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px">${liveBadge()}<span class="muted" style="font-size:14px">Vaults are Morpho Vault V2s listed by Morpho and created by the Vault V2 factory of their own network, shown below.</span></p>
     <div class="scrollx"><table class="tbl">
       <thead><tr><th>Contract</th><th>Curator</th><th>Address</th></tr></thead>
       <tbody>
         ${vaultRows}
-        <tr><td>USDG token</td><td class="muted">—</td><td class="n">${addr(CONFIG.usdgAddress)}</td></tr>
-        <tr><td>Morpho Blue core</td><td class="muted">—</td><td class="n">${addr(CONFIG.morphoBlue)}</td></tr>
-        <tr><td>Morpho Vault V2 factory</td><td class="muted">—</td><td class="n">${addr(CONFIG.vaultV2Factory)}</td></tr>
       </tbody>
     </table></div>
     <h2>Fees</h2>
@@ -1742,7 +1838,7 @@ function viewSecurity() {
       <li>The only Olvana app is <span class="mono">${esc(site)}</span>. Bookmark it and open it from the bookmark.</li>
       <li>We never DM you first, on Telegram, X, Discord or anywhere else.</li>
       <li>We never ask for your seed phrase or private key. Anyone who does is a scammer.</li>
-      <li>Before you sign, check that the contract address in your wallet prompt matches the address on this page.</li>
+      <li>Before you sign, check that the contract address in your wallet prompt matches the address on this page, and that your wallet is on the vault's network.</li>
     </ul>
     <h2>Report a vulnerability</h2>
     <p>Found a security issue? Email [security email] with the details and steps to reproduce. Please don't disclose it publicly until we've had time to fix it. Bug bounty: [details TBD].</p>
@@ -1773,11 +1869,11 @@ let gSel = null;
 const GCOL = { A:'#7EE0B8', B:'#F5D06F', C:'#FF9270' };
 function renderLanding() {
   const vs = VAULTS, st = liveState();
-  // headline APY: best net APY among grade A vaults only (never lead with a grade C yield)
+  // headline APY: best net APY among grade A vaults only, across every network (never lead with a grade C yield)
   const gradeA = vs.filter(v => risk(v).grade === 'A');
   $('hfApy').textContent = gradeA.length ? fmt(Math.max(...gradeA.map(netApy))) + '%' : '—';
   const bestA = gradeA.slice().sort((a, b) => netApy(b) - netApy(a))[0];
-  $('hfApyLbl').textContent = bestA ? t('d.gradeA', { s: sym(bestA) }) : vs.length ? t('d.noGradeA') : t({ loading:'d.hfLoading', offline:'d.hfOff', empty:'d.hfEmpty' }[st] || 'd.hfLoading');
+  $('hfApyLbl').textContent = bestA ? t('d.gradeA', { s: sym(bestA) + ' · ' + chainShort(bestA.chainId) }) : vs.length ? t('d.noGradeA') : t({ loading:'d.hfLoading', offline:'d.hfOff', empty:'d.hfEmpty' }[st] || 'd.hfLoading');
   $('heroNote').innerHTML = liveBadge();
   $('footStatus').textContent = CONFIG.status && CONFIG.status.level ? CONFIG.status.message : st === 'offline' ? t('d.statusOff') : t('d.status');
   // deck: top 3 by TVL (VAULTS is sorted by TVL)
@@ -1785,7 +1881,7 @@ function renderLanding() {
   if (heroOrder.length !== top.length || !top.every(id => heroOrder.includes(id))) heroOrder = top.slice();
   if (!vs.length) {
     $('heroDeck').innerHTML = `<div class="dcard msg" data-pos="0" role="status">
-      <div class="top"><div style="display:flex;align-items:center;gap:12px"><div class="coin">$</div><div><h3>Stablecoin vaults</h3><div class="muted" style="font-size:13px">${esc(CONFIG.chainName)} · Morpho</div></div></div>${liveBadge()}</div>
+      <div class="top"><div style="display:flex;align-items:center;gap:12px"><div class="coin">$</div><div><h3>Stablecoin vaults</h3><div class="muted" style="font-size:13px">${CONFIG.chains.length} networks · Morpho</div></div></div>${liveBadge()}</div>
       <p>${st === 'loading' ? '<span class="spin" style="display:inline-block;vertical-align:-2px;margin-right:8px"></span>' : ''}${esc(liveMsg())}</p>
       <a href="#vaults" class="go">View vaults</a>
     </div>`;
@@ -1794,14 +1890,14 @@ function renderLanding() {
     $('heroDeck').innerHTML = heroOrder.map((id, pos) => {
       const v = vault(id), hot = v.util >= S.alerts.threshold;
       return `<button type="button" class="dcard" data-pos="${pos}" data-id="${id}" aria-label="${esc(t('d.deckCard', { v: v.name, a: fmt(netApy(v)), g: risk(v).grade }))}">
-        <div class="top"><div style="display:flex;align-items:center;gap:12px">${assetLogo(v, 40)}<div><h3>${esc(v.name)}</h3><div class="muted" style="font-size:13px">${esc(sym(v))} · ${esc(v.curator)}</div></div></div>${gradeChip(v, false)}</div>
+        <div class="top"><div style="display:flex;align-items:center;gap:12px">${assetLogo(v, 40)}<div><h3>${esc(v.name)}</h3><div class="muted" style="font-size:13px">${esc(sym(v))} ${chainChip(v)} · ${esc(v.curator)}</div></div></div>${gradeChip(v, false)}</div>
         <div><div class="apy">${fmt(netApy(v))}%<small>${t('d.netApy')}</small></div></div>
         <div class="rows" style="font-size:13px">
           <div><span>${t('d.tvlLbl')}</span><span>${fmtUsdShort(v.tvl)}</span></div>
           <div><span>${t('d.util')}</span><span style="${hot ? 'color:var(--warn)' : ''}">${v.util.toFixed(1)}%</span></div>
           <div><span>${t('d.wd')}</span><span>${fmtUsdShort(v.liq)}</span></div>
         </div>
-        <div class="collat">${collatChips(v)}</div>
+        ${collatRow(v)}
         <span class="go">${esc(t('d.depositIn', { v: shortName(v.name) }))}</span>
       </button>`;
     }).join('');
@@ -1822,9 +1918,9 @@ function renderLanding() {
   }
   // marquee (repeat items so the loop never shows a gap, even with one vault)
   const cells = vs.length
-    ? vs.map(v => `<div class="mq-item">${gradeChip(v, false)}${assetLogo(v, 18)}<span>${esc(vLabel(v))}</span><b class="gold">${fmt(netApy(v))}%</b><span class="muted">${t('d.apy')}</span><b>${fmtUsdShort(v.tvl)}</b><span class="muted">${t('d.tvl')}</span><b>${v.util.toFixed(1)}%</b><span class="muted">${t('d.utilized')}</span></div>`)
+    ? vs.map(v => `<div class="mq-item">${gradeChip(v, false)}${assetLogo(v, 18)}<span>${esc(vLabel(v))}</span>${chainChip(v)}<b class="gold">${fmt(netApy(v))}%</b><span class="muted">${t('d.apy')}</span><b>${fmtUsdShort(v.tvl)}</b><span class="muted">${t('d.tvl')}</span><b>${v.util.toFixed(1)}%</b><span class="muted">${t('d.utilized')}</span></div>`)
     : [`<div class="mq-item"><span class="muted">${esc(liveMsg())}</span></div>`];
-  cells.push(`<div class="mq-item"><span class="dot"></span><span>Robinhood Chain</span></div>`, `<div class="mq-item"><span class="muted">${t('d.olvanaFee')}</span><b>0%</b></div>`);
+  cells.push(`<div class="mq-item"><span class="dot"></span><span>${esc(CONFIG.chains.map(c => c.short).join(' · '))}</span></div>`, `<div class="mq-item"><span class="muted">${t('d.olvanaFee')}</span><b>0%</b></div>`);
   const half = Array.from({ length: Math.max(1, Math.ceil(8 / cells.length)) }, () => cells.join('')).join('');
   $('marquee').innerHTML = half + half;
   // grades
@@ -1833,7 +1929,7 @@ function renderLanding() {
   const sel = $('cVault');
   if (vs.length) {
     sel.disabled = false;
-    sel.innerHTML = vs.map(v => `<option value="${v.id}">${esc(vLabel(v))} · ${fmt(netApy(v))}% · Grade ${risk(v).grade}</option>`).join('');
+    sel.innerHTML = vs.map(v => `<option value="${esc(v.id)}">${esc(vLabel(v))} · ${esc(chainShort(v.chainId))} · ${fmt(netApy(v))}% · Grade ${risk(v).grade}</option>`).join('');
     if (calcVault && vs.some(v => v.id === calcVault)) sel.value = calcVault;
   } else {
     sel.disabled = true;
@@ -1854,8 +1950,10 @@ function renderGrades() {
     cta.textContent = 'Open the app'; cta.className = 'btn btn-glass'; cta.onclick = null;
     return;
   }
-  if (!VAULTS.some(v => v.id === gSel)) gSel = VAULTS[0].id;
-  $('gTabs').innerHTML = VAULTS.map(v => `<button type="button" role="tab" aria-selected="${gSel === v.id}" class="gtab ${gSel === v.id ? 'on' : ''}" data-g="${v.id}"><span class="gt-name"><b>${esc(v.name)}</b>${esc(sym(v))} · ${fmt(netApy(v))}% ${t('d.netApy')}</span>${gradeChip(v, false)}</button>`).join('');
+  // at most 6 tabs (VAULTS order: home-network USDG first, then by TVL) so the section stays readable with several networks
+  const tabs = VAULTS.slice(0, 6);
+  if (!tabs.some(v => v.id === gSel)) gSel = tabs[0].id;
+  $('gTabs').innerHTML = tabs.map(v => `<button type="button" role="tab" aria-selected="${gSel === v.id}" class="gtab ${gSel === v.id ? 'on' : ''}" data-g="${esc(v.id)}"><span class="gt-name"><b>${esc(v.name)}</b>${esc(sym(v))} ${chainChip(v)} · ${fmt(netApy(v))}% ${t('d.netApy')}</span>${gradeChip(v, false)}</button>`).join('');
   $('gTabs').querySelectorAll('[data-g]').forEach(b => b.onclick = () => { gSel = b.dataset.g; renderGrades(); });
   const v = vault(gSel), r = risk(v);
   const col = GCOL[r.grade];
@@ -1864,7 +1962,7 @@ function renderGrades() {
   $('gLetter').textContent = r.grade; $('gLetter').style.color = col;
   $('gScore').textContent = r.score + ' / 100';
   $('gMeta').innerHTML = `<div>${t('d.NetApy')}<b class="gold">${fmt(netApy(v))}%</b></div><div>${t('d.oracle')}<b>${v.oracle}</b></div><div>${t('d.curator')}<b>${esc(v.curator)}</b></div>`;
-  $('gParts').innerHTML = r.parts.map(p => `<div class="rb-row"><div class="t"><span>${esc(tx(p.k))}</span><span>${Math.round(p.p)}/${p.m}</span></div><div class="bar ${p.p / p.m < 0.5 ? 'hot' : ''}"><i style="width:${p.p / p.m * 100}%"></i></div><small>${esc(tx(p.note))}</small></div>`).join('');
+  $('gParts').innerHTML = r.parts.map(p => `<div class="rb-row"><div class="t"><span>${esc(tx(p.k))}</span><span>${Math.round(p.p)}/${p.m}</span></div><div class="bar ${p.p / p.m < 0.5 ? 'hot' : ''}"><i style="width:${p.p / p.m * 100}%"></i></div><small>${esc(tx(p.note))}</small></div>`).join('') + deductRows(r);
   $('gFlags').innerHTML = flagRows(riskFlags(v).map(f => ({ ...f, text: tFlag(f) })));
   cta.textContent = t('d.depositIn', { v: shortName(v.name) });
   cta.className = 'btn ' + (r.grade === 'C' ? 'btn-glass' : 'btn-gold');
@@ -1960,20 +2058,37 @@ async function gql(query, variables) {
   API_URL = null;
   throw err;
 }
-async function fetchVaultItems() {
+// Run fn over items with at most n requests in flight (several networks can list many vaults).
+async function mapLimit(items, n, fn) {
+  const out = new Array(items.length); let i = 0;
+  await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => {
+    while (i < items.length) { const k = i++; try { out[k] = { status: 'fulfilled', value: await fn(items[k]) }; } catch (e) { out[k] = { status: 'rejected', reason: e }; } }
+  }));
+  return out;
+}
+// List stage, one network: every Vault V2 page (50 per page), each item tagged with its chainId.
+async function fetchChainList(ch) {
   const all = [];
   for (let p = 0; p < 10; p++) {
-    const d = await gql(LIST_Q, { c: [CONFIG.chainId], s: p * 50 });
+    const d = await gql(LIST_Q, { c: [ch.id], s: p * 50 });
     const it = (d.vaultV2s && d.vaultV2s.items) || [];
-    all.push(...it);
+    all.push(...it.map(x => ({ ...x, chainId: ch.id })));
     if (it.length < 50) break;
   }
-  const cands = all.filter(keepVault);
-  const detail = async a => {
-    const [b, al] = await Promise.all([gql(DETAIL_Q, { a, c: CONFIG.chainId }), gql(ALLOC_Q, { a, c: CONFIG.chainId })]);
-    return b.vaultV2ByAddress ? { ...b.vaultV2ByAddress, adapters: (al.vaultV2ByAddress && al.vaultV2ByAddress.adapters) || { items: [] } } : null;
+  return all;
+}
+async function fetchVaultItems() {
+  // networks in parallel: one failing network must not hide the others; only when all fail is it an error
+  const lists = await Promise.allSettled(CONFIG.chains.map(fetchChainList));
+  if (lists.every(r => r.status === 'rejected')) throw lists[0].reason;
+  LIVE.failed = CONFIG.chains.filter((c, k) => lists[k].status === 'rejected').map(c => c.id);
+  const cands = lists.flatMap(r => r.status === 'fulfilled' ? r.value : []).filter(keepVault);
+  const detail = async it => {
+    const q = { a: it.address, c: it.chainId };
+    const [b, al] = await Promise.all([gql(DETAIL_Q, q), gql(ALLOC_Q, q)]);
+    return b.vaultV2ByAddress ? { ...b.vaultV2ByAddress, chainId: it.chainId, adapters: (al.vaultV2ByAddress && al.vaultV2ByAddress.adapters) || { items: [] } } : null;
   };
-  const res = await Promise.allSettled(cands.map(c => detail(c.address)));
+  const res = await mapLimit(cands, 8, detail);
   const ok = res.filter(r => r.status === 'fulfilled' && r.value).map(r => r.value);
   if (cands.length && !ok.length) { const f = res.find(r => r.status === 'rejected'); if (f) throw f.reason; }
   return ok;
@@ -1984,16 +2099,20 @@ const isAddr = a => /^0x[0-9a-fA-F]{40}$/.test(String(a || ''));
 const CHAINLINK = ['ChainlinkOracle', 'ChainlinkOracleV2'];
 const BLUE = /^(WETH|WBTC|wstETH|cbBTC)$/i;
 // Safety filter: anyone can create a vault named after a stablecoin, so only keep Morpho-listed Vault V2s from the
-// verified factory whose asset is a listed stablecoin trading within 2% of $1 when a price is known (same rules as packages/core/src/morpho.ts).
+// verified factory of the vault's own network, whose asset is a listed stablecoin (at the pinned address when that network
+// pins the symbol) trading within 2% of $1 when a price is known (same rules as packages/core/src/morpho.ts).
 // USD value of a stablecoin amount: the API's USD figure, else the raw token amount (≈ $1; the API has no USDG price yet).
 const stableUsd = (usd, raw, asset) => { const u = num(usd); if (u != null) return u; const r = num(raw); return r == null ? 0 : r / 10 ** (num(asset && asset.decimals) ?? 18); };
 function keepVault(it) {
   if (!it || !isAddr(it.address) || it.listed !== true) return false;
+  const ch = chainById(it.chainId);
+  if (!ch) return false;
   const a = it.asset;
   if (!a || !CONFIG.stablecoins.includes(a.symbol)) return false;
   if (typeof a.priceUsd === 'number' && !(a.priceUsd >= 0.98 && a.priceUsd <= 1.02)) return false;   // peg check when a price is known
-  if (a.symbol === 'USDG' && CONFIG.usdgAddress && lc(a.address) !== lc(CONFIG.usdgAddress)) return false;
-  if (!it.factory || lc(it.factory.address) !== lc(CONFIG.vaultV2Factory)) return false;
+  const pin = ch.pins && Object.prototype.hasOwnProperty.call(ch.pins, a.symbol) ? ch.pins[a.symbol] : null;
+  if (pin && lc(a.address) !== lc(pin)) return false;
+  if (!it.factory || lc(it.factory.address) !== lc(ch.vaultV2Factory)) return false;
   return stableUsd(it.totalAssetsUsd, it.totalAssets, it.asset) >= CONFIG.minTvlUsd;
 }
 function mapVault(it) {
@@ -2017,7 +2136,8 @@ function mapVault(it) {
     by.set(cs, e);
   }
   const collateral = [...by].map(([cs, e]) => {
-    const o = Object.prototype.hasOwnProperty.call(CONFIG.collateralClass, cs) ? CONFIG.collateralClass[cs] : null;
+    const ck = Object.keys(CONFIG.collateralClass).find(k => k.toLowerCase() === cs.toLowerCase());   // case-insensitive
+    const o = ck ? CONFIG.collateralClass[ck] : null;
     let q = BLUE.test(cs) ? 'blue' : (o && o.q) || 'tail';
     if (!Object.prototype.hasOwnProperty.call(COLLAT_Q, q)) q = 'tail';
     return { a: cs, s: Math.round(e.usd / sum * 1000) / 10, l: Math.round(e.l), q, kind: (o && o.kind) || 'crypto', logo: e.logo };
@@ -2027,9 +2147,9 @@ function mapVault(it) {
   const cur = ((it.curators && it.curators.items) || []).find(c => c && c.name);
   const net7 = num(it.net7d), net1 = num(it.net1d);
   const created = num(it.creationTimestamp);
-  const address = lc(it.address);
+  const address = lc(it.address), chainId = Number(it.chainId);
   return {
-    id: address, address, name: String(it.name || sym({ asset: it.asset }) + ' vault'), live: true,
+    id: chainId + ':' + address, chainId, address, name: String(it.name || sym({ asset: it.asset }) + ' vault'), live: true,
     curator: cur ? String(cur.name) : (isAddr(it.curator && it.curator.address) ? short(lc(it.curator.address)) : 'Unknown curator'),
     curatorVerified: !!(cur && cur.verified),
     net: (net7 ?? net1 ?? 0) * 100,
@@ -2044,12 +2164,10 @@ function mapVault(it) {
     asset: { symbol: String(it.asset.symbol), address: String(it.asset.address).toLowerCase(), decimals: num(it.asset.decimals), logo: safeUrl(it.asset.logoURI), price: num(it.asset.priceUsd) }
   };
 }
-// Group by asset: USDG first, then other stablecoins by their total TVL; inside a group, by TVL.
+// USDG on the home network first, then everything by TVL (the Vaults page filters by network and asset).
 function sortVaults(list) {
-  const gt = {};
-  list.forEach(v => { gt[sym(v)] = (gt[sym(v)] || 0) + v.tvl; });
-  const rank = s => s === 'USDG' ? Infinity : gt[s];
-  return list.sort((a, b) => sym(a) === sym(b) ? b.tvl - a.tvl : (rank(sym(b)) - rank(sym(a))) || sym(a).localeCompare(sym(b)));
+  const home = v => v.chainId === CONFIG.homeChainId && sym(v) === 'USDG' ? 1 : 0;
+  return list.sort((a, b) => (home(b) - home(a)) || (b.tvl - a.tvl) || a.id.localeCompare(b.id));
 }
 async function refreshLive() {
   if (LIVE.busy) return;
@@ -2063,6 +2181,7 @@ async function refreshLive() {
     checkAlerts(first || !document.body.classList.contains('in-app'));
   } catch (e) {
     LIVE.err = e && e.message || 'error';
+    LIVE.failed = [];
     if (LIVE.at && Date.now() - LIVE.at > DROP_MS) VAULTS = [];   // never keep showing numbers more than an hour old
   } finally {
     LIVE.busy = false;
