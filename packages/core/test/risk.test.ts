@@ -151,3 +151,17 @@ describe('headlineNetApy', () => {
     expect(headlineNetApy([{ netApy: 12, grade: 'B' }])).toBeNull();
   });
 });
+
+describe('deductions (owner-approved 2026-09-27)', () => {
+  it('prototype fixtures carry no deductions', () => {
+    for (const k of ['core', 'prime', 'boost'] as const) expect(riskScore(PROTOTYPE_VAULTS[k]).deductions).toEqual([]);
+  });
+  it('concentration > 80%, age < 90 days and TVL < $1M each subtract', () => {
+    const base = { utilization: 50, oracle: 'chainlink' as const, curatorIncidents: 0 };
+    const one = [{ symbol: 'WETH', share: 100, quality: 'blue' as const }];
+    expect(riskScore({ ...base, collateral: one }).score).toBe(100 - 10);
+    expect(riskScore({ ...base, collateral: one, vaultAgeDays: 10 }).score).toBe(100 - 15);
+    expect(riskScore({ ...base, collateral: one, vaultAgeDays: 10, tvlUsd: 5_000 }).score).toBe(100 - 20);
+    expect(riskScore({ ...base, collateral: [{ symbol: 'WETH', share: 80, quality: 'blue' }, { symbol: 'WBTC', share: 20, quality: 'blue' }], vaultAgeDays: 90, tvlUsd: 1_000_000 }).score).toBe(100);
+  });
+});

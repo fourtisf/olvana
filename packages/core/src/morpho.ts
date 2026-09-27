@@ -238,6 +238,8 @@ export function toLiveVault(v: ApiVaultV2, opts: { now?: Date; overrides?: Colla
     utilization,
     oracle,
     curatorIncidents: 0,
+    vaultAgeDays: v.creationTimestamp ? ageDays : null,
+    tvlUsd: tvlOf(v),
     collateral: collateral.map((c) => ({ symbol: c.symbol, share: c.share, quality: c.quality })),
   });
   const flags = riskFlags({
@@ -245,6 +247,9 @@ export function toLiveVault(v: ApiVaultV2, opts: { now?: Date; overrides?: Colla
     vaultAgeDays: ageDays,
     usdgPrice: v.asset.priceUsd ?? null,
   });
+  // Risks that are now scored as deductions show in the breakdown, not as flags.
+  const scored = new Set<string>(risk.deductions.map((d) => d.key));
+  for (let k = flags.length - 1; k >= 0; k--) if (scored.has(flags[k]!.key)) flags.splice(k, 1);
   if (SYNTHETIC_STABLECOINS.includes(v.asset.symbol)) {
     flags.push({
       key: 'synthetic-stable',

@@ -35,6 +35,9 @@ export interface RiskInput {
   collateral: readonly RiskCollateral[];
   oracle: OracleType;
   curatorIncidents: number;
+  /** Optional context for deductions (live vaults). Omitted → no deduction. */
+  vaultAgeDays?: number | null;
+  tvlUsd?: number | null;
 }
 
 export interface RiskPart {
@@ -45,10 +48,37 @@ export interface RiskPart {
   note: string;
 }
 
+export interface RiskDeduction {
+  key: 'concentration' | 'new-vault' | 'small-vault';
+  label: string;
+  points: number;
+  note: string;
+}
+
 export interface RiskResult {
   score: number;
   grade: RiskGrade;
   parts: [RiskPart, RiskPart, RiskPart, RiskPart];
+  /** Subtracted from the four parts (owner-approved 2026-09-27). */
+  deductions: RiskDeduction[];
+}
+
+/** Deductions (points) — one collateral > 80%, vault < 90 days old, TVL < $1M. */
+export const DEDUCT_CONCENTRATION = 10;
+export const DEDUCT_NEW_VAULT = 5;
+export const DEDUCT_SMALL_VAULT = 5;
+export const SMALL_VAULT_TVL_USD = 1_000_000;
+
+export function riskDeductions(input: RiskInput): RiskDeduction[] {
+  const out: RiskDeduction[] = [];
+  const top = input.collateral.reduce<RiskCollateral | null>((m, c) => (c.share > (m?.share ?? 0) ? c : m), null);
+  if (top && top.share > 80)
+    out.push({ key: 'concentration', label: 'Concentration', points: DEDUCT_CONCENTRATION, note: `${(Math.round(top.share * 10) / 10).toFixed(1)}% backed by ${top.symbol}` });
+  if (input.vaultAgeDays != null && input.vaultAgeDays < 90)
+    out.push({ key: 'new-vault', label: 'Track record', points: DEDUCT_NEW_VAULT, note: `${Math.max(0, Math.floor(input.vaultAgeDays))} days old` });
+  if (input.tvlUsd != null && input.tvlUsd < SMALL_VAULT_TVL_USD)
+    out.push({ key: 'small-vault', label: 'Vault size', points: DEDUCT_SMALL_VAULT, note: 'Under $1M in deposits' });
+  return out;
 }
 
 /**
@@ -92,11 +122,13 @@ export function riskScore(input: RiskInput): RiskResult {
   const c = collateralPoints(input.collateral);
   const o = oraclePoints(input.oracle);
   const cu = curatorPoints(input.curatorIncidents);
-  const score = Math.round(u + c + o + cu);
+  const deductions = riskDeductions(input);
+  const score = Math.max(0, Math.round(u + c + o + cu - deductions.reduce((t, d) => t + d.points, 0)));
   const n = input.curatorIncidents;
   return {
     score,
     grade: gradeFor(score),
+    deductions,
     parts: [
       {
         key: 'utilization',

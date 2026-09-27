@@ -57,7 +57,7 @@ describe('real Robinhood Chain vaults (2026-09-27 shape)', () => {
   const mk = (positions: ApiMarketPosition[], o: Partial<ApiVaultV2> = {}) =>
     vault({ ...o, adapters: { items: [{ address: '0x' + 'a'.repeat(40), type: 'MorphoMarketV1', assetsUsd: 1, positions: { items: positions } }] } });
 
-  it('Steakhouse USDG: stable collateral is classified, no high-LLTV flag, grade B 68', () => {
+  it('Steakhouse USDG: stable collateral is classified, no high-LLTV flag, grade B 78', () => {
     const v = toLiveVault(
       mk([
         pos('USDe', 66.2, 0.9, STABLE_LLTV),
@@ -69,15 +69,28 @@ describe('real Robinhood Chain vaults (2026-09-27 shape)', () => {
       { now },
     );
     // utilization 90% (Morpho's target) → 25 · collateral 30 × (0.999 × 0.6 + 0.001 × 1) ≈ 18 · mixed oracle 15 · curator 20
-    expect(v.risk).toMatchObject({ score: 78, grade: 'B' });
+    expect(v.risk).toMatchObject({ score: 78, grade: 'B', deductions: [] });
     expect(v.flags.map((f) => f.key)).not.toContain('high-lltv');
     expect(visibleCollateral(v).map((c) => c.symbol)).toEqual(['USDe', 'syrupUSDG', 'mGLO', 'spUSDG']);
   });
 
-  it('Purinta USDG: 98.6% USDe → concentration flag; small token stays tail', () => {
+  it('Purinta USDG: concentrated, new and small → deductions take it to C 58', () => {
+    const v = toLiveVault(
+      mk([pos('USDe', 98.6, 0.9, STABLE_LLTV, 'CustomOracle'), pos('CASHCAT', 1.4, 0.9, STABLE_LLTV)], {
+        totalAssetsUsd: 53_882,
+        creationTimestamp: String(now.getTime() / 1000 - 40 * 86400),
+      }),
+      { now },
+    );
+    // 25 + 17.8 + 15 + 20 = 77.8 − 10 (concentration) − 5 (new) − 5 (small) = 57.8 → 58
+    expect(v.risk).toMatchObject({ score: 58, grade: 'C' });
+    expect(v.risk.deductions.map((d) => d.key)).toEqual(['concentration', 'new-vault', 'small-vault']);
+  });
+
+  it('Purinta USDG: 98.6% USDe → concentration is scored (not a flag); small token stays tail', () => {
     const v = toLiveVault(mk([pos('USDe', 98.6, 0.9, STABLE_LLTV), pos('CASHCAT', 1.4, 0.9, STABLE_LLTV)]), { now });
-    expect(v.flags.map((f) => f.key)).toContain('concentration');
-    expect(v.flags.find((f) => f.key === 'concentration')!.text).toContain('98.6% of lending is backed by one collateral (USDe)');
+    expect(v.flags.map((f) => f.key)).not.toContain('concentration');
+    expect(v.risk.deductions.find((d) => d.key === 'concentration')!.note).toBe('98.6% backed by USDe');
     expect(v.collateral.find((c) => c.symbol === 'CASHCAT')).toMatchObject({ quality: 'tail', kind: 'crypto' });
     // CASHCAT (volatile) at 91.5% LLTV is a real high-LLTV risk
     expect(v.flags.map((f) => f.key)).toContain('high-lltv');
