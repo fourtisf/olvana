@@ -911,7 +911,7 @@ const CONFIG = {
   morphoBlue: '0x9D53d5E3bd5E8d4Cbfa6DB1ca238AEA02E651010', // Morpho Blue core — verified, see docs/VERIFICATION.md.
   vaultV2Factory: '0x0FBad98595b0186dA120E41f77C102beb49f803c', // Morpho Vault V2 factory — verified, see docs/VERIFICATION.md
   collateralClass: {},           // admin overrides: { SYMBOL: {q:'mid', kind:'equity'} } for tokenized stocks etc.
-  usdgPrice: null,               // optional USDG/USD price override; otherwise the vault asset's live priceUsd is used. Flag when >0.5% off $1.
+  usdgPrice: null,               // optional USDG/USD price override (the API query doesn't fetch prices yet). Flag when >0.5% off $1.
   status: { level: null, message: '' }  // global app banner: level null | 'info' | 'warn'
 };
 
@@ -1908,39 +1908,63 @@ $('cMonths').addEventListener('input', calc);
 $('cVault').addEventListener('change', calc);
 
 /* ===================== live data (Morpho Vault V2 API) ===================== */
-const LIVE_Q = `query($c:[Int!]){
-  vaultV2s(first: 100, where:{chainId_in:$c, listed:true}){
-    items{
-      address name symbol listed creationTimestamp
-      factory{ address }
-      asset{ address symbol decimals priceUsd logoURI }
-      totalAssetsUsd liquidityUsd performanceFee managementFee
-      net7d: avgNetApy(lookback: SEVEN_DAYS)
-      net1d: avgNetApy(lookback: ONE_DAY)
-      curator{ address }
-      curators{ items{ name verified } }
-      adapters{ items{
-        address type assetsUsd
-        ... on MorphoMarketV1Adapter { positions{ items{ state{ supplyAssetsUsd } market{ lltv collateralAsset{ symbol address logoURI } oracle{ type } state{ utilization } } } } }
-      } }
-    }
+// Two light queries (list → detail): one query with nested adapters for every vault is rejected as "too complex".
+// Same queries as packages/core/src/morpho.ts.
+const LIST_Q = `query($c:[Int!],$s:Int){
+  vaultV2s(first: 50, skip: $s, where:{chainId_in:$c}){
+    items{ address name listed factory{ address } asset{ address symbol decimals } totalAssetsUsd }
   }
 }`;
-async function postGql(url) {
+const DETAIL_Q = `query($a:String!,$c:Int!){
+  vaultV2ByAddress(address:$a, chainId:$c){
+    address name symbol listed creationTimestamp
+    factory{ address }
+    asset{ address symbol decimals logoURI }
+    totalAssetsUsd liquidityUsd performanceFee managementFee
+    net7d: avgNetApy(lookback: SEVEN_DAYS)
+    net1d: avgNetApy(lookback: ONE_DAY)
+    curator{ address }
+    curators{ items{ name verified } }
+    adapters{ items{
+      address type assetsUsd
+      ... on MorphoMarketV1Adapter { positions{ items{ state{ supplyAssetsUsd } market{ lltv collateralAsset{ symbol address logoURI } oracle{ type } state{ utilization } } } } }
+    } }
+  }
+}`;
+async function postGql(url, query, variables) {
   const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 15000);
   try {
-    const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ query: LIVE_Q, variables: { c: [CONFIG.chainId] } }), signal: ctl.signal });
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const j = await r.json();
-    const items = j && j.data && j.data.vaultV2s && j.data.vaultV2s.items;
-    if (!Array.isArray(items)) throw new Error((j && j.errors && j.errors[0] && j.errors[0].message) || 'Unexpected response');
-    return items;
+    const r = await fetch(url, { method: 'POST', headers: { 'content-type': 'application/json', accept: 'application/json' }, body: JSON.stringify({ query, variables }), signal: ctl.signal });
+    let j = null; try { j = await r.json(); } catch (e) {}
+    if (j && j.errors && j.errors.length) throw Object.assign(new Error(j.errors[0].message || 'GraphQL error'), { gql: true });
+    if (!r.ok || !j || !j.data) throw new Error('HTTP ' + r.status);
+    return j.data;
   } finally { clearTimeout(tm); }
 }
+let API_URL = null;   // endpoint that answered last time
+async function gql(query, variables) {
+  const urls = API_URL ? [API_URL] : [...(/^https?:$/.test(location.protocol) ? ['/api/morpho'] : []), CONFIG.morphoApi];
+  let err;
+  for (const u of urls) {
+    try { const d = await postGql(u, query, variables); API_URL = u; return d; }
+    catch (e) { err = e; if (e.gql) throw e; }   // a GraphQL error is the API's answer — another endpoint won't differ
+  }
+  API_URL = null;
+  throw err;
+}
 async function fetchVaultItems() {
-  // same-origin proxy first (nginx → api.morpho.org), then Morpho's public endpoint directly
-  if (/^https?:$/.test(location.protocol)) { try { return await postGql('/api/morpho'); } catch (e) {} }
-  return postGql(CONFIG.morphoApi);
+  const all = [];
+  for (let p = 0; p < 10; p++) {
+    const d = await gql(LIST_Q, { c: [CONFIG.chainId], s: p * 50 });
+    const it = (d.vaultV2s && d.vaultV2s.items) || [];
+    all.push(...it);
+    if (it.length < 50) break;
+  }
+  const cands = all.filter(keepVault);
+  const res = await Promise.allSettled(cands.map(c => gql(DETAIL_Q, { a: c.address, c: CONFIG.chainId }).then(d => d.vaultV2ByAddress)));
+  const ok = res.filter(r => r.status === 'fulfilled' && r.value).map(r => r.value);
+  if (cands.length && !ok.length) { const f = res.find(r => r.status === 'rejected'); if (f) throw f.reason; }
+  return ok;
 }
 const num = x => { if (x == null || x === '') return null; const n = Number(x); return Number.isFinite(n) ? n : null; };
 const lc = a => String(a || '').toLowerCase();
@@ -1948,13 +1972,12 @@ const isAddr = a => /^0x[0-9a-fA-F]{40}$/.test(String(a || ''));
 const CHAINLINK = ['ChainlinkOracle', 'ChainlinkOracleV2'];
 const BLUE = /^(WETH|WBTC|wstETH|cbBTC)$/i;
 // Safety filter: anyone can create a vault named after a stablecoin, so only keep Morpho-listed Vault V2s from the
-// verified factory whose asset is a listed stablecoin trading within 2% of $1 (same rules as packages/core/src/morpho.ts).
+// verified factory whose asset is a listed stablecoin trading within 2% of $1 when a price is known (same rules as packages/core/src/morpho.ts).
 function keepVault(it) {
   if (!it || !isAddr(it.address) || it.listed !== true) return false;
   const a = it.asset;
   if (!a || !CONFIG.stablecoins.includes(a.symbol)) return false;
-  const px = typeof a.priceUsd === 'number' ? a.priceUsd : NaN;
-  if (!(px >= 0.98 && px <= 1.02)) return false;
+  if (typeof a.priceUsd === 'number' && !(a.priceUsd >= 0.98 && a.priceUsd <= 1.02)) return false;   // peg check when a price is known
   if (a.symbol === 'USDG' && CONFIG.usdgAddress && lc(a.address) !== lc(CONFIG.usdgAddress)) return false;
   if (!it.factory || lc(it.factory.address) !== lc(CONFIG.vaultV2Factory)) return false;
   return num(it.totalAssetsUsd) >= CONFIG.minTvlUsd;

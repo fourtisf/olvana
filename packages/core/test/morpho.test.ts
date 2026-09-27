@@ -61,7 +61,8 @@ describe('keepVault (safety filter)', () => {
     expect(keepVault(vault({ asset: { ...vault().asset, symbol: 'USDC' } }), opts)).toBe(true);
     expect(keepVault(vault({ asset: { ...vault().asset, symbol: 'USDX' } }), opts)).toBe(false);
     expect(keepVault(vault({ asset: { ...vault().asset, symbol: 'USDC', priceUsd: 0.93 } }), opts)).toBe(false);
-    expect(keepVault(vault({ asset: { ...vault().asset, symbol: 'USDC', priceUsd: null } }), opts)).toBe(false);
+    // price unknown (the list query doesn't carry it) → symbol / factory / listed rules still apply
+    expect(keepVault(vault({ asset: { ...vault().asset, symbol: 'USDC', priceUsd: null } }), opts)).toBe(true);
   });
 
   it('drops unlisted and empty vaults', () => {
@@ -133,33 +134,55 @@ describe('toLiveVault', () => {
   });
 });
 
-describe('fetchLiveStableVaults', () => {
-  const respond = (body: unknown, status = 200) =>
-    (async () => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch;
+describe('fetchLiveStableVaults (list → detail)', () => {
+  /** Fake API: answers the list query with `items`, the detail query by address. */
+  const api = (items: ApiVaultV2[], opt: { failDetail?: boolean; status?: number; errors?: string } = {}) => {
+    const calls: string[] = [];
+    const f = (async (_url: string, init: { body: string }) => {
+      const { query, variables } = JSON.parse(init.body);
+      const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+      if (opt.status) return json({}, opt.status);
+      if (opt.errors) return json({ errors: [{ message: opt.errors }] });
+      if (query.includes('vaultV2s(')) {
+        calls.push('list');
+        return json({ data: { vaultV2s: { items: items.slice(variables.s, variables.s + 50) } } });
+      }
+      calls.push('detail:' + variables.a);
+      if (opt.failDetail) return json({ errors: [{ message: 'Query is too complex' }] });
+      return json({ data: { vaultV2ByAddress: items.find((v) => v.address === variables.a) ?? null } });
+    }) as unknown as typeof fetch;
+    return { f, calls };
+  };
+
+  it('lists, filters, then fetches details only for kept vaults; USDG first, then TVL', async () => {
+    const items = [
+      vault({ address: '0x' + '1'.repeat(40), name: 'Big USDC', totalAssetsUsd: 90_000_000, asset: { ...vault().asset, symbol: 'USDC' } }),
+      vault({ address: '0x' + '2'.repeat(40), name: 'Small', totalAssetsUsd: 20_000 }),
+      vault({ address: '0x' + '3'.repeat(40), name: 'Dust', totalAssetsUsd: 1 }),
+      vault(),
+      vault({ address: '0x' + '4'.repeat(40), name: 'Spam USDG', factory: { address: '0x' + '9'.repeat(40) } }),
+    ];
+    const { f, calls } = api(items);
+    const out = await fetchLiveStableVaults({ fetchImpl: f });
+    expect(out.map((v) => v.name)).toEqual(['Steakhouse USDG', 'Small', 'Big USDC']);
+    expect(calls.filter((c) => c.startsWith('detail')).length).toBe(3); // Dust and Spam never fetched
+  });
+
+  it('paginates the list 50 at a time', async () => {
+    const many = Array.from({ length: 120 }, (_, k) => vault({ address: '0x' + k.toString(16).padStart(40, '0'), totalAssetsUsd: 1 }));
+    const { f, calls } = api(many);
+    await fetchLiveStableVaults({ fetchImpl: f });
+    expect(calls.filter((c) => c === 'list').length).toBe(3);
+  });
 
   it('rejects a USDG-named token at another address (default config pin)', async () => {
-    const fake = vault({ asset: { ...vault().asset, address: '0x' + '6'.repeat(40) } });
-    const out = await fetchLiveStableVaults({ fetchImpl: respond({ data: { vaultV2s: { items: [fake] } } }) });
-    expect(out).toEqual([]);
+    const { f } = api([vault({ asset: { ...vault().asset, address: '0x' + '6'.repeat(40) } })]);
+    expect(await fetchLiveStableVaults({ fetchImpl: f })).toEqual([]);
   });
 
-  it('filters, lists USDG first, then by TVL', async () => {
-    const items = [
-      vault({ name: 'Big USDC', totalAssetsUsd: 90_000_000, asset: { ...vault().asset, symbol: 'USDC' } }),
-      vault({ name: 'Small', totalAssetsUsd: 20_000 }),
-      vault({ name: 'Dust', totalAssetsUsd: 1 }),
-      vault(),
-      vault({ name: 'Spam USDG', factory: { address: '0x' + '9'.repeat(40) } }),
-    ];
-    const out = await fetchLiveStableVaults({ fetchImpl: respond({ data: { vaultV2s: { items } } }) });
-    expect(out.map((v) => v.name)).toEqual(['Steakhouse USDG', 'Small', 'Big USDC']);
-    expect(out[2]!.asset.symbol).toBe('USDC');
-  });
-
-  it('throws on HTTP and GraphQL errors (never returns stale or sample data)', async () => {
-    await expect(fetchLiveStableVaults({ fetchImpl: respond({}, 500) })).rejects.toThrow('HTTP 500');
-    await expect(fetchLiveStableVaults({ fetchImpl: respond({ errors: [{ message: 'bad field' }] }) })).rejects.toThrow(
-      'bad field',
-    );
+  it('throws on HTTP / GraphQL errors and when every detail call fails', async () => {
+    await expect(fetchLiveStableVaults({ fetchImpl: api([], { status: 500 }).f })).rejects.toThrow('HTTP 500');
+    await expect(fetchLiveStableVaults({ fetchImpl: api([], { errors: 'bad field' }).f })).rejects.toThrow('bad field');
+    await expect(fetchLiveStableVaults({ fetchImpl: api([vault()], { failDetail: true }).f })).rejects.toThrow('too complex');
   });
 });

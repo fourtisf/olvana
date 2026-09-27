@@ -22,24 +22,37 @@ import {
   type RiskResult,
 } from './risk';
 
-export const STABLE_VAULTS_QUERY = `query($c:[Int!]){
-  vaultV2s(first: 100, where:{chainId_in:$c, listed:true}){
-    items{
-      address name symbol listed creationTimestamp
-      factory{ address }
-      asset{ address symbol decimals priceUsd logoURI }
-      totalAssetsUsd liquidityUsd performanceFee managementFee
-      net7d: avgNetApy(lookback: SEVEN_DAYS)
-      net1d: avgNetApy(lookback: ONE_DAY)
-      curator{ address }
-      curators{ items{ name verified } }
-      adapters{ items{
-        address type assetsUsd
-        ... on MorphoMarketV1Adapter { positions{ items{ state{ supplyAssetsUsd } market{ lltv collateralAsset{ symbol address logoURI } oracle{ type } state{ utilization } } } } }
-      } }
-    }
+/**
+ * Two light queries instead of one heavy one — the API rejects a single
+ * vault list with nested adapters/positions as "Query is too complex".
+ *  1. VAULT_LIST_QUERY: every Vault V2 on the chain, few fields, paginated.
+ *  2. VAULT_DETAIL_QUERY: full data for each vault that passes `keepVault`.
+ */
+export const VAULT_LIST_QUERY = `query($c:[Int!],$s:Int){
+  vaultV2s(first: 50, skip: $s, where:{chainId_in:$c}){
+    items{ address name listed factory{ address } asset{ address symbol decimals } totalAssetsUsd }
   }
 }`;
+
+export const VAULT_DETAIL_QUERY = `query($a:String!,$c:Int!){
+  vaultV2ByAddress(address:$a, chainId:$c){
+    address name symbol listed creationTimestamp
+    factory{ address }
+    asset{ address symbol decimals logoURI }
+    totalAssetsUsd liquidityUsd performanceFee managementFee
+    net7d: avgNetApy(lookback: SEVEN_DAYS)
+    net1d: avgNetApy(lookback: ONE_DAY)
+    curator{ address }
+    curators{ items{ name verified } }
+    adapters{ items{
+      address type assetsUsd
+      ... on MorphoMarketV1Adapter { positions{ items{ state{ supplyAssetsUsd } market{ lltv collateralAsset{ symbol address logoURI } oracle{ type } state{ utilization } } } } }
+    } }
+  }
+}`;
+
+/** Kept for the website copy and older callers: the per-vault detail query. */
+export const STABLE_VAULTS_QUERY = VAULT_DETAIL_QUERY;
 
 export interface ApiMarketPosition {
   state: { supplyAssetsUsd: number | null } | null;
@@ -58,7 +71,7 @@ export interface ApiVaultV2 {
   listed: boolean;
   creationTimestamp: string;
   factory: { address: string };
-  asset: { address: string; symbol: string; decimals: number; priceUsd: number | null; logoURI?: string | null };
+  asset: { address: string; symbol: string; decimals: number; priceUsd?: number | null; logoURI?: string | null };
   totalAssetsUsd: number | null;
   liquidityUsd: number | null;
   performanceFee: number;
@@ -131,8 +144,9 @@ export function keepVault(
 ): boolean {
   const symbols = opts.stablecoins ?? STABLECOINS;
   if (!v.asset || !symbols.includes(v.asset.symbol)) return false;
+  // Price is optional: the list query doesn't carry it. When present, enforce the peg.
   const price = v.asset.priceUsd;
-  if (typeof price !== 'number' || Math.abs(price - 1) > STABLE_PRICE_TOLERANCE) return false;
+  if (typeof price === 'number' && Math.abs(price - 1) > STABLE_PRICE_TOLERANCE) return false;
   if (v.asset.symbol === 'USDG' && opts.usdgAddress && !eq(v.asset.address, opts.usdgAddress)) return false;
   if (!v.listed) return false;
   if (!opts.factory || !eq(v.factory?.address, opts.factory)) return false;
@@ -191,7 +205,7 @@ export function toLiveVault(v: ApiVaultV2, opts: { now?: Date; overrides?: Colla
   const flags = riskFlags({
     collateral: collateral.map((c) => ({ symbol: c.symbol, lltv: c.lltv, kind: c.kind })),
     vaultAgeDays: ageDays,
-    usdgPrice: v.asset.priceUsd,
+    usdgPrice: v.asset.priceUsd ?? null,
   });
 
   return {
@@ -218,23 +232,50 @@ export function toLiveVault(v: ApiVaultV2, opts: { now?: Date; overrides?: Colla
   };
 }
 
+type Gql = <T>(query: string, variables: Record<string, unknown>) => Promise<T>;
+
+function gqlClient(url: string, f: typeof fetch, signal?: AbortSignal): Gql {
+  return async <T>(query: string, variables: Record<string, unknown>) => {
+    const res = await f(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ query, variables }),
+      signal,
+    });
+    const json = (await res.json().catch(() => null)) as { data?: T; errors?: { message: string }[] } | null;
+    if (json?.errors?.length) throw new Error(`Morpho API: ${json.errors[0]!.message}`);
+    if (!res.ok || !json?.data) throw new Error(`Morpho API HTTP ${res.status}`);
+    return json.data;
+  };
+}
+
+/** Stage 1: all Vault V2s on the chain (light fields), paginated. */
+export async function listVaults(gql: Gql, maxPages = 10): Promise<ApiVaultV2[]> {
+  const out: ApiVaultV2[] = [];
+  for (let page = 0; page < maxPages; page++) {
+    const d = await gql<{ vaultV2s: { items: ApiVaultV2[] | null } }>(VAULT_LIST_QUERY, { c: [CHAIN_ID], s: page * 50 });
+    const items = d.vaultV2s?.items ?? [];
+    out.push(...items);
+    if (items.length < 50) break;
+  }
+  return out;
+}
+
 /** Fetch, filter and map the live stablecoin vaults. `fetchImpl` is injectable for tests. */
 export async function fetchLiveStableVaults(
   opts: { url?: string; fetchImpl?: typeof fetch; overrides?: CollateralOverrides; signal?: AbortSignal } = {},
 ): Promise<LiveVault[]> {
-  const f = opts.fetchImpl ?? fetch;
-  const res = await f(opts.url ?? MORPHO_API_URL, {
-    method: 'POST',
-    headers: { 'content-type': 'application/json' },
-    body: JSON.stringify({ query: STABLE_VAULTS_QUERY, variables: { c: [CHAIN_ID] } }),
-    signal: opts.signal,
-  });
-  if (!res.ok) throw new Error(`Morpho API HTTP ${res.status}`);
-  const json = (await res.json()) as { data?: { vaultV2s?: { items: ApiVaultV2[] | null } }; errors?: { message: string }[] };
-  if (json.errors?.length) throw new Error(`Morpho API: ${json.errors[0]!.message}`);
-  const items = json.data?.vaultV2s?.items ?? [];
-  return items
-    .filter((v) => keepVault(v))
+  const gql = gqlClient(opts.url ?? MORPHO_API_URL, opts.fetchImpl ?? fetch, opts.signal);
+  const candidates = (await listVaults(gql)).filter((v) => keepVault(v));
+  const details = await Promise.allSettled(
+    candidates.map((c) =>
+      gql<{ vaultV2ByAddress: ApiVaultV2 | null }>(VAULT_DETAIL_QUERY, { a: c.address, c: CHAIN_ID }).then((d) => d.vaultV2ByAddress),
+    ),
+  );
+  const ok = details.flatMap((r) => (r.status === 'fulfilled' && r.value && keepVault(r.value) ? [r.value] : []));
+  const failed = details.filter((r) => r.status === 'rejected') as PromiseRejectedResult[];
+  if (candidates.length && !ok.length && failed.length) throw failed[0]!.reason;
+  return ok
     .map((v) => toLiveVault(v, { overrides: opts.overrides }))
     .sort((a, b) => (a.asset.symbol === 'USDG' ? 0 : 1) - (b.asset.symbol === 'USDG' ? 0 : 1) || b.tvlUsd - a.tvlUsd);
 }
