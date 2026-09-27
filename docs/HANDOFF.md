@@ -289,6 +289,18 @@ fonts: Instrument Sans (UI/headings), Instrument Serif italic (rare accent), Gei
 radius: pills 999px · cards 24–28px · inputs 14–18px
 ```
 
+### Logo — "Strata" (`docs/brand/`)
+Three bands in one circle (a nod to the A/B/C grades, in brand violets). Wordmark: `OLVANA`, Instrument Sans 600, uppercase, letter-spacing .22em.
+| File | Use |
+|---|---|
+| `olvana-mark.svg` / `olvana-mark-light.svg` | mark on dark / light backgrounds (≥ 32 px) |
+| `olvana-mark-small.svg` | ≤ 32 px (nav, tab bar): wider gaps so bands don't blur |
+| `olvana-lockup-dark.svg` / `-light.svg` | mark + outlined wordmark |
+| `favicon.svg` | favicon, follows the browser's light/dark theme |
+| `app-icon-512.png` | PWA / social avatar (derive 180 px apple-touch-icon in step 7) |
+| `og-image.png` | 1200×630 Open Graph / Twitter card |
+Band colours: dark bg `#C4B5FF · #8B7BFF · #4D6BFF`; light bg `#A99BFF · #7B5CFF · #3A6BFF`. Keep clear space ≥ half the mark's height; don't recolour the bands to grade colours.
+
 ---
 
 ## 9. Legal / content

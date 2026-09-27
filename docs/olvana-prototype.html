@@ -4,6 +4,13 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Olvana — Onchain USDG Earn</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 64 64%22 width=%2264%22 height=%2264%22%3E%3Cstyle%3E.a%7Bfill:%23A99BFF%7D.b%7Bfill:%237B5CFF%7D.c%7Bfill:%233A6BFF%7D%40media %28prefers-color-scheme:dark%29%7B.a%7Bfill:%23C4B5FF%7D.b%7Bfill:%238B7BFF%7D.c%7Bfill:%234D6BFF%7D%7D%3C/style%3E%3Cpath class=%22a%22 d=%22M32 5H32A27 27 0 0 1 55.664 19H8.336A27 27 0 0 1 32 5Z%22/%3E%3Cpath class=%22b%22 d=%22M6.212 24H57.788A27 27 0 0 1 58.533 37H5.467A27 27 0 0 1 6.212 24Z%22/%3E%3Cpath class=%22c%22 d=%22M6.92 42H57.08A27 27 0 0 1 32 59H32A27 27 0 0 1 6.92 42Z%22/%3E%3C/svg%3E">
+<meta name="description" content="Earn on USDG through curated Morpho vaults on Robinhood Chain, with an A/B/C risk grade on every vault. Non-custodial.">
+<meta property="og:title" content="Olvana — Earn on dollars. Know the risk.">
+<meta property="og:description" content="Non-custodial USDG earn on Robinhood Chain, with an A/B/C risk grade on every vault.">
+<meta property="og:image" content="brand/og-image.png">
+<meta name="twitter:card" content="summary_large_image">
+<meta name="theme-color" content="#05050A">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Instrument+Sans:wght@400;500;600;700&family=Instrument+Serif:ital@0;1&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -51,7 +58,7 @@ button{cursor:pointer}
 /* nav */
 .nav{position:sticky;top:max(16px,env(safe-area-inset-top));z-index:50;margin-top:20px}
 .nav-inner{height:64px;padding:0 8px 0 22px;display:flex;align-items:center;justify-content:space-between;background:rgba(10,10,20,.6);border:1px solid var(--line);border-radius:999px;box-shadow:inset 0 1px 0 rgba(255,255,255,.06);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px)}
-.logo{display:flex;align-items:center;gap:10px;font-weight:600;font-size:19px;letter-spacing:-.02em}
+.logo{display:flex;align-items:center;gap:12px;font-weight:600;font-size:15px;letter-spacing:.22em;text-transform:uppercase}
 .nav-links{display:flex;gap:30px;font-size:14px;color:#B3B5D0}
 .nav-links a:hover{color:var(--ink)}
 .nav-right{display:flex;align-items:center;gap:6px}
@@ -634,7 +641,7 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true">
   <defs>
-    <symbol id="logo" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10.5" stroke="#A99BFF" stroke-width="1.2" fill="none"/><circle cx="12" cy="12" r="5.5" stroke="#EEF0FF" stroke-width="1.2" fill="none"/><circle cx="12" cy="12" r="1.8" fill="#A99BFF"/></symbol>
+    <symbol id="logo" viewBox="0 0 64 64"><path fill="#C4B5FF" d="M32 5H32A27 27 0 0 1 55.664 19H8.336A27 27 0 0 1 32 5Z"/><path fill="#8B7BFF" d="M6.212 24H57.788A27 27 0 0 1 58.533 37H5.467A27 27 0 0 1 6.212 24Z"/><path fill="#4D6BFF" d="M6.92 42H57.08A27 27 0 0 1 32 59H32A27 27 0 0 1 6.92 42Z"/></symbol>
     <symbol id="tick" viewBox="0 0 16 16"><path d="M3 8.5l3 3 7-7" stroke="#A99BFF" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" fill="none"/></symbol>
     <symbol id="warn" viewBox="0 0 16 16"><path d="M8 2.2l6.2 11H1.8L8 2.2z" stroke="#FF9270" stroke-width="1.3" stroke-linejoin="round" fill="none"/><path d="M8 6.5v3.2M8 11.4v.1" stroke="#FF9270" stroke-width="1.5" stroke-linecap="round"/></symbol>
   </defs>
