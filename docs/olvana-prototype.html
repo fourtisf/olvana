@@ -1915,14 +1915,13 @@ const LIVE_Q = `query($c:[Int!]){
       factory{ address }
       asset{ address symbol decimals priceUsd logoURI }
       totalAssetsUsd liquidityUsd performanceFee managementFee
-      apy7d: avgApy(lookback: SEVEN_DAYS)
       net7d: avgNetApy(lookback: SEVEN_DAYS)
       net1d: avgNetApy(lookback: ONE_DAY)
       curator{ address }
       curators{ items{ name verified } }
       adapters{ items{
         address type assetsUsd
-        ... on MorphoMarketV1Adapter { positions{ items{ supplyAssetsUsd market{ uniqueKey lltv collateralAsset{ symbol address logoURI } oracle{ type } state{ utilization } } } } }
+        ... on MorphoMarketV1Adapter { positions{ items{ state{ supplyAssetsUsd } market{ lltv collateralAsset{ symbol address logoURI } oracle{ type } state{ utilization } } } } }
       } }
     }
   }
@@ -1964,7 +1963,7 @@ function mapVault(it) {
   const pos = [];
   for (const ad of (it.adapters && it.adapters.items) || []) {
     for (const p of (ad && ad.positions && ad.positions.items) || []) {
-      const usd = num(p && p.supplyAssetsUsd);
+      const usd = num(p && p.state && p.state.supplyAssetsUsd);
       if (!(usd > 0) || !p.market || !p.market.collateralAsset) continue;   // idle markets have no collateral
       pos.push({ usd, m: p.market });
     }
@@ -1989,7 +1988,7 @@ function mapVault(it) {
   const nCl = pos.filter(p => CHAINLINK.includes(p.m.oracle && p.m.oracle.type)).length;
   const [oracle, oracleScore] = pos.length && nCl === pos.length ? ['Chainlink', 25] : nCl > 0 ? ['Mixed', 15] : ['Custom / unverified', 8];
   const cur = ((it.curators && it.curators.items) || []).find(c => c && c.name);
-  const net7 = num(it.net7d), net1 = num(it.net1d), g7 = num(it.apy7d);
+  const net7 = num(it.net7d), net1 = num(it.net1d);
   const created = num(it.creationTimestamp);
   const address = lc(it.address);
   return {
@@ -1997,7 +1996,7 @@ function mapVault(it) {
     curator: cur ? String(cur.name) : (isAddr(it.curator && it.curator.address) ? short(lc(it.curator.address)) : 'Unknown curator'),
     curatorVerified: !!(cur && cur.verified),
     net: (net7 ?? net1 ?? 0) * 100,
-    gross: (g7 ?? net7 ?? net1 ?? 0) * 100,
+    gross: ((net7 ?? net1 ?? 0) / (num(it.performanceFee) < 1 ? 1 - (num(it.performanceFee) || 0) : 1)) * 100,   // net / (1 − fee), same 7-day basis
     net1d: net1 != null ? net1 * 100 : null,
     perfFee: num(it.performanceFee) || 0, mgmtFee: num(it.managementFee) || 0,
     tvl: num(it.totalAssetsUsd), liq: num(it.liquidityUsd) ?? 0,

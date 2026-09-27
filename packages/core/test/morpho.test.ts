@@ -4,9 +4,8 @@ import { fetchLiveStableVaults, keepVault, toLiveVault, type ApiMarketPosition, 
 
 const FACTORY = VAULT_V2_FACTORY_ADDRESS!;
 const pos = (symbol: string | null, usd: number, util: number, lltv: string, oracle = 'ChainlinkOracleV2'): ApiMarketPosition => ({
-  supplyAssetsUsd: usd,
+  state: { supplyAssetsUsd: usd },
   market: {
-    uniqueKey: '0x' + (symbol ?? 'idle'),
     lltv,
     collateralAsset: symbol
       ? { symbol, address: '0x' + '1'.repeat(40), logoURI: symbol === 'WETH' ? 'https://cdn.example/weth.png' : 'javascript:alert(1)' }
@@ -28,7 +27,6 @@ const vault = (over: Partial<ApiVaultV2> = {}): ApiVaultV2 => ({
   liquidityUsd: 9_200_000,
   performanceFee: 0.1,
   managementFee: 0,
-  apy7d: 0.0458,
   net7d: 0.0412,
   net1d: 0.04,
   curator: { address: '0x' + 'c'.repeat(40) },
@@ -87,7 +85,7 @@ describe('toLiveVault', () => {
 
   it('maps APY, fees and TVL to display units', () => {
     expect(v.netApy).toBeCloseTo(4.12, 9);
-    expect(v.grossApy).toBeCloseTo(4.58, 9);
+    expect(v.grossApy).toBeCloseTo(4.12 / 0.9, 9); // net / (1 − 10% fee)
     expect(v.performanceFee).toBe(0.1);
     expect(v.tvlUsd).toBe(48_500_000);
     expect(v.curator).toBe('Steakhouse Financial');
@@ -127,7 +125,7 @@ describe('toLiveVault', () => {
   });
 
   it('falls back to 1-day APY for a brand-new vault', () => {
-    expect(toLiveVault(vault({ net7d: null, apy7d: null }), { now }).netApy).toBeCloseTo(4, 9);
+    expect(toLiveVault(vault({ net7d: null }), { now }).netApy).toBeCloseTo(4, 9);
   });
 
   it('age in days from creation timestamp', () => {

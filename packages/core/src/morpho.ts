@@ -29,23 +29,21 @@ export const STABLE_VAULTS_QUERY = `query($c:[Int!]){
       factory{ address }
       asset{ address symbol decimals priceUsd logoURI }
       totalAssetsUsd liquidityUsd performanceFee managementFee
-      apy7d: avgApy(lookback: SEVEN_DAYS)
       net7d: avgNetApy(lookback: SEVEN_DAYS)
       net1d: avgNetApy(lookback: ONE_DAY)
       curator{ address }
       curators{ items{ name verified } }
       adapters{ items{
         address type assetsUsd
-        ... on MorphoMarketV1Adapter { positions{ items{ supplyAssetsUsd market{ uniqueKey lltv collateralAsset{ symbol address logoURI } oracle{ type } state{ utilization } } } } }
+        ... on MorphoMarketV1Adapter { positions{ items{ state{ supplyAssetsUsd } market{ lltv collateralAsset{ symbol address logoURI } oracle{ type } state{ utilization } } } } }
       } }
     }
   }
 }`;
 
 export interface ApiMarketPosition {
-  supplyAssetsUsd: number | null;
+  state: { supplyAssetsUsd: number | null } | null;
   market: {
-    uniqueKey: string;
     lltv: string;
     collateralAsset: { symbol: string; address: string; logoURI?: string | null } | null;
     oracle: { type: string } | null;
@@ -65,7 +63,6 @@ export interface ApiVaultV2 {
   liquidityUsd: number | null;
   performanceFee: number;
   managementFee: number;
-  apy7d: number | null;
   net7d: number | null;
   net1d: number | null;
   curator: { address: string };
@@ -116,6 +113,7 @@ export interface LiveVault {
 
 export type CollateralOverrides = Readonly<Record<string, { quality: CollateralQuality; kind?: CollateralKind }>>;
 
+const usdOf = (p: ApiMarketPosition) => p.state?.supplyAssetsUsd ?? 0;
 const CHAINLINK = new Set(['ChainlinkOracle', 'ChainlinkOracleV2']);
 /** Only pass through https URLs from the API into <img src>. */
 export const safeLogo = (u: string | null | undefined): string | null => (u && /^https:\/\//i.test(u) ? u : null);
@@ -147,17 +145,17 @@ export function toLiveVault(v: ApiVaultV2, opts: { now?: Date; overrides?: Colla
 
   const positions = (v.adapters?.items ?? [])
     .flatMap((a) => a.positions?.items ?? [])
-    .filter((p) => (p.supplyAssetsUsd ?? 0) > 0 && p.market.collateralAsset);
-  const total = positions.reduce((t, p) => t + (p.supplyAssetsUsd ?? 0), 0);
+    .filter((p) => usdOf(p) > 0 && p.market.collateralAsset);
+  const total = positions.reduce((t, p) => t + usdOf(p), 0);
 
   const utilization =
-    total > 0 ? (positions.reduce((t, p) => t + (p.market.state?.utilization ?? 0) * (p.supplyAssetsUsd ?? 0), 0) / total) * 100 : 0;
+    total > 0 ? (positions.reduce((t, p) => t + (p.market.state?.utilization ?? 0) * usdOf(p), 0) / total) * 100 : 0;
 
   const bySymbol = new Map<string, { usd: number; lltv: number; logo: string | null }>();
   for (const p of positions) {
     const sym = p.market.collateralAsset!.symbol;
     const cur = bySymbol.get(sym) ?? { usd: 0, lltv: 0, logo: safeLogo(p.market.collateralAsset!.logoURI) };
-    cur.usd += p.supplyAssetsUsd ?? 0;
+    cur.usd += usdOf(p);
     cur.lltv = Math.max(cur.lltv, Number(p.market.lltv) / 1e16);
     bySymbol.set(sym, cur);
   }
@@ -204,7 +202,8 @@ export function toLiveVault(v: ApiVaultV2, opts: { now?: Date; overrides?: Colla
     curator: curatorItem?.name ?? `${v.curator.address.slice(0, 6)}…${v.curator.address.slice(-4)}`,
     curatorVerified: curatorItem?.verified ?? false,
     netApy: net * 100,
-    grossApy: (v.apy7d ?? net) * 100,
+    // Gross on the same 7-day basis: net / (1 − performance fee).
+    grossApy: (v.performanceFee < 1 ? net / (1 - v.performanceFee) : net) * 100,
     performanceFee: v.performanceFee,
     managementFee: v.managementFee,
     tvlUsd: v.totalAssetsUsd ?? 0,

@@ -29,6 +29,7 @@ async function main() {
   if (json.errors?.length) {
     console.log('GraphQL errors:');
     for (const e of json.errors) console.log('  - ' + e.message);
+    await introspect(['VaultV2', 'MorphoMarketV1Adapter', 'MarketPosition', 'MarketPositionState', 'Market', 'MarketState', 'Asset']);
   }
   const items = json.data?.vaultV2s?.items ?? [];
   const kept = items.filter((v) => keepVault(v)).map((v) => toLiveVault(v));
@@ -40,6 +41,21 @@ async function main() {
   }
   const dropped = items.filter((v) => !keepVault(v));
   if (dropped.length) console.log(`\nHidden: ${dropped.map((v) => `${v.name} (${v.asset?.symbol}, $${Math.round(v.totalAssetsUsd ?? 0)})`).join(', ')}`);
+}
+
+/** Print the live schema's field names for the types the query touches. */
+async function introspect(types: string[]) {
+  console.log('\nLive schema fields (for fixing the query):');
+  for (const name of types) {
+    const r = await fetch(url, {
+      method: 'POST',
+      headers: { 'content-type': 'application/json' },
+      body: JSON.stringify({ query: `{ __type(name: "${name}") { fields { name } } }` }),
+    });
+    const j = (await r.json()) as { data?: { __type?: { fields?: { name: string }[] } | null } };
+    const f = j.data?.__type?.fields?.map((x) => x.name) ?? [];
+    console.log(`  ${name}: ${f.length ? f.join(', ') : '(type not found or introspection disabled)'}`);
+  }
 }
 
 main().catch((e) => {
