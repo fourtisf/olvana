@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { VAULT_V2_FACTORY_ADDRESS } from '../src/config';
+import { USDG_ADDRESS, VAULT_V2_FACTORY_ADDRESS } from '../src/config';
 import { fetchLiveStableVaults, keepVault, toLiveVault, type ApiMarketPosition, type ApiVaultV2 } from '../src/morpho';
 
 const FACTORY = VAULT_V2_FACTORY_ADDRESS!;
@@ -23,7 +23,7 @@ const vault = (over: Partial<ApiVaultV2> = {}): ApiVaultV2 => ({
   listed: true,
   creationTimestamp: String(Date.parse('2026-05-29T00:00:00Z') / 1000),
   factory: { address: FACTORY.toLowerCase() },
-  asset: { address: '0x' + '5'.repeat(40), symbol: 'USDG', decimals: 6, priceUsd: 1, logoURI: 'https://cdn.example/usdg.png' },
+  asset: { address: USDG_ADDRESS!.toLowerCase(), symbol: 'USDG', decimals: 6, priceUsd: 1, logoURI: 'https://cdn.example/usdg.png' },
   totalAssetsUsd: 48_500_000,
   liquidityUsd: 9_200_000,
   performanceFee: 0.1,
@@ -71,7 +71,7 @@ describe('keepVault (safety filter)', () => {
     expect(keepVault(vault({ totalAssetsUsd: 0 }), opts)).toBe(false);
   });
   it('enforces the USDG address once configured', () => {
-    expect(keepVault(vault(), { usdgAddress: '0x' + '5'.repeat(40), factory: FACTORY })).toBe(true);
+    expect(keepVault(vault(), { usdgAddress: USDG_ADDRESS, factory: FACTORY })).toBe(true);
     expect(keepVault(vault(), { usdgAddress: '0x' + '6'.repeat(40), factory: FACTORY })).toBe(false);
     // the USDG pin doesn't apply to other stablecoins
     expect(keepVault(vault({ asset: { ...vault().asset, symbol: 'USDC' } }), { usdgAddress: '0x' + '6'.repeat(40), factory: FACTORY })).toBe(true);
@@ -136,6 +136,12 @@ describe('toLiveVault', () => {
 describe('fetchLiveStableVaults', () => {
   const respond = (body: unknown, status = 200) =>
     (async () => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } })) as unknown as typeof fetch;
+
+  it('rejects a USDG-named token at another address (default config pin)', async () => {
+    const fake = vault({ asset: { ...vault().asset, address: '0x' + '6'.repeat(40) } });
+    const out = await fetchLiveStableVaults({ fetchImpl: respond({ data: { vaultV2s: { items: [fake] } } }) });
+    expect(out).toEqual([]);
+  });
 
   it('filters, lists USDG first, then by TVL', async () => {
     const items = [

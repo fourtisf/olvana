@@ -41,11 +41,12 @@ export const NATIVE_CURRENCY: { name: string; symbol: string; decimals: number }
 export const EXPLORER_URL = 'https://robinhoodchain.blockscout.com';
 
 /**
- * TODO: USDG token address on Robinhood Chain. USDG is live there (6 decimals),
- * but the address has not yet been read from an official Robinhood / Paxos
- * page — see docs/VERIFICATION.md. Do not fill from third-party lists.
+ * USDG on Robinhood Chain. Verified onchain 2026-09-27 (scripts/verify-onchain.ts
+ * run from the VPS): it is the `asset()` of Vault V2s created by the official
+ * factory, `symbol()` = USDG, `decimals()` = 6. Also listed in Robinhood's
+ * contracts docs. See docs/VERIFICATION.md.
  */
-export const USDG_ADDRESS: Address | null = null;
+export const USDG_ADDRESS: Address | null = '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168';
 
 /** USDG decimals (Robinhood docs / Paxos docs). Still read `decimals()` onchain at startup and assert. */
 export const USDG_DECIMALS = 6;
