@@ -353,6 +353,19 @@ body.in-app #appShell{display:block}
 .chain{height:40px;padding:0 14px;display:flex;align-items:center;gap:8px;border:1px solid rgba(255,255,255,.1);border-radius:999px;font-size:13px;color:var(--muted);white-space:nowrap}
 .wallet-btn{height:44px;padding:0 20px;border:0;border-radius:999px;font-family:var(--mono);font-size:13px;font-weight:500;background:var(--gold-grad);color:var(--gold-ink);box-shadow:inset 0 1px 0 rgba(255,255,255,.5);white-space:nowrap}
 .wallet-btn.on{background:rgba(255,255,255,.07);color:var(--ink);box-shadow:none}
+.wallet-btn{display:inline-flex;align-items:center;gap:8px}.wallet-btn img{width:18px;height:18px;border-radius:5px}
+.wdlg{width:min(420px,calc(100vw - 32px));padding:24px;border:1px solid var(--line);border-radius:24px;background:#0A0A12;color:var(--ink)}
+.wdlg::backdrop{background:rgba(5,5,10,.72);backdrop-filter:blur(4px)}
+.wd-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}.wd-head h3{font-size:20px;font-weight:600;letter-spacing:-.02em}
+.wd-x{width:36px;height:36px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:20px;line-height:1}
+.wd-list{display:flex;flex-direction:column;gap:8px}
+.wd-item{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:10px 14px;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--ink);font:inherit;font-size:15px;font-weight:500;text-align:left;text-decoration:none;cursor:pointer}
+.wd-item:hover{border-color:rgba(169,155,255,.45);background:rgba(169,155,255,.06)}.wd-item img{border-radius:8px}
+.wd-ph{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:rgba(169,155,255,.16);color:var(--gold);font-weight:600;flex:none}
+.wd-danger{color:#FF9270}
+.linkbtn{background:none;border:0;padding:0;font:inherit;cursor:pointer;text-decoration:underline}
+.wd-note{color:var(--muted);font-size:13px;line-height:1.5;margin:14px 0 0}.wd-list+.wd-note{margin-top:16px}.wd-note+.wd-list{margin-top:12px}
+.wd-addr{display:flex;align-items:center;gap:10px;margin-bottom:16px;padding:12px 14px;border-radius:14px;background:rgba(255,255,255,.04)}.wd-addr code{font-family:var(--mono);font-size:12px;overflow-wrap:anywhere;color:var(--muted)}.wd-addr img{border-radius:6px}
 .view{max-width:1440px;margin:0 auto;padding:28px max(24px,env(safe-area-inset-left)) 120px}
 .page-head{display:flex;justify-content:space-between;align-items:flex-end;gap:20px;flex-wrap:wrap;margin-bottom:24px}
 .page-head h1{margin:0;font-size:44px;font-weight:600;letter-spacing:-.04em;line-height:1}
@@ -877,6 +890,7 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
 </div>
 
 <div class="toast" id="toast" role="status" aria-live="polite"></div>
+<dialog id="walletDlg" class="wdlg" aria-labelledby="wdTitle"></dialog>
 <script>
 (() => {
 /* =====================================================================
@@ -892,7 +906,8 @@ const CONFIG = {
   refShare: 0.10,                // referrer gets 10% of referee points
   stablecoins: ['USDG','USDC','USDT','USDT0','PYUSD','DAI','USDS'], // stablecoins Olvana lists; a vault's asset must match one of these symbols AND trade within 2% of $1
   minTvlUsd: 10000,             // vaults below this TVL are hidden (many empty/test vaults exist onchain)
-  usdgAddress: null,             // USDG token on Robinhood Chain. TODO: verify from official source. If set, a USDG vault's asset must match it.
+  usdgAddress: '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168', // USDG on Robinhood Chain — verified onchain, see docs/VERIFICATION.md. A USDG vault's asset must match it.
+  rpcUrl: 'https://rpc.mainnet.chain.robinhood.com', // public RPC, verified working — only handed to the wallet when it needs to add the network
   morphoBlue: '0x9D53d5E3bd5E8d4Cbfa6DB1ca238AEA02E651010', // Morpho Blue core — verified, see docs/VERIFICATION.md.
   vaultV2Factory: '0x0FBad98595b0186dA120E41f77C102beb49f803c', // Morpho Vault V2 factory — verified, see docs/VERIFICATION.md
   collateralClass: {},           // admin overrides: { SYMBOL: {q:'mid', kind:'equity'} } for tokenized stocks etc.
@@ -902,7 +917,7 @@ const CONFIG = {
 
 // Vaults are loaded live from Morpho's public API (see "live data" below). Nothing is hardcoded.
 // Vault object: { id, address, name, curator, curatorVerified, live, net, gross, net1d, perfFee, mgmtFee,
-//   tvl, liq, util, collateral:[{a,s,l,q,kind,logo}], oracle, oracleScore, incidents, ageDays, paused, asset:{symbol,decimals,logo,price} }
+//   tvl, liq, util, collateral:[{a,s,l,q,kind,logo}], oracle, oracleScore, incidents, ageDays, paused, asset:{symbol,address,decimals,logo,price} }
 const COLLAT_Q = { blue: 1, mid: 0.6, tail: 0.2 };
 let VAULTS = [];
 const SW_COLORS = ['#A99BFF','#4D8BFF','#3A3D5C','#7CC4FF','#6B5BB8','#2F4A8F','#8E90B0'];
@@ -1024,45 +1039,176 @@ function toast(msg, warn = false) {
 }
 
 /* ===================== wallet ===================== */
-async function connect() {
-  if (S.connected) {
-    if (confirm('Disconnect wallet from Olvana?')) { S.connected = false; S.address = null; render(); }
-    return;
+// EIP-6963: each installed wallet announces itself, so several wallets can coexist.
+// Balances are read through the connected wallet's own provider (eth_call) — no extra RPC or proxy.
+const WALLETS = new Map();
+window.addEventListener('eip6963:announceProvider', e => {
+  const d = e.detail;
+  if (d && d.provider && d.info && typeof d.provider.request === 'function') WALLETS.set(d.info.uuid || d.info.rdns || d.info.name, d);
+});
+window.dispatchEvent(new Event('eip6963:requestProvider'));
+let W = null;                                             // { info, provider } of the connected wallet
+const BAL = { eth:null, tok:{}, pos:{}, err:null, busy:false, at:0 };   // bigint balances, keys = lowercase addresses
+const safeIcon = s => typeof s === 'string' && /^data:image\/(png|svg\+xml|webp|jpeg|gif)[;,]/i.test(s) ? s : '';
+const isMobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+const hexChain = () => '0x' + CONFIG.chainId.toString(16);
+const lcA = a => String(a || '').toLowerCase();
+
+function walletList() {
+  const list = [...WALLETS.values()];
+  if (!list.length && window.ethereum && typeof window.ethereum.request === 'function') {
+    const e = window.ethereum;
+    list.push({ info: { uuid: 'injected', name: e.isRabby ? 'Rabby' : e.isCoinbaseWallet ? 'Coinbase Wallet' : e.isMetaMask ? 'MetaMask' : 'Browser wallet', icon: '' }, provider: e });
   }
-  if (!window.ethereum) { toast('No wallet found. Install a browser wallet like MetaMask or Rabby.', true); return; }
+  return list;
+}
+const dlg = $('walletDlg');
+function openDlg(title, body) {
+  dlg.innerHTML = `<div class="wd-head"><h3 id="wdTitle">${title}</h3><button type="button" class="wd-x" aria-label="Close" data-close>×</button></div>${body}`;
+  dlg.querySelectorAll('[data-close]').forEach(b => b.onclick = () => dlg.close());
+  if (!dlg.open) dlg.showModal();
+}
+dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });   // click on backdrop
+const wIcon = (w, size = 28) => safeIcon(w.info.icon) ? `<img src="${esc(w.info.icon)}" alt="" width="${size}" height="${size}">` : `<span class="wd-ph" style="width:${size}px;height:${size}px">${esc((w.info.name || '?').slice(0, 1))}</span>`;
+
+async function connect() {
+  if (S.connected) return openWalletMenu();
+  window.dispatchEvent(new Event('eip6963:requestProvider'));
+  const list = walletList();
+  if (!list.length) return openNoWallet();
+  if (list.length === 1) return connectWith(list[0]);
+  openDlg('Connect a wallet', `<div class="wd-list">${list.map((w, k) => `<button type="button" class="wd-item" data-k="${k}">${wIcon(w)}<span>${esc(w.info.name)}</span></button>`).join('')}</div>
+    <p class="wd-note">Olvana never asks for your seed phrase. Every transaction is signed in your wallet.</p>`);
+  dlg.querySelectorAll('[data-k]').forEach(b => b.onclick = () => connectWith(list[+b.dataset.k]));
+}
+function openNoWallet() {
+  const here = location.host + location.pathname;
+  openDlg('No wallet found', isMobile()
+    ? `<p class="wd-note">Open Olvana inside your wallet app's browser:</p><div class="wd-list">
+        <a class="wd-item" href="https://metamask.app.link/dapp/${esc(here)}" rel="noopener"><span class="wd-ph">M</span><span>Open in MetaMask</span></a>
+        <a class="wd-item" href="https://go.cb-w.com/dapp?cb_url=${encodeURIComponent(location.href)}" rel="noopener"><span class="wd-ph">C</span><span>Open in Coinbase Wallet</span></a></div>`
+    : `<p class="wd-note">Install a browser wallet, then reload this page.</p><div class="wd-list">
+        <a class="wd-item" href="https://metamask.io/download" target="_blank" rel="noopener"><span class="wd-ph">M</span><span>Get MetaMask</span></a>
+        <a class="wd-item" href="https://rabby.io" target="_blank" rel="noopener"><span class="wd-ph">R</span><span>Get Rabby</span></a></div>`);
+}
+function openWalletMenu() {
+  openDlg(esc(W ? W.info.name : 'Wallet'), `<div class="wd-addr">${W ? wIcon(W, 22) : ''}<code>${esc(S.address)}</code></div>
+    <div class="wd-list">
+      <button type="button" class="wd-item" id="wdCopy"><span>Copy address</span></button>
+      <a class="wd-item" href="${CONFIG.explorer}/address/${esc(S.address)}" target="_blank" rel="noopener"><span>View on explorer ↗</span></a>
+      ${walletList().length > 1 ? '<button type="button" class="wd-item" id="wdSwap"><span>Switch wallet</span></button>' : ''}
+      <button type="button" class="wd-item wd-danger" id="wdOut"><span>Disconnect</span></button>
+    </div>`);
+  $('wdCopy').onclick = async () => { try { await navigator.clipboard.writeText(S.address); toast('Address copied'); } catch (e) { toast('Copy failed — select the address manually', true); } };
+  $('wdOut').onclick = () => { dlg.close(); disconnect(); };
+  const sw = $('wdSwap'); if (sw) sw.onclick = () => { disconnect(true); connect(); };
+}
+
+function onAccounts(a) {
+  if (!S.connected) return;
+  if (a && a[0]) { S.address = lcA(a[0]); resetBal(); refreshBalances(); } else disconnect(true);
+  if (document.body.classList.contains('in-app')) render();
+}
+function onChain(id) {
+  UI.chainId = parseInt(id, 16);
+  resetBal(); refreshBalances();
+  if (document.body.classList.contains('in-app')) render();
+}
+function watch(p, on) {
+  if (!p) return;
+  const f = on ? (p.on || p.addListener) : (p.removeListener || p.off);
+  if (typeof f !== 'function') return;
+  try { f.call(p, 'accountsChanged', onAccounts); f.call(p, 'chainChanged', onChain); } catch (e) {}
+}
+async function connectWith(w) {
+  if (dlg.open) dlg.close();
   let addr = null;
-  try { const a = await window.ethereum.request({ method: 'eth_requestAccounts' }); addr = a && a[0]; }
-  catch (e) { toast('Wallet request was rejected', true); return; }
+  try { const a = await w.provider.request({ method: 'eth_requestAccounts' }); addr = a && a[0]; }
+  catch (e) { toast(e && e.code === 4001 ? 'Connection request was cancelled' : 'Wallet request failed — unlock your wallet and try again', true); return; }
   if (!addr) { toast('Your wallet did not share an account', true); return; }
-  Object.assign(S, { connected:true, address:String(addr).toLowerCase() });
+  if (W) watch(W.provider, false);
+  W = w; watch(w.provider, true);
+  Object.assign(S, { connected: true, address: lcA(addr) });
+  resetBal();
   await readChain();
   render();
-  toast('Wallet connected');
+  toast(`Connected with ${w.info.name}`);
+  refreshBalances();
+}
+function disconnect(quiet) {
+  if (W) {
+    try { W.provider.request({ method: 'wallet_revokePermissions', params: [{ eth_accounts: {} }] }).catch(() => {}); } catch (e) {}
+    watch(W.provider, false);
+  }
+  W = null; S.connected = false; S.address = null; UI.chainId = null; resetBal();
+  render();
+  if (!quiet) toast('Wallet disconnected');
 }
 $('walletBtn').addEventListener('click', connect);
 
-// Network guard: active once a real injected wallet is connected.
+// Network guard
 const wrongNet = () => !!(S.connected && CONFIG.chainId && UI.chainId != null && UI.chainId !== CONFIG.chainId);
 async function readChain() {
-  if (!window.ethereum) return;
-  try { UI.chainId = parseInt(await window.ethereum.request({ method: 'eth_chainId' }), 16); } catch (e) {}
+  if (!W) return;
+  try { UI.chainId = parseInt(await W.provider.request({ method: 'eth_chainId' }), 16); } catch (e) {}
 }
 async function switchNet() {
-  if (!window.ethereum || !CONFIG.chainId) return;
-  try { await window.ethereum.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: '0x' + CONFIG.chainId.toString(16) }] }); }
-  catch (e) { toast(e && e.code === 4902 ? `Add ${CONFIG.chainName} to your wallet first` : 'Network switch was cancelled', true); }
+  if (!W || !CONFIG.chainId) return;
+  try { await W.provider.request({ method: 'wallet_switchEthereumChain', params: [{ chainId: hexChain() }] }); }
+  catch (e) {
+    const missing = e && (e.code === 4902 || (e.data && e.data.originalError && e.data.originalError.code === 4902) || /unrecognized|not been added|unknown chain/i.test(e.message || ''));
+    if (e && e.code === 4001) return toast('Network switch was cancelled', true);
+    if (!missing) return toast('Could not switch network — switch to ' + CONFIG.chainName + ' in your wallet', true);
+    try {
+      await W.provider.request({ method: 'wallet_addEthereumChain', params: [{ chainId: hexChain(), chainName: CONFIG.chainName,
+        nativeCurrency: { name: 'Ether', symbol: 'ETH', decimals: 18 }, rpcUrls: [CONFIG.rpcUrl], blockExplorerUrls: [CONFIG.explorer] }] });
+    } catch (e2) { return toast(e2 && e2.code === 4001 ? 'Adding the network was cancelled' : 'Could not add ' + CONFIG.chainName + ' to your wallet', true); }
+  }
+  await readChain(); resetBal(); refreshBalances(); render();
 }
-if (window.ethereum && window.ethereum.on) {
-  window.ethereum.on('chainChanged', id => {
-    UI.chainId = parseInt(id, 16);
-    if (document.body.classList.contains('in-app')) render();
-  });
-  window.ethereum.on('accountsChanged', a => {
-    if (!S.connected) return;
-    if (a && a[0]) S.address = String(a[0]).toLowerCase(); else { S.connected = false; S.address = null; }
-    if (document.body.classList.contains('in-app')) render();
-  });
+
+/* ----- balances, read through the wallet ----- */
+function resetBal() { BAL.eth = null; BAL.tok = {}; BAL.pos = {}; BAL.err = null; BAL.at = 0; }
+const pad32 = h => h.replace(/^0x/, '').padStart(64, '0');
+const hexBig = h => (h && h !== '0x') ? BigInt(h) : 0n;
+const ethCall = (to, data) => W.provider.request({ method: 'eth_call', params: [{ to, data }, 'latest'] });
+const toUnits = (v, d) => v == null ? null : Number(v) / 10 ** d;
+async function refreshBalances() {
+  if (!S.connected || !W || UI.chainId !== CONFIG.chainId || BAL.busy) return;
+  BAL.busy = true;
+  const me = S.address;
+  try {
+    const eth = await W.provider.request({ method: 'eth_getBalance', params: [me, 'latest'] });
+    const tok = {}, pos = {};
+    const assets = [...new Set(VAULTS.map(v => lcA(v.asset.address)).filter(Boolean))];
+    await Promise.all(assets.map(async a => { tok[a] = hexBig(await ethCall(a, '0x70a08231' + pad32(me))); }));
+    await Promise.all(VAULTS.map(async v => {
+      const shares = hexBig(await ethCall(v.address, '0x70a08231' + pad32(me)));
+      pos[lcA(v.address)] = shares > 0n ? hexBig(await ethCall(v.address, '0x07a2d13a' + pad32(shares.toString(16)))) : 0n;
+    }));
+    if (S.address !== me) return;                           // account changed meanwhile
+    Object.assign(BAL, { eth: hexBig(eth), tok, pos, err: null, at: Date.now() });
+  } catch (e) {
+    BAL.err = 'Could not read balances from your wallet';
+  } finally {
+    BAL.busy = false;
+  }
+  if (document.body.classList.contains('in-app')) render();
 }
+setInterval(() => { if (S.connected && !document.hidden) refreshBalances(); }, 30000);
+const walletBal = v => { const b = BAL.tok[lcA(v.asset.address)]; return b == null ? null : toUnits(b, v.asset.decimals); };
+const posBal = v => { const b = BAL.pos[lcA(v.address)]; return b == null ? null : toUnits(b, v.asset.decimals); };
+
+// Pick up a wallet that is already authorised for this site (no prompt).
+setTimeout(async () => {
+  const list = walletList();
+  for (const w of list) {
+    try {
+      const a = await w.provider.request({ method: 'eth_accounts' });
+      if (a && a[0]) { W = w; watch(w.provider, true); Object.assign(S, { connected: true, address: lcA(a[0]) }); await readChain(); render(); refreshBalances(); return; }
+    } catch (e) {}
+  }
+}, 400);
 
 /* ===================== alerts engine (live utilization) ===================== */
 function checkAlerts(silent) {
@@ -1106,7 +1252,8 @@ function render() {
   const h = location.hash.replace('#', '');
   document.querySelectorAll('.tabs a').forEach(a => a.classList.toggle('on', a.dataset.route === h));
   const w = $('walletBtn');
-  w.textContent = S.connected ? short(S.address) : 'Connect wallet';
+  w.innerHTML = S.connected ? `${W && safeIcon(W.info.icon) ? `<img src="${esc(W.info.icon)}" alt="">` : ''}<span>${esc(short(S.address))}</span>` : 'Connect wallet';
+  w.setAttribute('aria-label', S.connected ? `Wallet ${S.address}, open wallet menu` : 'Connect wallet');
   w.classList.toggle('on', S.connected);
   $('topPts').textContent = fmtInt(S.points + S.refPoints);
   renderBanner();
@@ -1151,9 +1298,9 @@ function viewEarn() {
       <div>
         <div class="panel action" id="action"></div>
         <div class="panel pos">
-          <div><small>Your balance</small><b>${S.connected ? '0.00' : '—'}</b></div>
-          <div><small>Est. per day</small><b class="gold">${S.connected ? '+0.00' : '—'}</b></div>
-          <div><small>Wallet ${esc(sym(v))}</small><b>—</b></div>
+          <div><small>In this vault</small><b>${S.connected && posBal(v) != null ? fmt(posBal(v)) : '—'}</b></div>
+          <div><small>Est. per day</small><b class="gold">${S.connected && posBal(v) != null ? '+' + fmt(posBal(v) * n / 100 / 365, 4) : '—'}</b></div>
+          <div><small>Wallet ${esc(sym(v))}</small><b>${S.connected && walletBal(v) != null ? fmt(walletBal(v)) : '—'}</b></div>
         </div>
       </div>
       <div class="right">
@@ -1198,8 +1345,8 @@ function viewEarn() {
 }
 
 const amt = () => parseFloat(UI.amount) || 0;
-// Wallet USDG balance is not read in this preview (null = unknown). Olvana positions: none yet (0).
-const maxAmt = () => S.tab === 'deposit' ? null : 0;
+// Real balances, read through the connected wallet (null = not known yet).
+const maxAmt = () => { const v = vault(S.vaultId); return v ? (S.tab === 'deposit' ? walletBal(v) : posBal(v)) : null; };
 
 function formState() {
   const isDep = S.tab === 'deposit', a = amt(), max = maxAmt(), v = vault(S.vaultId);
@@ -1221,7 +1368,8 @@ function formState() {
 function renderForm() {
   const f = formState(), n = netApy(f.v);
   const u = esc(sym(f.v));
-  const walletLine = !S.connected ? 'Wallet not connected' : f.isDep ? `${assetLogo(f.v, 14)}<span>Wallet ${esc(short(S.address))}</span>` : `Balance 0.00 ${u}`;
+  const bal = f.max == null ? (BAL.err ? 'unavailable' : wrongNet() ? 'switch network' : '…') : fmt(f.max);
+  const walletLine = !S.connected ? 'Wallet not connected' : f.isDep ? `${assetLogo(f.v, 14)}<span>Wallet balance ${bal} ${u}</span>` : `<span>In vault ${bal} ${u}</span>`;
   $('action').innerHTML = `
     <div class="seg" role="tablist" aria-label="Action">
       <button type="button" role="tab" aria-selected="${f.isDep}" class="${f.isDep ? 'on' : ''}" data-tab="deposit">Deposit</button>
@@ -1238,15 +1386,19 @@ function renderForm() {
       <div><span>${f.isDep ? 'Points per day' : 'Deposit / withdraw fee'}</span><span id="pv2" class="${f.isDep ? 'gold' : ''}">${f.isDep ? '+' + fmtInt(f.a) : '0.00 ' + u}</span></div>
       <div><span>Risk grade</span><span>${gradeChip(f.v)}</span></div>
     </div>
+    ${S.connected && f.isDep && f.max === 0 ? `<div class="alert info" style="margin:0">${warnSvg(16)}<div><b>No ${u} in this wallet on ${esc(CONFIG.chainName)}.</b> <a href="#faq" class="gold">How to get stablecoins</a></div></div>` : ''}
+    ${S.connected && BAL.eth === 0n ? `<div class="alert" style="margin:0">${warnSvg(16)}<div><b>No ETH for network fees.</b> Keep a little ETH on ${esc(CONFIG.chainName)} to sign transactions.</div></div>` : ''}
+    ${S.connected && BAL.err ? `<div class="alert" style="margin:0">${warnSvg(16)}<div>${esc(BAL.err)}. <button type="button" class="linkbtn gold" id="balRetry">Retry</button></div></div>` : ''}
     <div class="grow"></div>
     <button type="button" class="btn btn-gold" id="primary" ${f.enabled ? '' : 'disabled'}>${f.label}</button>`;
+  const br = $('balRetry'); if (br) br.onclick = () => { BAL.err = null; refreshBalances(); };
 
   $('action').querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { S.tab = b.dataset.tab; UI.amount = ''; renderForm(); });
   $('action').querySelectorAll('[data-p]').forEach(b => b.onclick = () => {
     if (!S.connected) return connect();
     const m = maxAmt();
-    if (m == null) return toast('Type an amount. This preview does not read your wallet balance yet.', true);
-    if (m <= 0) return toast('Nothing to withdraw from this vault', true);
+    if (m == null) return toast(wrongNet() ? 'Switch to ' + CONFIG.chainName + ' to read your balance' : 'Reading your balance…', true);
+    if (m <= 0) return toast(S.tab === 'deposit' ? 'You have no ' + sym(vault(S.vaultId)) + ' on ' + CONFIG.chainName : 'Nothing to withdraw from this vault', true);
     UI.amount = (Math.floor(m * +b.dataset.p) / 100).toFixed(2);
     $('amt').value = UI.amount; updateForm();
   });
@@ -1351,25 +1503,33 @@ function viewVaults() {
 /* ===================== PORTFOLIO ===================== */
 function viewPortfolio() {
   const c = S.connected;
+  const known = c && BAL.at > 0;
+  const held = known ? VAULTS.map(v => ({ v, amt: posBal(v) || 0 })).filter(x => x.amt > 0) : [];
+  const usd = x => x.amt * (x.v.asset.price || 1);
+  const total = held.reduce((t, x) => t + usd(x), 0);
+  const blended = total ? held.reduce((t, x) => t + usd(x) * netApy(x.v), 0) / total : null;
+  const status = !c ? '' : wrongNet() ? 'Switch to ' + esc(CONFIG.chainName) + ' to read your positions.' : BAL.err ? esc(BAL.err) + '.' : !known ? 'Reading your positions…' : '';
   $('view').innerHTML = `
-    <div class="page-head"><div><h1>Portfolio</h1><p>${c ? 'Wallet ' + esc(short(S.address)) : 'Connect a wallet to start'}</p></div></div>
+    <div class="page-head"><div><h1>Portfolio</h1><p>${c ? 'Wallet ' + esc(short(S.address)) + (W ? ' · ' + esc(W.info.name) : '') : 'Connect a wallet to start'}</p></div></div>
     <div class="kgrid">
-      <div class="panel kcard"><small>Total balance</small><b>${c ? '$0.00' : '—'}</b><em>across all vaults</em></div>
-      <div class="panel kcard"><small>Total earned</small><b class="gold">${c ? '+0.00' : '—'}</b><em>since first deposit</em></div>
-      <div class="panel kcard"><small>Blended net APY</small><b>—</b><em>weighted by balance</em></div>
+      <div class="panel kcard"><small>Total balance</small><b>${known ? '$' + fmt(total) : '—'}</b><em>across listed vaults</em></div>
+      <div class="panel kcard"><small>Est. per day</small><b class="gold">${known && blended != null ? '+$' + fmt(total * blended / 100 / 365) : '—'}</b><em>at current net APY</em></div>
+      <div class="panel kcard"><small>Blended net APY</small><b>${blended != null ? fmt(blended) + '%' : '—'}</b><em>weighted by balance</em></div>
       <div class="panel kcard"><small>Season 1 points</small><b>${fmtInt(S.points + S.refPoints)}</b><em><a href="#rewards" class="gold">View rewards</a></em></div>
     </div>
     <div class="two-col">
-      <div class="panel"><div class="chart-head"><h3 class="h4">Balance over time</h3></div><div class="empty">Your balance history appears here after your first deposit.</div></div>
+      <div class="panel"><div class="chart-head"><h3 class="h4">Balance over time</h3></div><div class="empty">Balance history arrives with the indexer. Current positions are live on the right.</div></div>
       <div class="panel">
         <h3 class="h4" style="margin-bottom:12px">Positions</h3>
-        ${c ? `<div class="empty">No Olvana positions yet.<a href="#app" class="btn btn-gold btn-sm">Make a deposit</a></div>`
-          : `<div class="empty">Connect a wallet to see your positions.<button type="button" class="btn btn-gold btn-sm" id="pfConnect">Connect wallet</button></div>`}
+        ${!c ? `<div class="empty">Connect a wallet to see your positions.<button type="button" class="btn btn-gold btn-sm" id="pfConnect">Connect wallet</button></div>`
+          : status ? `<div class="empty">${status}</div>`
+          : held.length ? `<div class="rows" style="font-size:14px">${held.map(x => `<div><span style="color:var(--ink);display:flex;align-items:center;gap:10px">${assetLogo(x.v, 18)}${esc(x.v.name)} ${gradeChip(x.v, false)}</span><span>${fmt(x.amt)} ${esc(sym(x.v))}<br><small class="muted" style="font-size:11px">${fmt(netApy(x.v))}% net APY</small></span></div>`).join('')}</div>`
+          : `<div class="empty">No positions in listed vaults yet.<a href="#app" class="btn btn-gold btn-sm">Make a deposit</a></div>`}
       </div>
     </div>
     <div class="panel">
       <h3 class="h4" style="margin-bottom:18px">Transaction history</h3>
-      <div class="empty">Deposits and withdrawals show up here.</div>
+      <div class="empty">${c ? `Your deposits and withdrawals: <a class="gold" href="${CONFIG.explorer}/address/${esc(S.address)}" target="_blank" rel="noopener">view on explorer ↗</a>` : 'Deposits and withdrawals show up here.'}</div>
     </div>`;
   const pc = $('pfConnect'); if (pc) pc.onclick = connect;
 }
@@ -1845,7 +2005,7 @@ function mapVault(it) {
     incidents: 0,
     ageDays: created ? (Date.now() - created * 1000) / 86400000 : null,
     paused: false,
-    asset: { symbol: String(it.asset.symbol), decimals: num(it.asset.decimals), logo: safeUrl(it.asset.logoURI), price: num(it.asset.priceUsd) }
+    asset: { symbol: String(it.asset.symbol), address: String(it.asset.address).toLowerCase(), decimals: num(it.asset.decimals), logo: safeUrl(it.asset.logoURI), price: num(it.asset.priceUsd) }
   };
 }
 // Group by asset: USDG first, then other stablecoins by their total TVL; inside a group, by TVL.
@@ -1863,6 +2023,7 @@ async function refreshLive() {
     const items = await fetchVaultItems();
     VAULTS = sortVaults(items.filter(keepVault).map(mapVault));
     LIVE.at = Date.now(); LIVE.err = null; LIVE.loaded = true;
+    if (S.connected) setTimeout(refreshBalances, 0);
     checkAlerts(first || !document.body.classList.contains('in-app'));
   } catch (e) {
     LIVE.err = e && e.message || 'error';
