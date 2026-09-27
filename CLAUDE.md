@@ -7,5 +7,5 @@
 - Risk score (`packages/core/src/risk.ts`) must keep matching the prototype fixtures: Core A 97, Prime A 100, Boost C 47.
 - Nothing demo-only from the prototype ships (Demo controls, localStorage state, simulated tx hashes, fake wallet, sample numbers).
 - Addresses are stored lowercase in DB/API.
-- Robinhood Chain (4663) has Morpho **Vault V2** only — use `vaultV2Abi`, not MetaMorpho. Every config value's source is logged in `docs/VERIFICATION.md`.
+- Multi-network: networks live in `CHAINS` (`packages/core/src/config.ts`), values copied from Morpho's official registry. Robinhood Chain (4663) is the home network and has Morpho **Vault V2** only — use `vaultV2Abi`. Every config value's source is logged in `docs/VERIFICATION.md`.
 - Risk flags (`riskFlags`) sit next to the grade and never change the score. Headline APY = grade A vaults only.

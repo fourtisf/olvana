@@ -85,6 +85,87 @@ export const MORPHO_BLUE_ADDRESS: Address | null = '0x9D53d5E3bd5E8d4Cbfa6DB1ca2
  */
 export const VAULT_V2_FACTORY_ADDRESS: Address | null = '0x0FBad98595b0186dA120E41f77C102beb49f803c';
 
+/* ------------------------------------------------------------------ */
+/* Networks (multi-chain)                                              */
+/* ------------------------------------------------------------------ */
+
+export type ChainKey = 'robinhood' | 'ethereum' | 'base' | 'arbitrum';
+
+export interface ChainConfig {
+  id: number;
+  key: ChainKey;
+  name: string;
+  short: string;
+  explorer: string;
+  morphoBlue: Address;
+  /** Only vaults created by this factory are listed on this chain. */
+  vaultV2Factory: Address;
+  /** Stablecoin symbol → the one token address accepted for it on this chain. */
+  stablecoinPins: Readonly<Record<string, Address>>;
+  /** Only for chains wallets may not know yet (used by wallet_addEthereumChain). */
+  rpcUrl?: string;
+}
+
+/**
+ * Networks Olvana lists vaults on. Morpho Blue, Vault V2 factory, explorer and
+ * stablecoin addresses come from Morpho's official registry (morpho-org/sdks
+ * packages/morpho-ts/src/{addresses,chain}.ts @ 61a904b); USDG on Robinhood
+ * Chain was verified onchain. See docs/VERIFICATION.md. Robinhood Chain is the
+ * home network. To add a chain: copy its values from the same registry.
+ */
+export const CHAINS: readonly ChainConfig[] = [
+  {
+    id: 4663,
+    key: 'robinhood',
+    name: 'Robinhood Chain',
+    short: 'Robinhood',
+    explorer: 'https://robinhoodchain.blockscout.com',
+    morphoBlue: '0x9D53d5E3bd5E8d4Cbfa6DB1ca238AEA02E651010',
+    vaultV2Factory: '0x0FBad98595b0186dA120E41f77C102beb49f803c',
+    stablecoinPins: { USDG: '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168' },
+    rpcUrl: 'https://rpc.mainnet.chain.robinhood.com',
+  },
+  {
+    id: 1,
+    key: 'ethereum',
+    name: 'Ethereum',
+    short: 'Ethereum',
+    explorer: 'https://etherscan.io',
+    morphoBlue: '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb',
+    vaultV2Factory: '0xA1D94F746dEfa1928926b84fB2596c06926C0405',
+    stablecoinPins: {
+      USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
+      USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
+      DAI: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
+    },
+  },
+  {
+    id: 8453,
+    key: 'base',
+    name: 'Base',
+    short: 'Base',
+    explorer: 'https://basescan.org',
+    morphoBlue: '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb',
+    vaultV2Factory: '0x4501125508079A99ebBebCE205DeC9593C2b5857',
+    stablecoinPins: { USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' },
+  },
+  {
+    id: 42161,
+    key: 'arbitrum',
+    name: 'Arbitrum One',
+    short: 'Arbitrum',
+    explorer: 'https://arbiscan.io',
+    morphoBlue: '0x6c247b1F6182318877311737BaC0844bAa518F5e',
+    vaultV2Factory: '0x6b46fa3cc9EBF8aB230aBAc664E37F2966Bf7971',
+    stablecoinPins: { USDC: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' },
+  },
+];
+
+export const CHAIN_IDS: readonly number[] = CHAINS.map((c) => c.id);
+export function chainById(id: number | null | undefined): ChainConfig | undefined {
+  return CHAINS.find((c) => c.id === id);
+}
+
 /**
  * Morpho GraphQL API. Morpho's API docs list Robinhood Chain as supported
  * (seen 2026-09-27); still keep the onchain-read fallback.

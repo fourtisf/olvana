@@ -39,3 +39,20 @@ describe('verified chain values', () => {
     expect(robinhoodChain(['https://rpc.example']).id).toBe(4663);
   });
 });
+
+describe('networks', () => {
+  it('every network address is a valid checksummed address', async () => {
+    const { getAddress } = await import('viem');
+    const { CHAINS } = await import('../src/config');
+    for (const c of CHAINS) {
+      for (const a of [c.morphoBlue, c.vaultV2Factory, ...Object.values(c.stablecoinPins)]) expect(getAddress(a)).toBe(a);
+    }
+  });
+  it('ids are unique and include the home network', async () => {
+    const { CHAINS, CHAIN_ID, chainById } = await import('../src/config');
+    expect(new Set(CHAINS.map((c) => c.id)).size).toBe(CHAINS.length);
+    expect(chainById(CHAIN_ID)?.key).toBe('robinhood');
+    expect(chainById(8453)?.name).toBe('Base');
+    expect(chainById(10)).toBeUndefined();
+  });
+});

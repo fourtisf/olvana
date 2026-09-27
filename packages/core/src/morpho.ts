@@ -10,7 +10,7 @@
  * so only listed vaults from the official Vault V2 factory whose asset is an
  * allowlisted stablecoin trading near $1 are kept.
  */
-import { CHAIN_ID, MIN_TVL_USD, MORPHO_API_URL, STABLECOINS, SYNTHETIC_STABLECOINS, USDG_ADDRESS, VAULT_V2_FACTORY_ADDRESS } from './config';
+import { CHAINS, CHAIN_ID, MIN_TVL_USD, MORPHO_API_URL, STABLECOINS, SYNTHETIC_STABLECOINS, chainById } from './config';
 import {
   classifyCollateral,
   riskFlags,
@@ -72,6 +72,8 @@ export interface ApiMarketPosition {
 }
 
 export interface ApiVaultV2 {
+  /** Set by us from the query's chain (the list query is run per chain). */
+  chainId?: number;
   address: string;
   name: string;
   symbol: string;
@@ -107,6 +109,7 @@ export interface LiveCollateral {
 }
 
 export interface LiveVault {
+  chainId: number;
   address: string;
   name: string;
   /** The stablecoin deposited into the vault. */
@@ -155,27 +158,35 @@ const eq = (a: string | null | undefined, b: string | null | undefined) => !!a &
 /** A vault's asset must be within this distance of $1 to be listed. */
 export const STABLE_PRICE_TOLERANCE = 0.02;
 
+/**
+ * Safety filter. Defaults come from the vault's network in CHAINS: its official
+ * Vault V2 factory and its stablecoin address pins. Options override them (tests).
+ */
 export function keepVault(
   v: ApiVaultV2,
   opts: {
-    usdgAddress?: string | null;
     factory?: string | null;
+    pins?: Readonly<Record<string, string>>;
+    /** Shorthand for pins.USDG (back-compat). */
+    usdgAddress?: string | null;
     stablecoins?: readonly string[];
     minTvlUsd?: number;
     allowUnlisted?: boolean;
-  } = {
-    usdgAddress: USDG_ADDRESS,
-    factory: VAULT_V2_FACTORY_ADDRESS,
-  },
+  } = {},
 ): boolean {
+  const chain = chainById(v.chainId ?? CHAIN_ID);
+  const factory = 'factory' in opts ? opts.factory : chain?.vaultV2Factory;
+  const pins: Record<string, string | null | undefined> = { ...(opts.pins ?? chain?.stablecoinPins ?? {}) };
+  if ('usdgAddress' in opts) pins.USDG = opts.usdgAddress;
   const symbols = opts.stablecoins ?? STABLECOINS;
   if (!v.asset || !symbols.includes(v.asset.symbol)) return false;
   // Price is optional: the list query doesn't carry it. When present, enforce the peg.
   const price = v.asset.priceUsd;
   if (typeof price === 'number' && Math.abs(price - 1) > STABLE_PRICE_TOLERANCE) return false;
-  if (v.asset.symbol === 'USDG' && opts.usdgAddress && !eq(v.asset.address, opts.usdgAddress)) return false;
+  const pin = pins[v.asset.symbol];
+  if (pin && !eq(v.asset.address, pin)) return false;
   if (!v.listed && !opts.allowUnlisted) return false;
-  if (!opts.factory || !eq(v.factory?.address, opts.factory)) return false;
+  if (!factory || !eq(v.factory?.address, factory)) return false;
   return tvlOf(v) >= (opts.minTvlUsd ?? MIN_TVL_USD);
 }
 
@@ -241,6 +252,7 @@ export function toLiveVault(v: ApiVaultV2, opts: { now?: Date; overrides?: Colla
   }
 
   return {
+    chainId: v.chainId ?? CHAIN_ID!,
     address: v.address,
     name: v.name,
     asset: { symbol: v.asset.symbol, address: v.asset.address, decimals: v.asset.decimals },
@@ -281,35 +293,49 @@ export function gqlClient(url: string, f: typeof fetch, signal?: AbortSignal): G
   };
 }
 
-/** Stage 1: all Vault V2s on the chain (light fields), paginated. */
-export async function listVaults(gql: Gql, maxPages = 10): Promise<ApiVaultV2[]> {
+/** Stage 1: all Vault V2s on one chain (light fields), paginated; items are tagged with chainId. */
+export async function listVaults(gql: Gql, chainId: number = CHAIN_ID!, maxPages = 10): Promise<ApiVaultV2[]> {
   const out: ApiVaultV2[] = [];
   for (let page = 0; page < maxPages; page++) {
-    const d = await gql<{ vaultV2s: { items: ApiVaultV2[] | null } }>(VAULT_LIST_QUERY, { c: [CHAIN_ID], s: page * 50 });
+    const d = await gql<{ vaultV2s: { items: ApiVaultV2[] | null } }>(VAULT_LIST_QUERY, { c: [chainId], s: page * 50 });
     const items = d.vaultV2s?.items ?? [];
-    out.push(...items);
+    out.push(...items.map((v) => ({ ...v, chainId })));
     if (items.length < 50) break;
   }
   return out;
 }
 
 /** Stage 2: vault fields + market allocation for one vault (two queries, merged). */
-export async function fetchVaultDetail(gql: Gql, address: string): Promise<ApiVaultV2 | null> {
+export async function fetchVaultDetail(gql: Gql, address: string, chainId: number = CHAIN_ID!): Promise<ApiVaultV2 | null> {
   const [base, alloc] = await Promise.all([
-    gql<{ vaultV2ByAddress: ApiVaultV2 | null }>(VAULT_DETAIL_QUERY, { a: address, c: CHAIN_ID }),
-    gql<{ vaultV2ByAddress: Pick<ApiVaultV2, 'adapters'> | null }>(VAULT_ALLOCATION_QUERY, { a: address, c: CHAIN_ID }),
+    gql<{ vaultV2ByAddress: ApiVaultV2 | null }>(VAULT_DETAIL_QUERY, { a: address, c: chainId }),
+    gql<{ vaultV2ByAddress: Pick<ApiVaultV2, 'adapters'> | null }>(VAULT_ALLOCATION_QUERY, { a: address, c: chainId }),
   ]);
   if (!base.vaultV2ByAddress) return null;
-  return { ...base.vaultV2ByAddress, adapters: alloc.vaultV2ByAddress?.adapters ?? { items: [] } };
+  return { ...base.vaultV2ByAddress, chainId, adapters: alloc.vaultV2ByAddress?.adapters ?? { items: [] } };
 }
 
-/** Fetch, filter and map the live stablecoin vaults. `fetchImpl` is injectable for tests. */
+/**
+ * Fetch, filter and map the live stablecoin vaults on every network in CHAINS.
+ * A network whose API call fails is skipped; only if every network fails does
+ * this throw. `fetchImpl` is injectable for tests.
+ */
 export async function fetchLiveStableVaults(
-  opts: { url?: string; fetchImpl?: typeof fetch; overrides?: CollateralOverrides; signal?: AbortSignal } = {},
+  opts: {
+    url?: string;
+    fetchImpl?: typeof fetch;
+    overrides?: CollateralOverrides;
+    signal?: AbortSignal;
+    chainIds?: readonly number[];
+  } = {},
 ): Promise<LiveVault[]> {
   const gql = gqlClient(opts.url ?? MORPHO_API_URL, opts.fetchImpl ?? fetch, opts.signal);
-  const candidates = (await listVaults(gql)).filter((v) => keepVault(v));
-  const details = await Promise.allSettled(candidates.map((c) => fetchVaultDetail(gql, c.address)));
+  const chainIds = opts.chainIds ?? CHAINS.map((c) => c.id);
+  const lists = await Promise.allSettled(chainIds.map((id) => listVaults(gql, id)));
+  const listFailures = lists.filter((r) => r.status === 'rejected') as PromiseRejectedResult[];
+  if (listFailures.length === lists.length && lists.length) throw listFailures[0]!.reason;
+  const candidates = lists.flatMap((r) => (r.status === 'fulfilled' ? r.value : [])).filter((v) => keepVault(v));
+  const details = await Promise.allSettled(candidates.map((c) => fetchVaultDetail(gql, c.address, c.chainId)));
   const ok = details.flatMap((r) => (r.status === 'fulfilled' && r.value && keepVault(r.value) ? [r.value] : []));
   const failed = details.filter((r) => r.status === 'rejected') as PromiseRejectedResult[];
   if (candidates.length && !ok.length && failed.length) throw failed[0]!.reason;

@@ -152,21 +152,24 @@ describe('toLiveVault', () => {
 
 describe('fetchLiveStableVaults (list → detail)', () => {
   /** Fake API: answers the list query with `items`, the detail query by address. */
-  const api = (items: ApiVaultV2[], opt: { failDetail?: boolean; status?: number; errors?: string } = {}) => {
+  const api = (items: ApiVaultV2[], opt: { failDetail?: boolean; status?: number; errors?: string; failChain?: number } = {}) => {
     const calls: string[] = [];
     const f = (async (_url: string, init: { body: string }) => {
       const { query, variables } = JSON.parse(init.body);
       const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
       if (opt.status) return json({}, opt.status);
       if (opt.errors) return json({ errors: [{ message: opt.errors }] });
+      const onChain = (v: ApiVaultV2) => (v.chainId ?? 4663) === (variables.c?.[0] ?? variables.c);
       if (query.includes('vaultV2s(')) {
-        calls.push('list');
-        return json({ data: { vaultV2s: { items: items.slice(variables.s, variables.s + 50) } } });
+        calls.push('list:' + variables.c[0]);
+        if (opt.failChain === variables.c[0]) return json({}, 500);
+        const pool = items.filter(onChain).map(({ chainId: _c, ...v }) => v);
+        return json({ data: { vaultV2s: { items: pool.slice(variables.s, variables.s + 50) } } });
       }
       const isAlloc = query.includes('adapters(');
       calls.push((isAlloc ? 'alloc:' : 'detail:') + variables.a);
       if (opt.failDetail) return json({ errors: [{ message: 'Query is too complex' }] });
-      const v = items.find((x) => x.address === variables.a) ?? null;
+      const v = items.find((x) => x.address === variables.a && onChain(x)) ?? null;
       if (isAlloc) return json({ data: { vaultV2ByAddress: v ? { adapters: v.adapters } : null } });
       const base = v ? { ...v, adapters: undefined } : null;
       return json({ data: { vaultV2ByAddress: base } });
@@ -193,7 +196,22 @@ describe('fetchLiveStableVaults (list → detail)', () => {
     const many = Array.from({ length: 120 }, (_, k) => vault({ address: '0x' + k.toString(16).padStart(40, '0'), totalAssetsUsd: 1 }));
     const { f, calls } = api(many);
     await fetchLiveStableVaults({ fetchImpl: f });
-    expect(calls.filter((c) => c === 'list').length).toBe(3);
+    expect(calls.filter((c) => c === 'list:4663').length).toBe(3);
+  });
+
+  it('multi-network: per-chain factory and stablecoin pins; one failing network does not hide the rest', async () => {
+    const BASE_FACTORY = '0x4501125508079A99ebBebCE205DeC9593C2b5857';
+    const BASE_USDC = '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913';
+    const baseUsdc = vault({ chainId: 8453, address: '0x' + '8'.repeat(40), name: 'Base USDC', factory: { address: BASE_FACTORY }, asset: { ...vault().asset, symbol: 'USDC', address: BASE_USDC } });
+    const fakeUsdc = vault({ chainId: 8453, address: '0x' + '7'.repeat(40), name: 'Fake USDC', factory: { address: BASE_FACTORY }, asset: { ...vault().asset, symbol: 'USDC', address: '0x' + '6'.repeat(40) } });
+    const wrongFactory = vault({ chainId: 8453, address: '0x' + '5'.repeat(40), name: 'RH factory on Base', asset: { ...vault().asset, symbol: 'USDC', address: BASE_USDC } });
+    const { f } = api([vault(), baseUsdc, fakeUsdc, wrongFactory], { failChain: 1 });
+    const out = await fetchLiveStableVaults({ fetchImpl: f });
+    expect(out.map((v) => [v.name, v.chainId])).toEqual([['Steakhouse USDG', 4663], ['Base USDC', 8453]]);
+  });
+
+  it('throws when every network fails', async () => {
+    await expect(fetchLiveStableVaults({ fetchImpl: api([], { status: 500 }).f })).rejects.toThrow('HTTP 500');
   });
 
   it('rejects a USDG-named token at another address (default config pin)', async () => {

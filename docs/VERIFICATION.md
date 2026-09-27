@@ -48,3 +48,20 @@ All created by the official Vault V2 factory, asset = USDG (`0x5fc5…d168`).
 
 Addresses copied from the verify script output (screenshot); re-run
 `verify:onchain` before pinning any of them in `VAULTS`.
+
+## Networks (multi-chain) — from Morpho's official registry
+
+Source: morpho-org/sdks `packages/morpho-ts/src/addresses.ts` and `chain.ts` @ `61a904b`
+(read directly, 2026-09-27). Stablecoin pins are the only token address accepted
+for that symbol on that network; symbols without a pin rely on the official
+factory + Morpho listing.
+
+| Network | Chain id | Explorer | Morpho Blue | Vault V2 factory | Stablecoin pins |
+|---|---:|---|---|---|---|
+| Robinhood Chain | 4663 | robinhoodchain.blockscout.com | `0x9D53d5E3bd5E8d4Cbfa6DB1ca238AEA02E651010` | `0x0FBad98595b0186dA120E41f77C102beb49f803c` | USDG `0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168` (onchain) |
+| Ethereum | 1 | etherscan.io | `0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb` | `0xA1D94F746dEfa1928926b84fB2596c06926C0405` | USDC `0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48`, USDT `0xdAC17F958D2ee523a2206206994597C13D831ec7`, DAI `0x6B175474E89094C44Da98b954EedeAC495271d0F` |
+| Base | 8453 | basescan.org | `0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb` | `0x4501125508079A99ebBebCE205DeC9593C2b5857` | USDC `0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913` |
+| Arbitrum One | 42161 | arbiscan.io | `0x6c247b1F6182318877311737BaC0844bAa518F5e` | `0x6b46fa3cc9EBF8aB230aBAc664E37F2966Bf7971` | USDC `0xaf88d065e77c8cC2239327C5EDb3A432268e5831` |
+
+Only Morpho **Vault V2** vaults are listed. Large USDC/USDT vaults on Ethereum/Base
+that are still MetaMorpho (V1) are not included yet.
