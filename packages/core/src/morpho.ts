@@ -12,6 +12,7 @@
  */
 import { CHAINS, CHAIN_ID, MIN_TVL_USD, MORPHO_API_URL, STABLECOINS, SYNTHETIC_STABLECOINS, chainById } from './config';
 import {
+  DEFAULT_COLLATERAL_CLASS,
   classifyCollateral,
   riskFlags,
   riskScore,
@@ -192,7 +193,7 @@ export function keepVault(
 
 export function toLiveVault(v: ApiVaultV2, opts: { now?: Date; overrides?: CollateralOverrides } = {}): LiveVault {
   const now = opts.now ?? new Date();
-  const overrides = opts.overrides ?? {};
+  const overrides = opts.overrides ?? DEFAULT_COLLATERAL_CLASS;
 
   const positions = (v.adapters?.items ?? [])
     .flatMap((a) => a.positions?.items ?? [])
@@ -240,7 +241,7 @@ export function toLiveVault(v: ApiVaultV2, opts: { now?: Date; overrides?: Colla
     collateral: collateral.map((c) => ({ symbol: c.symbol, share: c.share, quality: c.quality })),
   });
   const flags = riskFlags({
-    collateral: collateral.map((c) => ({ symbol: c.symbol, lltv: c.lltv, kind: c.kind })),
+    collateral: collateral.map((c) => ({ symbol: c.symbol, share: c.share, lltv: c.lltv, kind: c.kind })),
     vaultAgeDays: ageDays,
     usdgPrice: v.asset.priceUsd ?? null,
   });
@@ -320,6 +321,11 @@ export async function fetchVaultDetail(gql: Gql, address: string, chainId: numbe
  * A network whose API call fails is skipped; only if every network fails does
  * this throw. `fetchImpl` is injectable for tests.
  */
+/** Collateral worth showing: tiny allocations (< 0.5%) still count in the score but are hidden. */
+export function visibleCollateral(v: Pick<LiveVault, 'collateral'>, minShare = 0.5): LiveCollateral[] {
+  return v.collateral.filter((c) => c.share >= minShare);
+}
+
 export async function fetchLiveStableVaults(
   opts: {
     url?: string;

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { USDG_ADDRESS, VAULT_V2_FACTORY_ADDRESS } from '../src/config';
-import { fetchLiveStableVaults, keepVault, toLiveVault, type ApiMarketPosition, type ApiVaultV2 } from '../src/morpho';
+import { fetchLiveStableVaults, keepVault, toLiveVault, visibleCollateral, type ApiMarketPosition, type ApiVaultV2 } from '../src/morpho';
 
 const FACTORY = VAULT_V2_FACTORY_ADDRESS!;
 const pos = (symbol: string | null, usd: number, util: number, lltv: string, oracle = 'ChainlinkOracleV2'): ApiMarketPosition => ({
@@ -51,6 +51,38 @@ const vault = (over: Partial<ApiVaultV2> = {}): ApiVaultV2 => ({
 });
 
 const now = new Date('2026-09-27T00:00:00Z');
+
+describe('real Robinhood Chain vaults (2026-09-27 shape)', () => {
+  const STABLE_LLTV = '915000000000000000';
+  const mk = (positions: ApiMarketPosition[], o: Partial<ApiVaultV2> = {}) =>
+    vault({ ...o, adapters: { items: [{ address: '0x' + 'a'.repeat(40), type: 'MorphoMarketV1', assetsUsd: 1, positions: { items: positions } }] } });
+
+  it('Steakhouse USDG: stable collateral is classified, no high-LLTV flag, grade B 68', () => {
+    const v = toLiveVault(
+      mk([
+        pos('USDe', 66.2, 0.9, STABLE_LLTV),
+        pos('syrupUSDG', 25.1, 0.9, STABLE_LLTV, 'CustomOracle'),
+        pos('mGLO', 6.1, 0.9, STABLE_LLTV),
+        pos('spUSDG', 2.5, 0.9, STABLE_LLTV),
+        pos('WETH', 0.1, 0.9, '860000000000000000'),
+      ]),
+      { now },
+    );
+    // utilization 90% → 15 · collateral 30 × (0.999 × 0.6 + 0.001 × 1) ≈ 18 · mixed oracle 15 · curator 20
+    expect(v.risk).toMatchObject({ score: 68, grade: 'B' });
+    expect(v.flags.map((f) => f.key)).not.toContain('high-lltv');
+    expect(visibleCollateral(v).map((c) => c.symbol)).toEqual(['USDe', 'syrupUSDG', 'mGLO', 'spUSDG']);
+  });
+
+  it('Purinta USDG: 98.6% USDe → concentration flag; small token stays tail', () => {
+    const v = toLiveVault(mk([pos('USDe', 98.6, 0.9, STABLE_LLTV), pos('CASHCAT', 1.4, 0.9, STABLE_LLTV)]), { now });
+    expect(v.flags.map((f) => f.key)).toContain('concentration');
+    expect(v.flags.find((f) => f.key === 'concentration')!.text).toContain('98.6% of lending is backed by one collateral (USDe)');
+    expect(v.collateral.find((c) => c.symbol === 'CASHCAT')).toMatchObject({ quality: 'tail', kind: 'crypto' });
+    // CASHCAT (volatile) at 91.5% LLTV is a real high-LLTV risk
+    expect(v.flags.map((f) => f.key)).toContain('high-lltv');
+  });
+});
 
 describe('keepVault (safety filter)', () => {
   const opts = { usdgAddress: null, factory: FACTORY };

@@ -120,6 +120,8 @@ Score out of 100:
 Grade: **A ≥ 80 · B 60–79 · C < 60**.
 
 - Collateral classification lives in a DB table `collateral_class (symbol, address, quality)`. Default blue: WETH, WBTC, wstETH, cbBTC. Tokenized stocks = mid. Anything unknown = tail.
+- Default rows (owner-approved 2026-09-27, `DEFAULT_COLLATERAL_CLASS` in `risk.ts`): cash-backed stablecoins (USDC, USDT, USDG, PYUSD, DAI, USDS) = blue/stable; synthetic or yield-bearing dollars (USDe, sUSDe, syrupUSDG, syrupUSDC, spUSDG, sUSDS, mGLO) = mid/stable. `stable` collateral is exempt from the high-LLTV flag. Collateral under 0.5% of the allocation is hidden in the UI but still scored.
+- Concentration flag: one collateral above 80% of the allocation (flag only, not scored).
 - Oracle type per market: DB table, set manually by admin at listing time.
 - Curator incidents: DB table, set manually.
 - Recompute every snapshot (§7). Store score history.

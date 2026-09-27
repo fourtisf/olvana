@@ -121,6 +121,29 @@ export function riskScore(input: RiskInput): RiskResult {
 }
 
 /**
+ * Default collateral classification (the admin `collateral_class` table's
+ * starting rows). Approved by the owner 2026-09-27. Cash-backed stablecoins
+ * are blue-chip collateral; synthetic / yield-bearing dollars are mid. Both are
+ * `stable`, so stable-vs-stable markets (which normally run LLTV > 86%) aren't
+ * flagged for high LLTV. Anything not listed stays `tail`.
+ */
+export const DEFAULT_COLLATERAL_CLASS: Readonly<Record<string, { quality: CollateralQuality; kind: CollateralKind }>> = {
+  USDC: { quality: 'blue', kind: 'stable' },
+  USDT: { quality: 'blue', kind: 'stable' },
+  USDG: { quality: 'blue', kind: 'stable' },
+  PYUSD: { quality: 'blue', kind: 'stable' },
+  DAI: { quality: 'blue', kind: 'stable' },
+  USDS: { quality: 'blue', kind: 'stable' },
+  USDe: { quality: 'mid', kind: 'stable' },
+  sUSDe: { quality: 'mid', kind: 'stable' },
+  syrupUSDG: { quality: 'mid', kind: 'stable' },
+  syrupUSDC: { quality: 'mid', kind: 'stable' },
+  spUSDG: { quality: 'mid', kind: 'stable' },
+  sUSDS: { quality: 'mid', kind: 'stable' },
+  mGLO: { quality: 'mid', kind: 'stable' },
+};
+
+/**
  * Collateral classification: explicit table entry (from `collateral_class`)
  * wins, then the default blue-chip list, otherwise tail. Symbol match is
  * case-insensitive. Tokenized stocks are marked `mid` via the table.
@@ -145,6 +168,8 @@ export type CollateralKind = 'crypto' | 'equity' | 'stable';
 
 export interface FlagCollateral {
   symbol: string;
+  /** Share of the allocation, percent. Used for the concentration flag. */
+  share?: number;
   /** Liquidation LTV, in percent (e.g. 86). */
   lltv: number;
   /** `equity` = tokenized stock (set in `collateral_class`). */
@@ -159,7 +184,7 @@ export interface RiskFlagInput {
   usdgPrice?: number | null;
 }
 
-export type RiskFlagKey = 'equity-collateral' | 'high-lltv' | 'new-vault' | 'usdg-depeg' | 'synthetic-stable';
+export type RiskFlagKey = 'equity-collateral' | 'high-lltv' | 'new-vault' | 'usdg-depeg' | 'synthetic-stable' | 'concentration';
 
 export interface RiskFlag {
   key: RiskFlagKey;
@@ -170,6 +195,8 @@ export interface RiskFlag {
 export const HIGH_LLTV_PCT = 86;
 export const NEW_VAULT_DAYS = 90;
 export const DEPEG_TOLERANCE = 0.005;
+/** One collateral above this share (percent) is flagged as concentrated. */
+export const CONCENTRATION_PCT = 80;
 
 export function riskFlags(input: RiskFlagInput): RiskFlag[] {
   const flags: RiskFlag[] = [];
@@ -183,6 +210,13 @@ export function riskFlags(input: RiskFlagInput): RiskFlag[] {
     flags.push({
       key: 'high-lltv',
       text: `High loan-to-value markets (above ${HIGH_LLTV_PCT}% LLTV) leave less room before bad debt.`,
+    });
+  }
+  const top = input.collateral.reduce<FlagCollateral | null>((m, c) => ((c.share ?? 0) > (m?.share ?? 0) ? c : m), null);
+  if (top && (top.share ?? 0) > CONCENTRATION_PCT) {
+    flags.push({
+      key: 'concentration',
+      text: `Concentrated: ${(Math.round((top.share ?? 0) * 10) / 10).toFixed(1)}% of lending is backed by one collateral (${top.symbol}).`,
     });
   }
   if (input.vaultAgeDays != null && input.vaultAgeDays < NEW_VAULT_DAYS) {
