@@ -4,7 +4,7 @@
  *   pnpm --filter @olvana/core live:vaults                                  # api.morpho.org directly
  *   pnpm --filter @olvana/core live:vaults https://olvana.org/api/morpho    # through the nginx proxy
  */
-import { MORPHO_API_URL, MIN_TVL_USD, STABLECOINS, USDG_ADDRESS, VAULT_V2_FACTORY_ADDRESS } from '../src/config';
+import { CHAIN_ID, MORPHO_API_URL, MIN_TVL_USD, STABLECOINS, USDG_ADDRESS, VAULT_V2_FACTORY_ADDRESS } from '../src/config';
 import { fetchVaultDetail, gqlClient, keepVault, listVaults, toLiveVault, tvlOf, type LiveVault } from '../src/morpho';
 
 const url = process.argv[2] ?? MORPHO_API_URL;
@@ -44,7 +44,38 @@ async function main() {
       `  ${v.asset.symbol.padEnd(5)} ${v.name.slice(0, 32).padEnd(32)} TVL ${usd(v.tvlUsd).padStart(14)}  net ${v.netApy.toFixed(2)}%  util ${v.utilization.toFixed(1)}%  ${v.collateral.length} collateral  grade ${v.risk.grade} ${v.risk.score}`,
     );
   }
+  // Risk inputs, so a surprising grade can be traced to its cause.
+  for (const v of out) {
+    console.log(`\n${v.name} — score ${v.risk.score} = ${v.risk.parts.map((p) => `${p.label} ${p.points}/${p.max}`).join(' + ')}`);
+    console.log(`  oracle: ${v.oracleLabel}  ·  liquidity ${usd(v.liquidityUsd)} (${((v.liquidityUsd / (v.tvlUsd || 1)) * 100).toFixed(1)}% of TVL)`);
+    const extra = await collateralInfo(v.address).catch(() => new Map<string, { tags: string[]; oracle: string; util: number }[]>());
+    for (const c of v.collateral) {
+      const markets = extra.get(c.symbol) ?? [];
+      const tags = [...new Set(markets.flatMap((m) => m.tags))].join('/') || '—';
+      const oracles = [...new Set(markets.map((m) => m.oracle))].join('/') || '—';
+      const utils = markets.map((m) => (m.util * 100).toFixed(0) + '%').join(' ');
+      console.log(`  ${c.symbol.padEnd(10)} ${c.share.toFixed(1).padStart(5)}%  LLTV ${String(c.lltv).padStart(4)}%  quality ${c.quality.padEnd(4)}  tags ${tags.padEnd(20)} oracle ${oracles.padEnd(18)} util ${utils}`);
+    }
+  }
   console.log(`\n${out.length} vault(s) would be shown on the site.`);
+}
+
+/** Script-only extras (asset tags, per-market oracle / utilization) — not used by the site. */
+async function collateralInfo(address: string) {
+  const d = await gql<{ vaultV2ByAddress: { adapters: { items: { positions?: { items: { state: { supplyAssetsUsd: number | null } | null; market: { collateralAsset: { symbol: string; tags: string[] | null } | null; oracle: { type: string } | null; state: { utilization: number } | null } }[] } }[] } } | null }>(
+    `query($a:String!,$c:Int!){ vaultV2ByAddress(address:$a, chainId:$c){ adapters(first: 5){ items{ ... on MorphoMarketV1Adapter { positions(first: 30){ items{ state{ supplyAssetsUsd } market{ collateralAsset{ symbol tags } oracle{ type } state{ utilization } } } } } } } } }`,
+    { a: address, c: CHAIN_ID },
+  );
+  const out = new Map<string, { tags: string[]; oracle: string; util: number }[]>();
+  for (const a of d.vaultV2ByAddress?.adapters.items ?? [])
+    for (const p of a.positions?.items ?? []) {
+      const ca = p.market.collateralAsset;
+      if (!ca || !((p.state?.supplyAssetsUsd ?? 0) > 0)) continue;
+      const list = out.get(ca.symbol) ?? [];
+      list.push({ tags: ca.tags ?? [], oracle: p.market.oracle?.type ?? 'none', util: p.market.state?.utilization ?? 0 });
+      out.set(ca.symbol, list);
+    }
+  return out;
 }
 
 main().catch((e) => {
