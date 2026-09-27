@@ -17,7 +17,8 @@
     "typecheck": "tsc -p tsconfig.json",
     "test": "vitest run",
     "config:todos": "tsx scripts/config-todos.ts",
-    "verify:onchain": "tsx scripts/verify-onchain.ts"
+    "verify:onchain": "tsx scripts/verify-onchain.ts",
+    "live:vaults": "tsx scripts/live-vaults.ts"
   },
   "dependencies": {
     "viem": "^2.56.9"
