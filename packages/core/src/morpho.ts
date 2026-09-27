@@ -30,23 +30,30 @@ import {
  */
 export const VAULT_LIST_QUERY = `query($c:[Int!],$s:Int){
   vaultV2s(first: 50, skip: $s, where:{chainId_in:$c}){
-    items{ address name listed factory{ address } asset{ address symbol decimals } totalAssetsUsd }
+    items{ address name listed factory{ address } asset{ address symbol decimals } totalAssets totalAssetsUsd }
   }
 }`;
 
+/** Vault-level fields (no nested market data). */
 export const VAULT_DETAIL_QUERY = `query($a:String!,$c:Int!){
   vaultV2ByAddress(address:$a, chainId:$c){
     address name symbol listed creationTimestamp
     factory{ address }
     asset{ address symbol decimals logoURI }
-    totalAssetsUsd liquidityUsd performanceFee managementFee
+    totalAssets totalAssetsUsd liquidity liquidityUsd performanceFee managementFee
     net7d: avgNetApy(lookback: SEVEN_DAYS)
     net1d: avgNetApy(lookback: ONE_DAY)
     curator{ address }
-    curators{ items{ name verified } }
-    adapters{ items{
-      address type assetsUsd
-      ... on MorphoMarketV1Adapter { positions{ items{ state{ supplyAssetsUsd } market{ lltv collateralAsset{ symbol address logoURI } oracle{ type } state{ utilization } } } } }
+    curators(first: 3){ items{ name verified } }
+  }
+}`;
+
+/** Market allocation, fetched separately and page-limited to stay under the API's complexity limit. */
+export const VAULT_ALLOCATION_QUERY = `query($a:String!,$c:Int!){
+  vaultV2ByAddress(address:$a, chainId:$c){
+    adapters(first: 5){ items{
+      address type
+      ... on MorphoMarketV1Adapter { positions(first: 30){ items{ state{ supplyAssetsUsd } market{ lltv collateralAsset{ symbol address logoURI } oracle{ type } state{ utilization } } } } }
     } }
   }
 }`;
@@ -69,18 +76,20 @@ export interface ApiVaultV2 {
   name: string;
   symbol: string;
   listed: boolean;
-  creationTimestamp: string;
+  creationTimestamp?: string;
   factory: { address: string };
   asset: { address: string; symbol: string; decimals: number; priceUsd?: number | null; logoURI?: string | null };
+  totalAssets?: string | null;
   totalAssetsUsd: number | null;
-  liquidityUsd: number | null;
-  performanceFee: number;
-  managementFee: number;
-  net7d: number | null;
-  net1d: number | null;
-  curator: { address: string };
-  curators: { items: { name: string; verified: boolean }[] | null } | null;
-  adapters: {
+  liquidity?: string | null;
+  liquidityUsd?: number | null;
+  performanceFee?: number;
+  managementFee?: number;
+  net7d?: number | null;
+  net1d?: number | null;
+  curator?: { address: string };
+  curators?: { items: { name: string; verified: boolean }[] | null } | null;
+  adapters?: {
     items: { address: string; type: string; assetsUsd: number | null; positions?: { items: ApiMarketPosition[] | null } }[] | null;
   } | null;
 }
@@ -110,8 +119,8 @@ export interface LiveVault {
   netApy: number;
   /** Gross APY, percent. */
   grossApy: number;
-  performanceFee: number;
-  managementFee: number;
+  performanceFee?: number;
+  managementFee?: number;
   tvlUsd: number;
   liquidityUsd: number;
   /** Allocation-weighted utilization, percent. */
@@ -126,6 +135,17 @@ export interface LiveVault {
 
 export type CollateralOverrides = Readonly<Record<string, { quality: CollateralQuality; kind?: CollateralKind }>>;
 
+/**
+ * USD value of a stablecoin amount: the API's USD figure when it has one,
+ * else the raw token amount (stablecoins ≈ $1 — the API has no USDG price yet).
+ */
+export function stableUsd(usd: number | null | undefined, raw: string | null | undefined, decimals: number): number {
+  if (typeof usd === 'number' && Number.isFinite(usd)) return usd;
+  if (raw == null || raw === '') return 0;
+  return Number(raw) / 10 ** decimals;
+}
+export const tvlOf = (v: ApiVaultV2) => stableUsd(v.totalAssetsUsd, v.totalAssets, v.asset?.decimals ?? 18);
+
 const usdOf = (p: ApiMarketPosition) => p.state?.supplyAssetsUsd ?? 0;
 const CHAINLINK = new Set(['ChainlinkOracle', 'ChainlinkOracleV2']);
 /** Only pass through https URLs from the API into <img src>. */
@@ -137,7 +157,13 @@ export const STABLE_PRICE_TOLERANCE = 0.02;
 
 export function keepVault(
   v: ApiVaultV2,
-  opts: { usdgAddress?: string | null; factory?: string | null; stablecoins?: readonly string[]; minTvlUsd?: number } = {
+  opts: {
+    usdgAddress?: string | null;
+    factory?: string | null;
+    stablecoins?: readonly string[];
+    minTvlUsd?: number;
+    allowUnlisted?: boolean;
+  } = {
     usdgAddress: USDG_ADDRESS,
     factory: VAULT_V2_FACTORY_ADDRESS,
   },
@@ -148,9 +174,9 @@ export function keepVault(
   const price = v.asset.priceUsd;
   if (typeof price === 'number' && Math.abs(price - 1) > STABLE_PRICE_TOLERANCE) return false;
   if (v.asset.symbol === 'USDG' && opts.usdgAddress && !eq(v.asset.address, opts.usdgAddress)) return false;
-  if (!v.listed) return false;
+  if (!v.listed && !opts.allowUnlisted) return false;
   if (!opts.factory || !eq(v.factory?.address, opts.factory)) return false;
-  return (v.totalAssetsUsd ?? 0) >= (opts.minTvlUsd ?? MIN_TVL_USD);
+  return tvlOf(v) >= (opts.minTvlUsd ?? MIN_TVL_USD);
 }
 
 export function toLiveVault(v: ApiVaultV2, opts: { now?: Date; overrides?: CollateralOverrides } = {}): LiveVault {
@@ -193,7 +219,7 @@ export function toLiveVault(v: ApiVaultV2, opts: { now?: Date; overrides?: Colla
   const oracleLabel = oracle === 'chainlink' ? 'Chainlink' : oracle === 'mixed' ? 'Mixed' : 'Custom / unverified';
 
   const curatorItem = v.curators?.items?.[0];
-  const ageDays = (now.getTime() - Number(v.creationTimestamp) * 1000) / 86_400_000;
+  const ageDays = v.creationTimestamp ? (now.getTime() - Number(v.creationTimestamp) * 1000) / 86_400_000 : 0;
   const net = v.net7d ?? v.net1d ?? 0;
 
   const risk = riskScore({
@@ -213,15 +239,15 @@ export function toLiveVault(v: ApiVaultV2, opts: { now?: Date; overrides?: Colla
     name: v.name,
     asset: { symbol: v.asset.symbol, address: v.asset.address, decimals: v.asset.decimals },
     assetLogo: safeLogo(v.asset.logoURI),
-    curator: curatorItem?.name ?? `${v.curator.address.slice(0, 6)}…${v.curator.address.slice(-4)}`,
+    curator: curatorItem?.name ?? (v.curator ? `${v.curator.address.slice(0, 6)}…${v.curator.address.slice(-4)}` : 'Unknown curator'),
     curatorVerified: curatorItem?.verified ?? false,
     netApy: net * 100,
     // Gross on the same 7-day basis: net / (1 − performance fee).
-    grossApy: (v.performanceFee < 1 ? net / (1 - v.performanceFee) : net) * 100,
-    performanceFee: v.performanceFee,
-    managementFee: v.managementFee,
-    tvlUsd: v.totalAssetsUsd ?? 0,
-    liquidityUsd: v.liquidityUsd ?? 0,
+    grossApy: ((v.performanceFee ?? 0) < 1 ? net / (1 - (v.performanceFee ?? 0)) : net) * 100,
+    performanceFee: v.performanceFee ?? 0,
+    managementFee: v.managementFee ?? 0,
+    tvlUsd: tvlOf(v),
+    liquidityUsd: stableUsd(v.liquidityUsd, v.liquidity, v.asset.decimals),
     utilization,
     collateral,
     oracle,
@@ -232,9 +258,9 @@ export function toLiveVault(v: ApiVaultV2, opts: { now?: Date; overrides?: Colla
   };
 }
 
-type Gql = <T>(query: string, variables: Record<string, unknown>) => Promise<T>;
+export type Gql = <T>(query: string, variables: Record<string, unknown>) => Promise<T>;
 
-function gqlClient(url: string, f: typeof fetch, signal?: AbortSignal): Gql {
+export function gqlClient(url: string, f: typeof fetch, signal?: AbortSignal): Gql {
   return async <T>(query: string, variables: Record<string, unknown>) => {
     const res = await f(url, {
       method: 'POST',
@@ -261,17 +287,23 @@ export async function listVaults(gql: Gql, maxPages = 10): Promise<ApiVaultV2[]>
   return out;
 }
 
+/** Stage 2: vault fields + market allocation for one vault (two queries, merged). */
+export async function fetchVaultDetail(gql: Gql, address: string): Promise<ApiVaultV2 | null> {
+  const [base, alloc] = await Promise.all([
+    gql<{ vaultV2ByAddress: ApiVaultV2 | null }>(VAULT_DETAIL_QUERY, { a: address, c: CHAIN_ID }),
+    gql<{ vaultV2ByAddress: Pick<ApiVaultV2, 'adapters'> | null }>(VAULT_ALLOCATION_QUERY, { a: address, c: CHAIN_ID }),
+  ]);
+  if (!base.vaultV2ByAddress) return null;
+  return { ...base.vaultV2ByAddress, adapters: alloc.vaultV2ByAddress?.adapters ?? { items: [] } };
+}
+
 /** Fetch, filter and map the live stablecoin vaults. `fetchImpl` is injectable for tests. */
 export async function fetchLiveStableVaults(
   opts: { url?: string; fetchImpl?: typeof fetch; overrides?: CollateralOverrides; signal?: AbortSignal } = {},
 ): Promise<LiveVault[]> {
   const gql = gqlClient(opts.url ?? MORPHO_API_URL, opts.fetchImpl ?? fetch, opts.signal);
   const candidates = (await listVaults(gql)).filter((v) => keepVault(v));
-  const details = await Promise.allSettled(
-    candidates.map((c) =>
-      gql<{ vaultV2ByAddress: ApiVaultV2 | null }>(VAULT_DETAIL_QUERY, { a: c.address, c: CHAIN_ID }).then((d) => d.vaultV2ByAddress),
-    ),
-  );
+  const details = await Promise.allSettled(candidates.map((c) => fetchVaultDetail(gql, c.address)));
   const ok = details.flatMap((r) => (r.status === 'fulfilled' && r.value && keepVault(r.value) ? [r.value] : []));
   const failed = details.filter((r) => r.status === 'rejected') as PromiseRejectedResult[];
   if (candidates.length && !ok.length && failed.length) throw failed[0]!.reason;

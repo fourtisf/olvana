@@ -65,6 +65,16 @@ describe('keepVault (safety filter)', () => {
     expect(keepVault(vault({ asset: { ...vault().asset, symbol: 'USDC', priceUsd: null } }), opts)).toBe(true);
   });
 
+  it('TVL falls back to the raw token amount when the API has no USD value', () => {
+    expect(keepVault(vault({ totalAssetsUsd: null, totalAssets: '514091259010000' }), opts)).toBe(true);
+    expect(keepVault(vault({ totalAssetsUsd: null, totalAssets: '1000000' }), opts)).toBe(false);
+    expect(toLiveVault(vault({ totalAssetsUsd: null, totalAssets: '514091259010000' }), { now }).tvlUsd).toBeCloseTo(514_091_259.01, 2);
+  });
+
+  it('unlisted vaults are dropped unless explicitly allowed', () => {
+    expect(keepVault(vault({ listed: false }), { ...opts, allowUnlisted: true })).toBe(true);
+  });
+
   it('drops unlisted and empty vaults', () => {
     expect(keepVault(vault({ listed: false }), opts)).toBe(false);
     expect(keepVault(vault({ totalAssetsUsd: 0 }), opts)).toBe(false);
@@ -147,9 +157,13 @@ describe('fetchLiveStableVaults (list → detail)', () => {
         calls.push('list');
         return json({ data: { vaultV2s: { items: items.slice(variables.s, variables.s + 50) } } });
       }
-      calls.push('detail:' + variables.a);
+      const isAlloc = query.includes('adapters(');
+      calls.push((isAlloc ? 'alloc:' : 'detail:') + variables.a);
       if (opt.failDetail) return json({ errors: [{ message: 'Query is too complex' }] });
-      return json({ data: { vaultV2ByAddress: items.find((v) => v.address === variables.a) ?? null } });
+      const v = items.find((x) => x.address === variables.a) ?? null;
+      if (isAlloc) return json({ data: { vaultV2ByAddress: v ? { adapters: v.adapters } : null } });
+      const base = v ? { ...v, adapters: undefined } : null;
+      return json({ data: { vaultV2ByAddress: base } });
     }) as unknown as typeof fetch;
     return { f, calls };
   };
@@ -166,6 +180,7 @@ describe('fetchLiveStableVaults (list → detail)', () => {
     const out = await fetchLiveStableVaults({ fetchImpl: f });
     expect(out.map((v) => v.name)).toEqual(['Steakhouse USDG', 'Small', 'Big USDC']);
     expect(calls.filter((c) => c.startsWith('detail')).length).toBe(3); // Dust and Spam never fetched
+    expect(calls.filter((c) => c.startsWith('alloc')).length).toBe(3);
   });
 
   it('paginates the list 50 at a time', async () => {

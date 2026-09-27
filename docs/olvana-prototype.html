@@ -1912,7 +1912,7 @@ $('cVault').addEventListener('change', calc);
 // Same queries as packages/core/src/morpho.ts.
 const LIST_Q = `query($c:[Int!],$s:Int){
   vaultV2s(first: 50, skip: $s, where:{chainId_in:$c}){
-    items{ address name listed factory{ address } asset{ address symbol decimals } totalAssetsUsd }
+    items{ address name listed factory{ address } asset{ address symbol decimals } totalAssets totalAssetsUsd }
   }
 }`;
 const DETAIL_Q = `query($a:String!,$c:Int!){
@@ -1920,14 +1920,19 @@ const DETAIL_Q = `query($a:String!,$c:Int!){
     address name symbol listed creationTimestamp
     factory{ address }
     asset{ address symbol decimals logoURI }
-    totalAssetsUsd liquidityUsd performanceFee managementFee
+    totalAssets totalAssetsUsd liquidity liquidityUsd performanceFee managementFee
     net7d: avgNetApy(lookback: SEVEN_DAYS)
     net1d: avgNetApy(lookback: ONE_DAY)
     curator{ address }
-    curators{ items{ name verified } }
-    adapters{ items{
-      address type assetsUsd
-      ... on MorphoMarketV1Adapter { positions{ items{ state{ supplyAssetsUsd } market{ lltv collateralAsset{ symbol address logoURI } oracle{ type } state{ utilization } } } } }
+    curators(first: 3){ items{ name verified } }
+  }
+}`;
+// Market allocation separately and page-limited — nested in one query it exceeds the API's complexity limit.
+const ALLOC_Q = `query($a:String!,$c:Int!){
+  vaultV2ByAddress(address:$a, chainId:$c){
+    adapters(first: 5){ items{
+      address type
+      ... on MorphoMarketV1Adapter { positions(first: 30){ items{ state{ supplyAssetsUsd } market{ lltv collateralAsset{ symbol address logoURI } oracle{ type } state{ utilization } } } } }
     } }
   }
 }`;
@@ -1961,7 +1966,11 @@ async function fetchVaultItems() {
     if (it.length < 50) break;
   }
   const cands = all.filter(keepVault);
-  const res = await Promise.allSettled(cands.map(c => gql(DETAIL_Q, { a: c.address, c: CONFIG.chainId }).then(d => d.vaultV2ByAddress)));
+  const detail = async a => {
+    const [b, al] = await Promise.all([gql(DETAIL_Q, { a, c: CONFIG.chainId }), gql(ALLOC_Q, { a, c: CONFIG.chainId })]);
+    return b.vaultV2ByAddress ? { ...b.vaultV2ByAddress, adapters: (al.vaultV2ByAddress && al.vaultV2ByAddress.adapters) || { items: [] } } : null;
+  };
+  const res = await Promise.allSettled(cands.map(c => detail(c.address)));
   const ok = res.filter(r => r.status === 'fulfilled' && r.value).map(r => r.value);
   if (cands.length && !ok.length) { const f = res.find(r => r.status === 'rejected'); if (f) throw f.reason; }
   return ok;
@@ -1973,6 +1982,8 @@ const CHAINLINK = ['ChainlinkOracle', 'ChainlinkOracleV2'];
 const BLUE = /^(WETH|WBTC|wstETH|cbBTC)$/i;
 // Safety filter: anyone can create a vault named after a stablecoin, so only keep Morpho-listed Vault V2s from the
 // verified factory whose asset is a listed stablecoin trading within 2% of $1 when a price is known (same rules as packages/core/src/morpho.ts).
+// USD value of a stablecoin amount: the API's USD figure, else the raw token amount (≈ $1; the API has no USDG price yet).
+const stableUsd = (usd, raw, asset) => { const u = num(usd); if (u != null) return u; const r = num(raw); return r == null ? 0 : r / 10 ** (num(asset && asset.decimals) ?? 18); };
 function keepVault(it) {
   if (!it || !isAddr(it.address) || it.listed !== true) return false;
   const a = it.asset;
@@ -1980,7 +1991,7 @@ function keepVault(it) {
   if (typeof a.priceUsd === 'number' && !(a.priceUsd >= 0.98 && a.priceUsd <= 1.02)) return false;   // peg check when a price is known
   if (a.symbol === 'USDG' && CONFIG.usdgAddress && lc(a.address) !== lc(CONFIG.usdgAddress)) return false;
   if (!it.factory || lc(it.factory.address) !== lc(CONFIG.vaultV2Factory)) return false;
-  return num(it.totalAssetsUsd) >= CONFIG.minTvlUsd;
+  return stableUsd(it.totalAssetsUsd, it.totalAssets, it.asset) >= CONFIG.minTvlUsd;
 }
 function mapVault(it) {
   const pos = [];
@@ -2022,7 +2033,7 @@ function mapVault(it) {
     gross: ((net7 ?? net1 ?? 0) / (num(it.performanceFee) < 1 ? 1 - (num(it.performanceFee) || 0) : 1)) * 100,   // net / (1 − fee), same 7-day basis
     net1d: net1 != null ? net1 * 100 : null,
     perfFee: num(it.performanceFee) || 0, mgmtFee: num(it.managementFee) || 0,
-    tvl: num(it.totalAssetsUsd), liq: num(it.liquidityUsd) ?? 0,
+    tvl: stableUsd(it.totalAssetsUsd, it.totalAssets, it.asset), liq: stableUsd(it.liquidityUsd, it.liquidity, it.asset),
     util, collateral, oracle, oracleScore,
     incidents: 0,
     ageDays: created ? (Date.now() - created * 1000) / 86400000 : null,
