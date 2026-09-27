@@ -17,6 +17,24 @@ async function main() {
   const all = await listVaults(gql);
   console.log(`list: ${all.length} Vault V2s on the chain`);
 
+  // Every asset that has a Vault V2 on this chain — shows which stablecoins actually exist here.
+  const byAsset = new Map<string, { n: number; listed: number; tvl: number; big: number }>();
+  for (const v of all) {
+    const k = v.asset?.symbol ?? '?';
+    const e = byAsset.get(k) ?? { n: 0, listed: 0, tvl: 0, big: 0 };
+    e.n++;
+    if (v.listed) e.listed++;
+    e.tvl += tvlOf(v);
+    if (tvlOf(v) >= MIN_TVL_USD) e.big++;
+    byAsset.set(k, e);
+  }
+  console.log('\nassets with vaults (symbol · vaults · listed · ≥$10k · total TVL):');
+  for (const [k, e] of [...byAsset].sort((a, b) => b[1].tvl - a[1].tvl)) {
+    const tag = STABLECOINS.includes(k) ? '' : '  (not in stablecoin list)';
+    console.log(`  ${k.padEnd(10)} ${String(e.n).padStart(3)} · ${String(e.listed).padStart(2)} listed · ${String(e.big).padStart(2)} ≥$10k · ${usd(e.tvl).padStart(15)}${tag}`);
+  }
+  console.log('');
+
   // Why each stablecoin vault is in or out.
   for (const v of all.filter((x) => STABLECOINS.includes(x.asset?.symbol)).sort((a, b) => tvlOf(b) - tvlOf(a))) {
     const why: string[] = [];

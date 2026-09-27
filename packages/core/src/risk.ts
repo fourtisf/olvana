@@ -159,7 +159,7 @@ export interface RiskFlagInput {
   usdgPrice?: number | null;
 }
 
-export type RiskFlagKey = 'equity-collateral' | 'high-lltv' | 'new-vault' | 'usdg-depeg';
+export type RiskFlagKey = 'equity-collateral' | 'high-lltv' | 'new-vault' | 'usdg-depeg' | 'synthetic-stable';
 
 export interface RiskFlag {
   key: RiskFlagKey;

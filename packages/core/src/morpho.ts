@@ -10,7 +10,7 @@
  * so only listed vaults from the official Vault V2 factory whose asset is an
  * allowlisted stablecoin trading near $1 are kept.
  */
-import { CHAIN_ID, MIN_TVL_USD, MORPHO_API_URL, STABLECOINS, USDG_ADDRESS, VAULT_V2_FACTORY_ADDRESS } from './config';
+import { CHAIN_ID, MIN_TVL_USD, MORPHO_API_URL, STABLECOINS, SYNTHETIC_STABLECOINS, USDG_ADDRESS, VAULT_V2_FACTORY_ADDRESS } from './config';
 import {
   classifyCollateral,
   riskFlags,
@@ -233,6 +233,12 @@ export function toLiveVault(v: ApiVaultV2, opts: { now?: Date; overrides?: Colla
     vaultAgeDays: ageDays,
     usdgPrice: v.asset.priceUsd ?? null,
   });
+  if (SYNTHETIC_STABLECOINS.includes(v.asset.symbol)) {
+    flags.push({
+      key: 'synthetic-stable',
+      text: `${v.asset.symbol} is a synthetic dollar backed by hedged crypto positions, not cash. It can lose its peg in extreme markets.`,
+    });
+  }
 
   return {
     address: v.address,

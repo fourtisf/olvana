@@ -904,7 +904,8 @@ const CONFIG = {
   siteUrl: 'https://olvana.org',
   telegramBot: '[your_bot]',     // e.g. 'OlvanaAlertsBot'. Placeholder = Telegram alerts not live yet.
   refShare: 0.10,                // referrer gets 10% of referee points
-  stablecoins: ['USDG','USDC','USDT','USDT0','PYUSD','DAI','USDS'], // stablecoins Olvana lists; a vault's asset must match one of these symbols AND trade within 2% of $1
+  stablecoins: ['USDG','USDC','USDT','USDT0','USDe','PYUSD','DAI','USDS'],
+  syntheticStables: ['USDe'],     // not cash-backed — shown with a flag // stablecoins Olvana lists; a vault's asset must match one of these symbols AND trade within 2% of $1
   minTvlUsd: 10000,             // vaults below this TVL are hidden (many empty/test vaults exist onchain)
   usdgAddress: '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168', // USDG on Robinhood Chain — verified onchain, see docs/VERIFICATION.md. A USDG vault's asset must match it.
   rpcUrl: 'https://rpc.mainnet.chain.robinhood.com', // public RPC, verified working — only handed to the wallet when it needs to add the network
@@ -988,7 +989,7 @@ function riskFlags(v) {
   const f = [];
   if (v.collateral.some(c => c.kind === 'equity' || /\(tokenized\)/i.test(c.a)))
     f.push({ k:'equity', text:'Tokenized stock collateral: prices can gap when stock markets are closed (nights, weekends, holidays), so liquidations may lag.' });
-  if (v.collateral.some(c => c.l > 86))
+  if (v.collateral.some(c => c.kind !== 'stable' && c.l > 86))   // stable-vs-stable markets normally run above 86%
     f.push({ k:'lltv', text:'High loan-to-value markets (above 86% LLTV) leave less room before bad debt.' });
   if (v.ageDays != null && v.ageDays < 90)
     f.push({ k:'new', text:'New vault: less than 90 days of track record.' });
@@ -996,6 +997,8 @@ function riskFlags(v) {
   const px = a.symbol === 'USDG' && CONFIG.usdgPrice != null ? CONFIG.usdgPrice : a.price;
   if (px != null && Math.abs(px - 1) > 0.005)
     f.push({ k:'peg', p: fmt(px, 3), text:`${a.symbol} is trading at $${fmt(px, 3)}, away from its $1 peg.` });
+  if (CONFIG.syntheticStables.includes(a.symbol))
+    f.push({ k:'synthetic', text:`${a.symbol} is a synthetic dollar backed by hedged crypto positions, not cash. It can lose its peg in extreme markets.` });
   return f;
 }
 const flagRows = list => list.map(f => `<div class="flag">${warnSvg(14)}<span>${esc(f.text)}</span></div>`).join('');

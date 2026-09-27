@@ -56,7 +56,13 @@ export const USDG_DECIMALS = 6;
  * AND trade within 2% of $1 (see morpho.ts `keepVault`). Only USDG is pinned
  * to an address so far — pin the others here as they are verified.
  */
-export const STABLECOINS: readonly string[] = ['USDG', 'USDC', 'USDT', 'USDT0', 'PYUSD', 'DAI', 'USDS'];
+export const STABLECOINS: readonly string[] = ['USDG', 'USDC', 'USDT', 'USDT0', 'USDe', 'PYUSD', 'DAI', 'USDS'];
+
+/**
+ * Stablecoins that are not backed 1:1 by cash/treasuries (e.g. USDe is a
+ * synthetic dollar backed by hedged crypto positions). Shown with a flag.
+ */
+export const SYNTHETIC_STABLECOINS: readonly string[] = ['USDe'];
 
 /**
  * Vaults below this TVL are not listed. Robinhood Chain has many empty or

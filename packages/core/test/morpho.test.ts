@@ -102,6 +102,12 @@ describe('toLiveVault', () => {
     expect(v.curator).toBe('Steakhouse Financial');
   });
 
+  it('flags synthetic stablecoins (USDe)', () => {
+    const u = toLiveVault(vault({ asset: { ...vault().asset, symbol: 'USDe' } }), { now });
+    expect(u.flags.map((f) => f.key)).toContain('synthetic-stable');
+    expect(v.flags.map((f) => f.key)).not.toContain('synthetic-stable');
+  });
+
   it('passes through https logos only', () => {
     expect(v.assetLogo).toBe('https://cdn.example/usdg.png');
     expect(toLiveVault(vault({ asset: { ...vault().asset, logoURI: null } }), { now }).assetLogo).toBeNull();
