@@ -23,24 +23,50 @@ export interface VaultConfig {
 
 export const CHAIN_NAME = 'Robinhood Chain';
 
-/** TODO: Robinhood Chain id — verify from official Robinhood Chain docs. */
-export const CHAIN_ID: number | null = null;
+/**
+ * Robinhood Chain mainnet id. Verified 2026-09-27: `RobinhoodMainnet = 4663`
+ * in Morpho's official SDK (morpho-org/sdks packages/morpho-ts/src/chain.ts)
+ * and docs.robinhood.com/chain/connecting (testnet: 46630).
+ */
+export const CHAIN_ID: number | null = 4663;
 
-/** TODO: native gas token of Robinhood Chain — verify from official docs. */
-export const NATIVE_CURRENCY: { name: string; symbol: string; decimals: number } | null = null;
+/** Native gas token. Verified 2026-09-27: ETH, 18 decimals (Morpho SDK chain.ts, Robinhood docs). */
+export const NATIVE_CURRENCY: { name: string; symbol: string; decimals: number } | null = {
+  name: 'Ether',
+  symbol: 'ETH',
+  decimals: 18,
+};
 
-/** Block explorer. Value from HANDOFF §3, status "confirm". */
+/** Block explorer. Confirmed 2026-09-27 (Robinhood docs; Morpho SDK `explorerUrl`). */
 export const EXPLORER_URL = 'https://robinhoodchain.blockscout.com';
 
-/** TODO: USDG token address on Robinhood Chain — verify. */
+/**
+ * TODO: USDG token address on Robinhood Chain. USDG is live there (6 decimals),
+ * but the address has not yet been read from an official Robinhood / Paxos
+ * page — see docs/VERIFICATION.md. Do not fill from third-party lists.
+ */
 export const USDG_ADDRESS: Address | null = null;
 
-/** TODO: Morpho Blue core contract on Robinhood Chain — verify from Morpho docs. */
-export const MORPHO_BLUE_ADDRESS: Address | null = null;
+/** USDG decimals (Robinhood docs / Paxos docs). Still read `decimals()` onchain at startup and assert. */
+export const USDG_DECIMALS = 6;
 
 /**
- * Morpho GraphQL API. TODO: confirm Robinhood Chain is indexed; if not,
- * the app must fall back to onchain reads only.
+ * Morpho Blue core on Robinhood Chain. Verified 2026-09-27 from Morpho's
+ * official address registry (morpho-org/sdks packages/morpho-ts/src/addresses.ts,
+ * commit 61a904b, `[ChainId.RobinhoodMainnet].blue`).
+ */
+export const MORPHO_BLUE_ADDRESS: Address | null = '0x9D53d5E3bd5E8d4Cbfa6DB1ca238AEA02E651010';
+
+/**
+ * Morpho Vault V2 factory on Robinhood Chain (same source as above). Used to
+ * check that every listed vault was deployed by the official factory. Robinhood
+ * Chain has no MetaMorpho (V1) factory — vaults there are Vault V2.
+ */
+export const VAULT_V2_FACTORY_ADDRESS: Address | null = '0x0FBad98595b0186dA120E41f77C102beb49f803c';
+
+/**
+ * Morpho GraphQL API. Morpho's API docs list Robinhood Chain as supported
+ * (seen 2026-09-27); still keep the onchain-read fallback.
  */
 export const MORPHO_API_URL = 'https://api.morpho.org/graphql';
 
@@ -141,6 +167,7 @@ export function configTodos(): ConfigTodo[] {
   if (NATIVE_CURRENCY == null) todos.push({ key: 'NATIVE_CURRENCY', note: 'Robinhood Chain gas token (name/symbol/decimals)' });
   if (USDG_ADDRESS == null) todos.push({ key: 'USDG_ADDRESS', note: 'USDG token on Robinhood Chain' });
   if (MORPHO_BLUE_ADDRESS == null) todos.push({ key: 'MORPHO_BLUE_ADDRESS', note: 'Morpho Blue core — Morpho docs' });
+  if (VAULT_V2_FACTORY_ADDRESS == null) todos.push({ key: 'VAULT_V2_FACTORY_ADDRESS', note: 'Morpho Vault V2 factory' });
   for (const v of VAULTS) {
     if (v.address == null) todos.push({ key: `VAULTS.${v.id}.address`, note: `${v.name} Morpho vault address` });
     if (/^\[.*\]$/.test(v.curator)) todos.push({ key: `VAULTS.${v.id}.curator`, note: `${v.name} curator name` });

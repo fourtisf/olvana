@@ -50,13 +50,14 @@ Everything below lives in `packages/core/config.ts` (and `.env`). Do **not** har
 
 | Key | Value | Status |
 |---|---|---|
-| `CHAIN_ID` | Robinhood Chain chain id | **TODO — verify from official docs** |
-| `RPC_URL` | Robinhood Chain RPC (+ fallback) | **TODO** |
-| `EXPLORER_URL` | `https://robinhoodchain.blockscout.com` | confirm |
-| `USDG_ADDRESS` | USDG token on Robinhood Chain | **TODO — verify** |
-| `MORPHO_BLUE_ADDRESS` | Morpho Blue core on Robinhood Chain | **TODO — verify from Morpho docs** |
-| `VAULTS[]` | `{ id, name, address, curator }` for each listed vault | **TODO** |
-| `MORPHO_API` | `https://api.morpho.org/graphql` | confirm Robinhood Chain is indexed; if not, use onchain reads only |
+| `CHAIN_ID` | `4663` (mainnet; testnet 46630) | **verified 2026-09-27** — see `docs/VERIFICATION.md` |
+| `RPC_URL` | Robinhood Chain RPC (+ fallback) | **TODO** — env; documented public RPC listed in `docs/VERIFICATION.md` |
+| `EXPLORER_URL` | `https://robinhoodchain.blockscout.com` | **confirmed** |
+| `USDG_ADDRESS` | USDG token on Robinhood Chain (6 decimals) | **TODO — address not yet read from an official page** |
+| `MORPHO_BLUE_ADDRESS` | `0x9D53d5E3bd5E8d4Cbfa6DB1ca238AEA02E651010` | **verified** (Morpho official address registry) |
+| `VAULT_V2_FACTORY_ADDRESS` | `0x0FBad98595b0186dA120E41f77C102beb49f803c` | **verified** (same source) — Robinhood Chain has **Vault V2 only**, no MetaMorpho |
+| `VAULTS[]` | `{ id, name, address, curator }` for each listed vault | **TODO** — depends on §6 decision |
+| `MORPHO_API` | `https://api.morpho.org/graphql` | Morpho docs list Robinhood Chain as supported; keep onchain fallback |
 | `PERF_FEE` | `0.10` | read from vault contract, not hardcoded, once vaults exist |
 | `TELEGRAM_BOT_TOKEN` | from @BotFather | **TODO** |
 | `SITE_URL` | `https://olvana.org` | |
@@ -78,6 +79,9 @@ Everything below lives in `packages/core/config.ts` (and `.env`). Do **not** har
    Full exit: `vault.redeem(vault.balanceOf(user), user, user)` (avoids dust).
 3. Simulate first, then send.
 
+### 4.2b Vault version
+Robinhood Chain only has **Morpho Vault V2**. Use `vaultV2Abi` from `packages/core` (vendored from Morpho's SDK): fee = `performanceFee()` (WAD), recipient = `performanceFeeRecipient()`, also `managementFee()`. Market exposure comes from the vault's adapters (`adapters()`, `liquidityAdapter()`, `morphoMarketV1AdapterV2Abi`). Before allowlisting a vault, check it was created by `VAULT_V2_FACTORY_ADDRESS`.
+
 ### 4.3 Reads
 - User balance in assets: `vault.convertToAssets(vault.balanceOf(user))`
 - Wallet USDG: `USDG.balanceOf(user)`
@@ -94,6 +98,11 @@ Everything below lives in `packages/core/config.ts` (and `.env`). Do **not** har
 | Oracle in range | collateral oracle price vs reference DEX price, deviation ≤ X% (config) | **warn**, don't block (v1 may treat non-Chainlink oracles as warn, like the prototype) |
 
 Grade C vault → show the extra warning box before confirm (copy in prototype).
+
+### 4.5 Wallet & network UX
+- Wrong network → banner with **Switch to Robinhood Chain** (`wallet_switchEthereumChain`, add-chain fallback); Review/Confirm blocked until switched.
+- Wallet has no USDG (or amount > balance) → **Get USDG** help box (buy / bridge / keep a little ETH for gas; links TBD by ALFA).
+- Vault not accepting deposits (paused / cap hit / `StatusNotice` for the vault) → deposit disabled with explanation; withdraw still available.
 
 ---
 
@@ -115,6 +124,10 @@ Grade: **A ≥ 80 · B 60–79 · C < 60**.
 - Curator incidents: DB table, set manually.
 - Recompute every snapshot (§7). Store score history.
 - Show the 4-part breakdown everywhere a grade appears (Earn page, landing "grades" section).
+- **Utilization input = 24 h time-weighted average** (`timeWeightedAverage` in `packages/core/stats.ts`), so a short spike doesn't flip the grade. Utilization *alerts* still use the live value.
+- **Risk flags** (`riskFlags()` in `risk.ts`) are shown under the breakdown and **do not change the score** (fixtures stay 97/100/47): tokenized-stock collateral (Chainlink stock feeds update 24/5, so prices go stale on weekends/holidays), LLTV > 86%, vault < 90 days old, USDG off peg by > 0.5%. `collateral_class.kind` marks `equity` / `stable`.
+- **Displayed "Net APY" = 7-day time-weighted average after fee**, labelled as such.
+- **Landing headline APY = best grade A vault only** (`headlineNetApy()`), never a grade B/C yield.
 
 ---
 
@@ -126,6 +139,8 @@ If Olvana just points users at someone else's vault, Olvana **cannot** take a fe
 **TODO ALFA:** choose one:
 - **A)** Olvana deploys its own vaults (Core / Prime / Boost) via Morpho's vault factory, sets fee = 10%, acts as or hires a curator. → real revenue, more responsibility.
 - **B)** v1 lists existing third-party vaults with **no fee**; show gross = net. Revenue comes later.
+
+Facts for this decision (2026-09-27, see `docs/VERIFICATION.md`): Robinhood Chain has an official Morpho **Vault V2 factory**, so (A) is technically possible (V2 has `performanceFee` + `managementFee`). For (B), an existing USDG vault is **Steakhouse USDG** (curator Steakhouse Financial) — its address still needs onchain confirmation that it came from the V2 factory.
 
 Frontend must read the actual fee from the vault contract and display `gross − fee = net`.
 
@@ -208,8 +223,10 @@ model CuratorIncident { id Int @id @default(autoincrement())  curator String  no
 |---|---|---|
 | Indexer | live + backfill | ERC-4626 `Deposit` / `Withdraw` events for all configured vaults → `VaultEvent` |
 | Vault snapshot | every 5 min | read APY/TVL/util/liquidity/collateral → compute risk → `VaultSnapshot`; cache latest in Redis |
-| Points | hourly | per user per vault: `balance_usd × hours / 24` → `PointsLedger (deposit)`; referrer gets 10% of referee's new points → `(referral)` |
-| Utilization alerts | every 5 min | for each vault with `utilization ≥ user.threshold` and user holds a position → Telegram message; max 1 per vault per user per 6 h |
+| Points | hourly | per user per vault: **time-weighted** balance over the hour (from `VaultEvent`s, `timeWeightedBalanceUsd`) `× hours / 24` → `PointsLedger (deposit)`; referrer gets 10% of referee's new points → `(referral)` only if referee TWAB ≥ $100, referrer holds a deposit, and the referral isn't voided (`periodEntries`) |
+| Referral sybil check | on referee's first deposit | index USDG `Transfer` + native transfers into the referee before its first deposit; if any came from the referrer → set `User.referralVoidReason = "funded-by-referrer"` (`referralVoidReason`) |
+| Utilization alerts | every 5 min | for each vault a user holds: `decideUtilAlert()` in `packages/core/alerts.ts` — "high" at `utilization ≥ threshold` (max 1 per vault per user per 6 h), **"liquidity back"** once utilization drops below `threshold − 2` (toggle `AlertSettings.liquidity`) |
+| Status | on change | admin `StatusNotice` rows → site / vault banner; snapshot job also raises one automatically when data is stale > 15 min or the vault rejects deposits |
 | Collateral alerts | on snapshot diff | new collateral symbol or share change > 10 pts → notify holders |
 | Daily report | 09:00 WIB (UTC+7), configurable | balance, earned (24 h), points → Telegram |
 
@@ -225,6 +242,7 @@ GET  /users/:address/points          totals by source, refCode, invite count
 POST /auth/siwe                      Sign-In With Ethereum → session (needed for writes below)
 POST /referral/claim  {refCode}      once per wallet, only before first deposit, can't self-refer
 GET  /alerts  PUT /alerts            AlertSettings (auth)
+GET  /status                         active StatusNotice rows (site-wide + per vault)
 POST /telegram/link-code             returns one-time code; user opens t.me/<bot>?start=<code>
 ```
 Rate-limit everything (Redis). Lowercase all addresses.
@@ -249,7 +267,11 @@ Routes (prototype uses hashes; production uses real routes):
 /alerts      Telegram connect, toggles, threshold slider, message preview
 /risk        risk disclosure
 /terms       terms of use
+/privacy     privacy policy (draft)
+/security    security & transparency: contract addresses, fee + recipient, audits, pre-flight checks, anti-phishing, vulnerability reporting
 ```
+- **Language:** English + Bahasa Indonesia (`?lang=id`, switch in nav). Prototype translates the landing page; production uses a full catalog (e.g. `next-intl`) for every route.
+- **Status banner** from `GET /status` on every app route.
 - `?ref=OLV-XXXX` on any page → store in cookie → call `/referral/claim` after SIWE.
 - Mobile: bottom tab bar in app, hamburger menu on landing (already in prototype).
 - Remove: Demo controls, `localStorage` state, simulated tx hashes, fake wallet fallback, all hardcoded sample numbers.
@@ -277,6 +299,14 @@ radius: pills 999px · cards 24–28px · inputs 14–18px
 
 ---
 
+### 9.1 Frontend security (non-custodial apps are attacked through the site, not the contracts)
+- Strict CSP (no inline scripts except hashed), `frame-ancestors 'none'`, HSTS preload, no third-party scripts beyond wallet SDKs.
+- Pinned dependencies + lockfile, `pnpm audit` in CI, Renovate with review.
+- Domain: registrar lock, DNSSEC, 2FA on registrar/DNS/VPS/GitHub, CAA record.
+- Optional IPFS mirror of the static build, with its hash published on `/security`.
+- Uptime monitoring for web/API/worker/bot, alert on indexer lag and stale snapshots.
+- `SECURITY.md` + `security@` contact; bug bounty when budget allows.
+
 ## 10. Build order
 
 1. **Config + contracts:** chain, USDG, Morpho, vault addresses verified. ABIs in `packages/core`.
@@ -301,3 +331,11 @@ radius: pills 999px · cards 24–28px · inputs 14–18px
 - [ ] Works at 360 px, 390 px, 768 px, 1024 px, 1440 px; no horizontal scroll.
 - [ ] Lighthouse accessibility ≥ 90; visible focus states.
 - [ ] `.env.example` documents every variable.
+- [ ] Headline APY only from grade A vaults; displayed Net APY is 7-day average after fee.
+- [ ] Risk flags shown next to grades; score unchanged (97/100/47 fixtures).
+- [ ] Points use time-weighted balances; referral anti-sybil rules unit-tested.
+- [ ] "Liquidity back" alert works and is de-duplicated.
+- [ ] Wrong-network banner, Get-USDG helper, status banner, paused-vault state.
+- [ ] `/privacy` and `/security` pages live; `/risk`, `/terms`, `/privacy` reviewed by counsel.
+- [ ] Every listed vault verified as created by the official Vault V2 factory.
+- [ ] Frontend security items in §9.1 done.

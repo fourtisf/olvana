@@ -12,12 +12,14 @@ datasource db {
 }
 
 model User {
-  address    String         @id // lowercase
-  refCode    String         @unique // "OLV-XXXX"
-  referredBy String? // refCode of referrer
-  createdAt  DateTime       @default(now())
-  alerts     AlertSettings?
-  telegram   TelegramLink?
+  address            String         @id // lowercase
+  refCode            String         @unique // "OLV-XXXX"
+  referredBy         String? // refCode of referrer
+  /// Set when the referral is voided by the sybil check (e.g. "funded-by-referrer").
+  referralVoidReason String?
+  createdAt          DateTime       @default(now())
+  alerts             AlertSettings?
+  telegram           TelegramLink?
 
   @@index([referredBy])
   @@map("user")
@@ -41,19 +43,26 @@ model VaultEvent {
 
 /// Vault state every 5 min; also the risk score history.
 model VaultSnapshot {
-  id          Int      @id @default(autoincrement())
-  vault       String
-  ts          DateTime
-  grossApy    Float
-  netApy      Float
-  tvl         Decimal  @db.Decimal(38, 6)
-  utilization Float
-  liquidity   Decimal  @db.Decimal(38, 6)
-  collateral  Json // [{symbol, share, lltv, quality}]
-  oracle      String // chainlink | mixed | dex
-  riskScore   Int
-  riskGrade   String // A | B | C
-  riskParts   Json // 4-part breakdown as computed by @olvana/core riskScore()
+  id             Int      @id @default(autoincrement())
+  vault          String
+  ts             DateTime
+  grossApy       Float
+  netApy         Float
+  tvl            Decimal  @db.Decimal(38, 6)
+  utilization    Float
+  liquidity      Decimal  @db.Decimal(38, 6)
+  collateral     Json // [{symbol, share, lltv, quality}]
+  oracle         String // chainlink | mixed | dex
+  riskScore      Int
+  riskGrade      String // A | B | C
+  riskParts      Json // 4-part breakdown as computed by @olvana/core riskScore()
+  riskFlags      Json     @default("[]") // riskFlags(): shown next to the grade, not scored
+  /// 24 h time-weighted utilization — the value fed into the risk score.
+  utilization24h Float?
+  /// 7 d time-weighted net APY — the value displayed as "Net APY".
+  netApy7d       Float?
+  /// Performance fee read from the vault contract (fraction, e.g. 0.1).
+  perfFee        Float?
 
   @@index([vault, ts])
   @@map("vault_snapshot")
@@ -76,8 +85,10 @@ model AlertSettings {
   daily         Boolean @default(true)
   utilization   Boolean @default(true)
   collateral    Boolean @default(true)
+  /// "Liquidity back": vault drops below threshold − 2 after a high-utilization alert.
+  liquidity     Boolean @default(true)
   threshold     Int     @default(95)
-  lastUtilAlert Json? // {vaultId: ts} to avoid spam
+  lastUtilAlert Json? // {vaultId: UtilAlertState} from @olvana/core alerts.ts
   owner         User    @relation(fields: [user], references: [address])
 
   @@map("alert_settings")
@@ -93,10 +104,12 @@ model TelegramLink {
 }
 
 /// Collateral quality for the risk score: blue | mid | tail. Unknown = tail.
+/// kind: crypto | equity (tokenized stock → market-hours flag) | stable.
 model CollateralClass {
   symbol  String  @id
   address String?
   quality String
+  kind    String  @default("crypto")
 
   @@map("collateral_class")
 }
@@ -118,4 +131,18 @@ model CuratorIncident {
 
   @@index([curator])
   @@map("curator_incident")
+}
+
+/// Site / vault status banner, set by admin (incident, maintenance, paused deposits).
+model StatusNotice {
+  id        Int       @id @default(autoincrement())
+  level     String // info | warn
+  message   String
+  vault     String? // null = site-wide
+  active    Boolean   @default(true)
+  createdAt DateTime  @default(now())
+  endedAt   DateTime?
+
+  @@index([active])
+  @@map("status_notice")
 }

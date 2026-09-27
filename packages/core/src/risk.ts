@@ -136,3 +136,72 @@ export function classifyCollateral(
   if (DEFAULT_BLUE_CHIP_SYMBOLS.some((s) => s.toLowerCase() === key)) return 'blue';
   return 'tail';
 }
+
+/* ------------------------------------------------------------------ */
+/* Risk flags — shown next to the grade, never change the score        */
+/* ------------------------------------------------------------------ */
+
+export type CollateralKind = 'crypto' | 'equity' | 'stable';
+
+export interface FlagCollateral {
+  symbol: string;
+  /** Liquidation LTV, in percent (e.g. 86). */
+  lltv: number;
+  /** `equity` = tokenized stock (set in `collateral_class`). */
+  kind?: CollateralKind;
+}
+
+export interface RiskFlagInput {
+  collateral: readonly FlagCollateral[];
+  /** Days since the vault was deployed, if known. */
+  vaultAgeDays?: number | null;
+  /** Current USDG price in USD, if known. */
+  usdgPrice?: number | null;
+}
+
+export type RiskFlagKey = 'equity-collateral' | 'high-lltv' | 'new-vault' | 'usdg-depeg';
+
+export interface RiskFlag {
+  key: RiskFlagKey;
+  text: string;
+}
+
+/** LLTV above this (percent) is flagged. Morpho's common blue-chip tier is 86%. */
+export const HIGH_LLTV_PCT = 86;
+export const NEW_VAULT_DAYS = 90;
+export const DEPEG_TOLERANCE = 0.005;
+
+export function riskFlags(input: RiskFlagInput): RiskFlag[] {
+  const flags: RiskFlag[] = [];
+  if (input.collateral.some((c) => c.kind === 'equity')) {
+    flags.push({
+      key: 'equity-collateral',
+      text: 'Tokenized stock collateral: prices can gap when stock markets are closed (nights, weekends, holidays), so liquidations may lag.',
+    });
+  }
+  if (input.collateral.some((c) => c.kind !== 'stable' && c.lltv > HIGH_LLTV_PCT)) {
+    flags.push({
+      key: 'high-lltv',
+      text: `High loan-to-value markets (above ${HIGH_LLTV_PCT}% LLTV) leave less room before bad debt.`,
+    });
+  }
+  if (input.vaultAgeDays != null && input.vaultAgeDays < NEW_VAULT_DAYS) {
+    flags.push({ key: 'new-vault', text: `New vault: less than ${NEW_VAULT_DAYS} days of track record.` });
+  }
+  if (input.usdgPrice != null && Math.abs(input.usdgPrice - 1) > DEPEG_TOLERANCE) {
+    flags.push({
+      key: 'usdg-depeg',
+      text: `USDG is trading at $${input.usdgPrice.toFixed(4)}, away from its $1 peg.`,
+    });
+  }
+  return flags;
+}
+
+/**
+ * Landing-page headline APY: the best net APY among grade A vaults only, so
+ * the headline never advertises a grade C yield. Null if no vault is grade A.
+ */
+export function headlineNetApy(vaults: readonly { netApy: number; grade: RiskGrade }[]): number | null {
+  const a = vaults.filter((v) => v.grade === 'A').map((v) => v.netApy);
+  return a.length ? Math.max(...a) : null;
+}

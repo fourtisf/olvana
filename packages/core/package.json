@@ -8,7 +8,9 @@
     "./abis": "./src/abis/index.ts",
     "./config": "./src/config.ts",
     "./risk": "./src/risk.ts",
-    "./points": "./src/points.ts"
+    "./points": "./src/points.ts",
+    "./stats": "./src/stats.ts",
+    "./alerts": "./src/alerts.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

@@ -4,7 +4,9 @@ import {
   collateralPoints,
   curatorPoints,
   gradeFor,
+  headlineNetApy,
   oraclePoints,
+  riskFlags,
   riskScore,
   utilizationPoints,
 } from '../src/risk';
@@ -97,5 +99,54 @@ describe('classifyCollateral', () => {
     expect(classifyCollateral('TSLA', { TSLA: 'mid' })).toBe('mid');
     expect(classifyCollateral('tsla', new Map([['TSLA', 'mid' as const]]))).toBe('mid');
     expect(classifyCollateral('WETH', { weth: 'mid' })).toBe('mid');
+  });
+});
+
+describe('riskFlags (do not change the score)', () => {
+  it('prototype Core: tokenized stock collateral flagged, LLTV 86 not flagged', () => {
+    const flags = riskFlags({
+      collateral: [
+        { symbol: 'WETH', lltv: 86, kind: 'crypto' },
+        { symbol: 'TSLA (tokenized)', lltv: 77, kind: 'equity' },
+      ],
+    });
+    expect(flags.map((f) => f.key)).toEqual(['equity-collateral']);
+  });
+
+  it('prototype Prime: no flags', () => {
+    expect(riskFlags({ collateral: [{ symbol: 'WETH', lltv: 86 }, { symbol: 'WBTC', lltv: 86 }] })).toEqual([]);
+  });
+
+  it('high LLTV, new vault and USDG depeg', () => {
+    const keys = riskFlags({
+      collateral: [{ symbol: 'X', lltv: 91.5 }],
+      vaultAgeDays: 10,
+      usdgPrice: 0.99,
+    }).map((f) => f.key);
+    expect(keys).toEqual(['high-lltv', 'new-vault', 'usdg-depeg']);
+  });
+
+  it('stable collateral at high LLTV and a tiny peg wobble are not flagged', () => {
+    expect(
+      riskFlags({ collateral: [{ symbol: 'USDC', lltv: 96.5, kind: 'stable' }], vaultAgeDays: 90, usdgPrice: 0.997 }),
+    ).toEqual([]);
+  });
+
+  it('flags leave the prototype scores untouched', () => {
+    expect(riskScore(PROTOTYPE_VAULTS.core).score).toBe(97);
+  });
+});
+
+describe('headlineNetApy', () => {
+  it('uses grade A vaults only (never the grade C Boost 12.78%)', () => {
+    const vaults = [
+      { netApy: 8.24 * 0.9, grade: 'A' as const },
+      { netApy: 6.4 * 0.9, grade: 'A' as const },
+      { netApy: 14.2 * 0.9, grade: 'C' as const },
+    ];
+    expect(headlineNetApy(vaults)).toBeCloseTo(7.416, 9);
+  });
+  it('null when no grade A vault', () => {
+    expect(headlineNetApy([{ netApy: 12, grade: 'B' }])).toBeNull();
   });
 });

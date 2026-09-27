@@ -7,6 +7,8 @@ import {
   periodEntries,
   refCodeCandidates,
   referralPoints,
+  referralVoidReason,
+  timeWeightedBalanceUsd,
   type ReferralClaimCheck,
 } from '../src/points';
 
@@ -32,20 +34,59 @@ describe('referral points: 10% of referee deposit points', () => {
   it('10% share', () => expect(referralPoints(1000)).toBeCloseTo(100, 9));
   it('nothing for zero', () => expect(referralPoints(0)).toBe(0));
 
+  const referral = { referrer: ALICE, referrerBalanceUsd: 500 };
+
   it('periodEntries credits referee and referrer', () => {
-    expect(periodEntries({ user: BOB, balanceUsd: 1500, hours: 24, referrer: ALICE })).toEqual([
+    expect(periodEntries({ user: BOB, balanceUsd: 1500, hours: 24, referral })).toEqual([
       { user: BOB, source: 'deposit', points: 1500 },
       { user: ALICE, source: 'referral', points: 150 },
     ]);
   });
 
   it('periodEntries: no referral entry without referrer, or when self-referred', () => {
-    expect(periodEntries({ user: BOB, balanceUsd: 100, hours: 24 })).toHaveLength(1);
-    expect(periodEntries({ user: BOB, balanceUsd: 100, hours: 24, referrer: BOB })).toHaveLength(1);
+    expect(periodEntries({ user: BOB, balanceUsd: 200, hours: 24 })).toHaveLength(1);
+    expect(periodEntries({ user: BOB, balanceUsd: 200, hours: 24, referral: { ...referral, referrer: BOB } })).toHaveLength(1);
+  });
+
+  it('anti-sybil: referee under $100, referrer with no deposit, or voided → no referral points', () => {
+    expect(periodEntries({ user: BOB, balanceUsd: 99, hours: 24, referral })).toHaveLength(1);
+    expect(periodEntries({ user: BOB, balanceUsd: 100, hours: 24, referral })).toHaveLength(2);
+    expect(periodEntries({ user: BOB, balanceUsd: 500, hours: 24, referral: { ...referral, referrerBalanceUsd: 0 } })).toHaveLength(1);
+    expect(periodEntries({ user: BOB, balanceUsd: 500, hours: 24, referral: { ...referral, voided: true } })).toHaveLength(1);
   });
 
   it('periodEntries: empty when nothing accrued', () => {
-    expect(periodEntries({ user: BOB, balanceUsd: 0, hours: 1, referrer: ALICE })).toEqual([]);
+    expect(periodEntries({ user: BOB, balanceUsd: 0, hours: 1, referral })).toEqual([]);
+  });
+
+  it('referralVoidReason: referee funded directly by referrer', () => {
+    const upper = ALICE.toUpperCase().replace('0X', '0x');
+    expect(referralVoidReason({ referrer: ALICE, referee: BOB, fundingTransfers: [{ from: upper, to: BOB }] })).toBe(
+      'funded-by-referrer',
+    );
+    expect(
+      referralVoidReason({ referrer: ALICE, referee: BOB, fundingTransfers: [{ from: '0x3333333333333333333333333333333333333333', to: BOB }] }),
+    ).toBeNull();
+  });
+});
+
+describe('time-weighted balance (no snapshot gaming)', () => {
+  const from = new Date('2026-01-01T00:00:00Z');
+  const to = new Date('2026-01-01T01:00:00Z');
+
+  it('$1M deposited 1 minute before the hourly job earns 1/60 of an hour', () => {
+    const twab = timeWeightedBalanceUsd([{ ts: new Date('2026-01-01T00:59:00Z'), value: 1_000_000 }], from, to, 0);
+    expect(twab).toBeCloseTo(1_000_000 / 60, 6);
+    expect(depositPoints(twab, 1)).toBeCloseTo(1_000_000 / 60 / 24, 6);
+  });
+
+  it('withdrawing mid-hour earns only for the time held', () => {
+    const twab = timeWeightedBalanceUsd([{ ts: new Date('2026-01-01T00:30:00Z'), value: 0 }], from, to, 1000);
+    expect(twab).toBeCloseTo(500, 9);
+  });
+
+  it('constant balance = balance', () => {
+    expect(timeWeightedBalanceUsd([], from, to, 250)).toBe(250);
   });
 });
 

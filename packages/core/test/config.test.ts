@@ -24,3 +24,18 @@ describe('config', () => {
     for (const v of VAULTS) if (v.address == null) expect(keys).toContain(`VAULTS.${v.id}.address`);
   });
 });
+
+describe('verified chain values', () => {
+  it('Robinhood Chain mainnet + Morpho addresses are checksummed', async () => {
+    const { getAddress } = await import('viem');
+    const { CHAIN_ID, MORPHO_BLUE_ADDRESS, VAULT_V2_FACTORY_ADDRESS } = await import('../src/config');
+    expect(CHAIN_ID).toBe(4663);
+    for (const a of [MORPHO_BLUE_ADDRESS, VAULT_V2_FACTORY_ADDRESS]) expect(a && getAddress(a)).toBe(a);
+  });
+
+  it('robinhoodChain() still needs an RPC URL from env', async () => {
+    const { robinhoodChain } = await import('../src/config');
+    expect(() => robinhoodChain([])).toThrow(ConfigTodoError);
+    expect(robinhoodChain(['https://rpc.example']).id).toBe(4663);
+  });
+});

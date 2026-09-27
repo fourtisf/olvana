@@ -37,7 +37,9 @@ pnpm --filter @olvana/db seed
 ## Configuration
 
 Chain id, USDG, Morpho Blue and vault addresses live **only** in
-`packages/core/src/config.ts`. They are `null` until verified from official
+`packages/core/src/config.ts`. Unverified ones are `null` until confirmed from official
 Robinhood Chain / Morpho sources — never guessed. Code that needs one calls
 `required(...)`, which throws a clear `ConfigTodoError` while it's unset.
 Secrets and deployment values are env vars, documented in `.env.example`.
+Where each verified value came from is logged in [`docs/VERIFICATION.md`](docs/VERIFICATION.md).
+Security contact: [`SECURITY.md`](SECURITY.md).
