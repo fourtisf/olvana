@@ -10,7 +10,7 @@
  * so only listed vaults from the official Vault V2 factory whose asset is an
  * allowlisted stablecoin trading near $1 are kept.
  */
-import { MORPHO_API_URL, STABLECOINS, USDG_ADDRESS, VAULT_V2_FACTORY_ADDRESS, CHAIN_ID } from './config';
+import { CHAIN_ID, MIN_TVL_USD, MORPHO_API_URL, STABLECOINS, USDG_ADDRESS, VAULT_V2_FACTORY_ADDRESS } from './config';
 import {
   classifyCollateral,
   riskFlags,
@@ -126,7 +126,7 @@ export const STABLE_PRICE_TOLERANCE = 0.02;
 
 export function keepVault(
   v: ApiVaultV2,
-  opts: { usdgAddress?: string | null; factory?: string | null; stablecoins?: readonly string[] } = {
+  opts: { usdgAddress?: string | null; factory?: string | null; stablecoins?: readonly string[]; minTvlUsd?: number } = {
     usdgAddress: USDG_ADDRESS,
     factory: VAULT_V2_FACTORY_ADDRESS,
   },
@@ -138,7 +138,7 @@ export function keepVault(
   if (v.asset.symbol === 'USDG' && opts.usdgAddress && !eq(v.asset.address, opts.usdgAddress)) return false;
   if (!v.listed) return false;
   if (!opts.factory || !eq(v.factory?.address, opts.factory)) return false;
-  return (v.totalAssetsUsd ?? 0) > 0;
+  return (v.totalAssetsUsd ?? 0) >= (opts.minTvlUsd ?? MIN_TVL_USD);
 }
 
 export function toLiveVault(v: ApiVaultV2, opts: { now?: Date; overrides?: CollateralOverrides } = {}): LiveVault {

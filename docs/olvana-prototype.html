@@ -891,6 +891,7 @@ const CONFIG = {
   telegramBot: '[your_bot]',     // e.g. 'OlvanaAlertsBot'. Placeholder = Telegram alerts not live yet.
   refShare: 0.10,                // referrer gets 10% of referee points
   stablecoins: ['USDG','USDC','USDT','USDT0','PYUSD','DAI','USDS'], // stablecoins Olvana lists; a vault's asset must match one of these symbols AND trade within 2% of $1
+  minTvlUsd: 10000,             // vaults below this TVL are hidden (many empty/test vaults exist onchain)
   usdgAddress: null,             // USDG token on Robinhood Chain. TODO: verify from official source. If set, a USDG vault's asset must match it.
   morphoBlue: '0x9D53d5E3bd5E8d4Cbfa6DB1ca238AEA02E651010', // Morpho Blue core — verified, see docs/VERIFICATION.md.
   vaultV2Factory: '0x0FBad98595b0186dA120E41f77C102beb49f803c', // Morpho Vault V2 factory — verified, see docs/VERIFICATION.md
@@ -1797,7 +1798,7 @@ function keepVault(it) {
   if (!(px >= 0.98 && px <= 1.02)) return false;
   if (a.symbol === 'USDG' && CONFIG.usdgAddress && lc(a.address) !== lc(CONFIG.usdgAddress)) return false;
   if (!it.factory || lc(it.factory.address) !== lc(CONFIG.vaultV2Factory)) return false;
-  return num(it.totalAssetsUsd) > 0;
+  return num(it.totalAssetsUsd) >= CONFIG.minTvlUsd;
 }
 function mapVault(it) {
   const pos = [];

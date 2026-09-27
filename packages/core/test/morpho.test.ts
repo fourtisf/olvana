@@ -69,6 +69,8 @@ describe('keepVault (safety filter)', () => {
   it('drops unlisted and empty vaults', () => {
     expect(keepVault(vault({ listed: false }), opts)).toBe(false);
     expect(keepVault(vault({ totalAssetsUsd: 0 }), opts)).toBe(false);
+    expect(keepVault(vault({ totalAssetsUsd: 101 }), opts)).toBe(false); // dust / test vaults
+    expect(keepVault(vault({ totalAssetsUsd: 10_000 }), opts)).toBe(true);
   });
   it('enforces the USDG address once configured', () => {
     expect(keepVault(vault(), { usdgAddress: USDG_ADDRESS, factory: FACTORY })).toBe(true);
@@ -146,7 +148,8 @@ describe('fetchLiveStableVaults', () => {
   it('filters, lists USDG first, then by TVL', async () => {
     const items = [
       vault({ name: 'Big USDC', totalAssetsUsd: 90_000_000, asset: { ...vault().asset, symbol: 'USDC' } }),
-      vault({ name: 'Small', totalAssetsUsd: 1_000 }),
+      vault({ name: 'Small', totalAssetsUsd: 20_000 }),
+      vault({ name: 'Dust', totalAssetsUsd: 1 }),
       vault(),
       vault({ name: 'Spam USDG', factory: { address: '0x' + '9'.repeat(40) } }),
     ];

@@ -59,6 +59,13 @@ export const USDG_DECIMALS = 6;
 export const STABLECOINS: readonly string[] = ['USDG', 'USDC', 'USDT', 'USDT0', 'PYUSD', 'DAI', 'USDS'];
 
 /**
+ * Vaults below this TVL are not listed. Robinhood Chain has many empty or
+ * test Vault V2s (TVL 0–101 USDG seen onchain on 2026-09-27); their APY is
+ * meaningless and they add noise. Product default — adjust here.
+ */
+export const MIN_TVL_USD = 10_000;
+
+/**
  * Morpho Blue core on Robinhood Chain. Verified 2026-09-27 from Morpho's
  * official address registry (morpho-org/sdks packages/morpho-ts/src/addresses.ts,
  * commit 61a904b, `[ChainId.RobinhoodMainnet].blue`).
