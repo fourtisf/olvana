@@ -680,14 +680,14 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
         <a href="#faq">FAQ</a>
       </nav>
       <div class="nav-right">
-        <a class="ticker" href="#rewards">Token <span class="ca-soon">Coming soon</span></a>
+        <a class="ticker" href="#faq"><span class="ca-soon">CA coming soon</span></a>
         <a class="xlink" href="https://x.com/Olvanaorg" target="_blank" rel="noopener" aria-label="Olvana on X (@Olvanaorg)" title="@Olvanaorg on X"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
         <a class="btn btn-gold" href="#app">Launch app</a>
         <button type="button" class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="mMenu" aria-label="Open menu"><span></span><span></span></button>
       </div>
     </div>
     <nav class="m-menu" id="mMenu" aria-label="Mobile">
-      <a href="#yield">How it works</a><a href="#grades">Risk grades</a><a href="#calculator">Calculator</a><a href="#rewards-preview">Rewards</a><a href="#faq">FAQ</a><a href="#rewards">Token · Coming soon</a><a href="https://x.com/Olvanaorg" target="_blank" rel="noopener">X · @Olvanaorg</a>
+      <a href="#yield">How it works</a><a href="#grades">Risk grades</a><a href="#calculator">Calculator</a><a href="#rewards-preview">Rewards</a><a href="#faq">FAQ</a><a href="#faq">CA coming soon</a><a href="https://x.com/Olvanaorg" target="_blank" rel="noopener">X · @Olvanaorg</a>
     </nav>
   </header>
 
@@ -876,7 +876,7 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
         <div><h4>Product</h4><a href="#app">Earn</a><a href="#vaults">Vaults</a><a href="#portfolio">Portfolio</a><a href="#rewards">Rewards</a></div>
         <div><h4>Verify</h4><a href="#security">Contracts &amp; security</a><a href="#grades">Risk grades</a><a href="#alerts">Alerts</a></div>
         <div><h4>Legal</h4><a href="#terms">Terms</a><a href="#privacy">Privacy</a><a href="#risk">Risk disclosure</a></div>
-        <div><h4>Community</h4><a class="xl" href="https://x.com/Olvanaorg" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>@Olvanaorg</a><span class="muted">Token: coming soon</span><span class="muted">[Telegram channel]</span><span class="muted">[Discord]</span></div>
+        <div><h4>Community</h4><a class="xl" href="https://x.com/Olvanaorg" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>@Olvanaorg</a><span class="muted">CA: coming soon</span><span class="muted">[Telegram channel]</span><span class="muted">[Discord]</span></div>
       </div>
     </div>
     <div class="foot-bottom"><span>© 2026 Olvana · [Company legal name] · [contact email]</span><span style="display:flex;align-items:center;gap:8px"><span class="dot"></span><span id="footStatus">All systems operational</span></span></div>
@@ -1082,7 +1082,7 @@ const refCode = () => 'OLV-' + (S.address ? S.address.slice(-4).toUpperCase() : 
 const refLink = () => `${CONFIG.siteUrl}/?ref=${refCode()}`;
 
 /* ===================== live data status ===================== */
-const LIVE = { at:null, err:null, busy:false, loaded:false, failed:[] };   // at: time of last successful fetch · failed: chain ids whose list query failed last time
+const LIVE = { at:null, err:null, busy:false, v1busy:false, loaded:false, failed:[] };   // at: time of last successful fetch · failed: chain ids whose list query failed last time
 const STALE_MS = 15 * 60e3, DROP_MS = 60 * 60e3, REFRESH_MS = 5 * 60e3;
 const MSG = {
   loading: 'Loading live vaults…',
@@ -2329,9 +2329,10 @@ const DETAIL_Q = `query($a:String!,$c:Int!){
     curators(first: 3){ items{ name verified } }
   }
 }`;
-// Morpho Vault V1 (MetaMorpho): same list → detail → allocation split. Only listed vaults in a listed stablecoin.
-const V1_LIST_Q = `query($c:[Int!],$s:Int,$sy:[String!]){
-  vaults(first: 50, skip: $s, where:{chainId_in:$c, listed:true, assetSymbol_in:$sy}){
+// Morpho Vault V1 (MetaMorpho): same list → detail → allocation split. Only listed vaults in a listed stablecoin,
+// the 12 largest by TVL per network (Ethereum alone has dozens; the long tail would only slow the page down).
+const V1_LIST_Q = `query($c:[Int!],$sy:[String!]){
+  vaults(first: 12, orderBy: TotalAssetsUsd, orderDirection: Desc, where:{chainId_in:$c, listed:true, assetSymbol_in:$sy}){
     items{ address name listed factory{ address } asset{ address symbol decimals } state{ totalAssets totalAssetsUsd } }
   }
 }`;
@@ -2410,25 +2411,14 @@ async function fetchChainList(ch) {
   }
   return all;
 }
-// Same for Vault V1 on networks that have a MetaMorpho factory. A failure here never hides the V2 vaults.
+// Same for Vault V1 on networks that have a MetaMorpho factory: one page, largest first.
 async function fetchChainListV1(ch) {
   if (!ch.metaMorphoFactories || !ch.metaMorphoFactories.length) return [];
-  const all = [];
-  for (let p = 0; p < 10; p++) {
-    const d = await gql(V1_LIST_Q, { c: [ch.id], s: p * 50, sy: CONFIG.stablecoins });
-    const it = (d.vaults && d.vaults.items) || [];
-    all.push(...it.map(x => ({ ...x, kind: 'v1', chainId: ch.id, totalAssets: x.state && x.state.totalAssets, totalAssetsUsd: x.state && x.state.totalAssetsUsd })));
-    if (it.length < 50) break;
-  }
-  return all;
+  const d = await gql(V1_LIST_Q, { c: [ch.id], sy: CONFIG.stablecoins });
+  return ((d.vaults && d.vaults.items) || []).map(x => ({ ...x, kind: 'v1', chainId: ch.id, totalAssets: x.state && x.state.totalAssets, totalAssetsUsd: x.state && x.state.totalAssetsUsd }));
 }
-async function fetchVaultItems() {
-  // networks in parallel: one failing network must not hide the others; only when all fail is it an error
-  const [lists, v1] = await Promise.all([Promise.allSettled(CONFIG.chains.map(fetchChainList)), Promise.allSettled(CONFIG.chains.map(fetchChainListV1))]);
-  if (lists.every(r => r.status === 'rejected')) throw lists[0].reason;
-  LIVE.failed = CONFIG.chains.filter((c, k) => lists[k].status === 'rejected').map(c => c.id);
-  v1.forEach((r, k) => { if (r.status === 'rejected') console.warn('Vault V1 list failed on ' + CONFIG.chains[k].name + ':', r.reason && r.reason.message); });
-  const cands = [...lists, ...v1].flatMap(r => r.status === 'fulfilled' ? r.value : []).filter(keepVault);
+// Detail stage: vault fields + allocation for each candidate, 8 requests at a time.
+async function fetchDetails(cands) {
   const detail = async it => {
     const q = { a: it.address, c: it.chainId };
     if (it.kind === 'v1') {
@@ -2443,6 +2433,34 @@ async function fetchVaultItems() {
   const ok = res.filter(r => r.status === 'fulfilled' && r.value).map(r => r.value);
   if (cands.length && !ok.length) { const f = res.find(r => r.status === 'rejected'); if (f) throw f.reason; }
   return ok;
+}
+async function fetchVaultItems() {
+  // networks in parallel: one failing network must not hide the others; only when all fail is it an error
+  const lists = await Promise.allSettled(CONFIG.chains.map(fetchChainList));
+  if (lists.every(r => r.status === 'rejected')) throw lists[0].reason;
+  LIVE.failed = CONFIG.chains.filter((c, k) => lists[k].status === 'rejected').map(c => c.id);
+  return fetchDetails(lists.flatMap(r => r.status === 'fulfilled' ? r.value : []).filter(keepVault));
+}
+// Vault V1 loads after the V2 vaults are on screen, so it never delays the page; failures only log.
+async function fetchVaultItemsV1() {
+  const v1 = await Promise.allSettled(CONFIG.chains.map(fetchChainListV1));
+  v1.forEach((r, k) => { if (r.status === 'rejected') console.warn('Vault V1 list failed on ' + CONFIG.chains[k].name + ':', r.reason && r.reason.message); });
+  return fetchDetails(v1.flatMap(r => r.status === 'fulfilled' ? r.value : []).filter(keepVault));
+}
+let V1_VAULTS = [];   // last good Vault V1 set, merged into VAULTS
+async function refreshV1() {
+  if (LIVE.v1busy) return;
+  LIVE.v1busy = true;
+  try {
+    V1_VAULTS = (await fetchVaultItemsV1()).filter(keepVault).map(mapVault);
+    VAULTS = sortVaults([...VAULTS.filter(v => v.kind !== 'v1'), ...V1_VAULTS]);
+    if (S.connected) setTimeout(refreshBalances, 0);
+  } catch (e) {
+    console.warn('Vault V1 unavailable:', e && e.message);
+  } finally {
+    LIVE.v1busy = false;
+  }
+  if (document.body.classList.contains('in-app')) render(); else renderLanding();
 }
 const num = x => { if (x == null || x === '') return null; const n = Number(x); return Number.isFinite(n) ? n : null; };
 const lc = a => String(a || '').toLowerCase();
@@ -2527,18 +2545,19 @@ async function refreshLive() {
   const first = !LIVE.loaded && !LIVE.err;
   try {
     const items = await fetchVaultItems();
-    VAULTS = sortVaults(items.filter(keepVault).map(mapVault));
+    VAULTS = sortVaults([...items.filter(keepVault).map(mapVault), ...V1_VAULTS]);   // previous V1 set until the new one lands
     LIVE.at = Date.now(); LIVE.err = null; LIVE.loaded = true;
     if (S.connected) setTimeout(refreshBalances, 0);
     checkAlerts(first || !document.body.classList.contains('in-app'));
   } catch (e) {
     LIVE.err = e && e.message || 'error';
     LIVE.failed = [];
-    if (LIVE.at && Date.now() - LIVE.at > DROP_MS) VAULTS = [];   // never keep showing numbers more than an hour old
+    if (LIVE.at && Date.now() - LIVE.at > DROP_MS) { VAULTS = []; V1_VAULTS = []; }   // never keep showing numbers more than an hour old
   } finally {
     LIVE.busy = false;
   }
   if (document.body.classList.contains('in-app')) render(); else renderLanding();
+  if (!LIVE.err) refreshV1();
 }
 
 /* ===================== mobile menu ===================== */

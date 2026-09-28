@@ -62,10 +62,13 @@ export const VAULT_ALLOCATION_QUERY = `query($a:String!,$c:Int!){
 
 /**
  * Morpho Vault V1 (MetaMorpho), same list → detail → allocation split. The list
- * is narrowed server-side to listed vaults in a listed stablecoin.
+ * is narrowed server-side to listed vaults in a listed stablecoin, and to the
+ * `V1_TOP_PER_CHAIN` largest by TVL (Ethereum alone has dozens; the long tail
+ * only slows the page down).
  */
-export const V1_LIST_QUERY = `query($c:[Int!],$s:Int,$sy:[String!]){
-  vaults(first: 50, skip: $s, where:{chainId_in:$c, listed:true, assetSymbol_in:$sy}){
+export const V1_TOP_PER_CHAIN = 12;
+export const V1_LIST_QUERY = `query($c:[Int!],$sy:[String!]){
+  vaults(first: ${V1_TOP_PER_CHAIN}, orderBy: TotalAssetsUsd, orderDirection: Desc, where:{chainId_in:$c, listed:true, assetSymbol_in:$sy}){
     items{ address name listed factory{ address } asset{ address symbol decimals } state{ totalAssets totalAssetsUsd } }
   }
 }`;
@@ -418,17 +421,11 @@ export async function fetchVaultDetail(gql: Gql, address: string, chainId: numbe
   return { ...base.vaultV2ByAddress, kind: 'v2', chainId, adapters: alloc.vaultV2ByAddress?.adapters ?? { items: [] } };
 }
 
-/** Stage 1 for Vault V1: listed stablecoin MetaMorpho vaults on one chain ([] where the chain has no V1 factory). */
-export async function listVaultsV1(gql: Gql, chainId: number, maxPages = 10): Promise<ApiVaultV2[]> {
+/** Stage 1 for Vault V1: the largest listed stablecoin MetaMorpho vaults on one chain ([] where the chain has no V1 factory). */
+export async function listVaultsV1(gql: Gql, chainId: number): Promise<ApiVaultV2[]> {
   if (!chainById(chainId)?.metaMorphoFactories.length) return [];
-  const out: ApiVaultV2[] = [];
-  for (let page = 0; page < maxPages; page++) {
-    const d = await gql<{ vaults: { items: ApiVaultV1[] | null } }>(V1_LIST_QUERY, { c: [chainId], s: page * 50, sy: STABLECOINS });
-    const items = d.vaults?.items ?? [];
-    out.push(...items.map((v) => fromApiV1(v, chainId)));
-    if (items.length < 50) break;
-  }
-  return out;
+  const d = await gql<{ vaults: { items: ApiVaultV1[] | null } }>(V1_LIST_QUERY, { c: [chainId], sy: STABLECOINS });
+  return (d.vaults?.items ?? []).map((v) => fromApiV1(v, chainId));
 }
 
 /** Stage 2 for Vault V1: vault fields + market allocation (two queries, merged). */
