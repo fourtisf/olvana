@@ -1917,7 +1917,8 @@ const sortBy = (list, k) => [...list].sort((a, b) => k === 'tvl' ? b.tvl - a.tvl
 // Short labels for the card; the full sentence stays in the tooltip, on the Earn page and in the table.
 const FLAG_SHORT = { equity: 'Stock collateral', lltv: 'Thin safety buffer', peg: 'Off $1 peg', synthetic: 'Synthetic dollar' };
 function vaultCard(v, inApp) {
-  const r = risk(v), hot = v.util >= S.alerts.threshold, fl = riskFlags(v);
+  // The LLTV flag stays off the cards (owner's call, 2026-09-28); it is still on the Earn page and in the table.
+  const r = risk(v), hot = v.util >= S.alerts.threshold, fl = riskFlags(v).filter(f => f.k !== 'lltv');
   const stat = (label, value, style = '') => `<div class="vstat"><small>${label}</small><b style="${style}">${value}</b></div>`;
   return `<article class="vcard ${inApp && S.vaultId === v.id ? 'sel' : ''}">
     <div class="vcard-top"><div class="vcard-id">${assetLogo(v, 36)}<div style="min-width:0"><h3 title="${esc(v.name)}">${esc(v.name)}</h3><div class="vmeta">${esc(sym(v))} ${chainChip(v)} <span>· ${esc(v.curator)}</span></div></div></div>${gradeChip(v)}</div>
