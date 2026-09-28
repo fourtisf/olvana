@@ -64,7 +64,11 @@ button{cursor:pointer}
 .nav-links a:hover{color:var(--ink)}
 .nav-right{display:flex;align-items:center;gap:6px}
 .nav-right .btn{height:46px;padding:0 20px;font-size:14px}
-.ticker{padding:0 14px;font-size:14px;color:#B3B5D0}
+.ticker{padding:0 14px;font-size:14px;color:#B3B5D0;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.ca-soon{height:22px;padding:0 9px;display:inline-flex;align-items:center;border:1px solid rgba(123,92,255,.35);border-radius:999px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);white-space:nowrap}
+.xlink{width:40px;height:40px;display:grid;place-items:center;border-radius:50%;color:#B3B5D0;border:1px solid var(--line)}
+.xlink:hover{color:var(--ink);border-color:rgba(255,255,255,.2)}
+.foot-cols a.xl{display:inline-flex;align-items:center;gap:8px}
 
 /* hero */
 .hero{position:relative;z-index:1;padding:110px 0 0;text-align:center;display:flex;flex-direction:column;align-items:center;gap:28px}
@@ -506,6 +510,7 @@ body.in-app #appShell{display:block}
 }
 @media (max-width:760px){
   .ticker{display:none}
+  .xlink{display:none}
   .hero{padding-top:72px}
   .shot{margin-top:48px}
   .frame{padding:8px;border-radius:24px}
@@ -675,13 +680,14 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
         <a href="#faq">FAQ</a>
       </nav>
       <div class="nav-right">
-        <a class="ticker" href="#rewards">$[TICKER]</a>
+        <a class="ticker" href="#rewards">$[TICKER] <span class="ca-soon">CA coming soon</span></a>
+        <a class="xlink" href="https://x.com/Olvanaorg" target="_blank" rel="noopener" aria-label="Olvana on X (@Olvanaorg)" title="@Olvanaorg on X"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
         <a class="btn btn-gold" href="#app">Launch app</a>
         <button type="button" class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="mMenu" aria-label="Open menu"><span></span><span></span></button>
       </div>
     </div>
     <nav class="m-menu" id="mMenu" aria-label="Mobile">
-      <a href="#yield">How it works</a><a href="#grades">Risk grades</a><a href="#calculator">Calculator</a><a href="#rewards-preview">Rewards</a><a href="#faq">FAQ</a><a href="#rewards">$[TICKER]</a>
+      <a href="#yield">How it works</a><a href="#grades">Risk grades</a><a href="#calculator">Calculator</a><a href="#rewards-preview">Rewards</a><a href="#faq">FAQ</a><a href="#rewards">$[TICKER] · CA coming soon</a><a href="https://x.com/Olvanaorg" target="_blank" rel="noopener">X · @Olvanaorg</a>
     </nav>
   </header>
 
@@ -842,7 +848,7 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
           <details><summary><span>Can I always withdraw?</span><span class="pm" aria-hidden="true">+</span></summary><p>Instantly when the vault has idle liquidity. At 100% utilization, exits wait until borrowers repay. Turn on utilization alerts to get warned early.</p></details>
           <details><summary><span>How do I get stablecoins on the right network?</span><span class="pm" aria-hidden="true">+</span></summary><p>Each vault lives on one network, shown next to its token: Robinhood Chain, Ethereum, Base or Arbitrum. Get USDG, USDC or another listed stablecoin from [where to buy], and if it sits on a different network, bridge it to the vault's network with [bridge link]. Keep a little ETH on that network to pay fees. Olvana never asks you to send funds to anyone.</p></details>
           <details><summary><span>How does Olvana make money?</span><span class="pm" aria-hidden="true">+</span></summary><p>Olvana charges no fee today. Each vault's own curator fee is shown on the vault and is already included in net APY.</p></details>
-          <details><summary><span>What does $[TICKER] do?</span><span class="pm" aria-hidden="true">+</span></summary><p>It boosts the points you earn and lets holders vote on which vaults Olvana lists. It does not pay out vault revenue.</p></details>
+          <details><summary><span>What does $[TICKER] do?</span><span class="pm" aria-hidden="true">+</span></summary><p>It boosts the points you earn and lets holders vote on which vaults Olvana lists. It does not pay out vault revenue. Contract address (CA): coming soon. It will be posted only on this site and on <a href="https://x.com/Olvanaorg" target="_blank" rel="noopener" class="gold">@Olvanaorg</a>; any address shared anywhere before that is not ours.</p></details>
         </div>
       </div>
     </section>
@@ -870,7 +876,7 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
         <div><h4>Product</h4><a href="#app">Earn</a><a href="#vaults">Vaults</a><a href="#portfolio">Portfolio</a><a href="#rewards">Rewards</a></div>
         <div><h4>Verify</h4><a href="#security">Contracts &amp; security</a><a href="#grades">Risk grades</a><a href="#alerts">Alerts</a></div>
         <div><h4>Legal</h4><a href="#terms">Terms</a><a href="#privacy">Privacy</a><a href="#risk">Risk disclosure</a></div>
-        <div><h4>Community</h4><span class="muted">[X]</span><span class="muted">[Telegram channel]</span><span class="muted">[Discord]</span></div>
+        <div><h4>Community</h4><a class="xl" href="https://x.com/Olvanaorg" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>@Olvanaorg</a><span class="muted">CA: coming soon</span><span class="muted">[Telegram channel]</span><span class="muted">[Discord]</span></div>
       </div>
     </div>
     <div class="foot-bottom"><span>© 2026 Olvana · [Company legal name] · [contact email]</span><span style="display:flex;align-items:center;gap:8px"><span class="dot"></span><span id="footStatus">All systems operational</span></span></div>
@@ -2105,6 +2111,7 @@ function viewSecurity() {
     <div class="scrollx"><table class="tbl">
       <thead><tr><th>Contract</th><th>Curator</th><th>Address</th></tr></thead>
       <tbody>
+        <tr><td>$[TICKER] token</td><td class="muted">—</td><td class="n"><span class="muted">CA coming soon</span></td></tr>
         ${vaultRows}
       </tbody>
     </table></div>
@@ -2129,7 +2136,8 @@ function viewSecurity() {
     </ul>
     <h2>Verify you're on the real site</h2><ul>
       <li>The only Olvana app is <span class="mono">${esc(site)}</span>. Bookmark it and open it from the bookmark.</li>
-      <li>We never DM you first, on Telegram, X, Discord or anywhere else.</li>
+      <li>Our only X account is <a href="https://x.com/Olvanaorg" target="_blank" rel="noopener" class="gold">@Olvanaorg</a>. We never DM you first, on Telegram, X, Discord or anywhere else.</li>
+      <li>The $[TICKER] contract address (CA) is not live yet. Until it appears on this page, any "Olvana token" is a scam.</li>
       <li>We never ask for your seed phrase or private key. Anyone who does is a scammer.</li>
       <li>Before you sign, check that the contract address in your wallet prompt matches the address on this page, and that your wallet is on the vault's network.</li>
     </ul>
