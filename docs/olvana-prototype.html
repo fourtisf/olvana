@@ -856,7 +856,7 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
     <section id="calculator" class="wrap sec2">
       <div class="head2">
         <h2 class="h2">Run the <span class="grad">numbers.</span></h2>
-        <p>Projection at today's net rate, compounded daily. Rates move with borrow demand, so treat it as an estimate.</p>
+        <p>Projection at today's net APY, which already includes compounding. Rates move with borrow demand, so treat it as an estimate.</p>
       </div>
       <div class="calc2">
         <div class="calc2-in">
@@ -1542,7 +1542,7 @@ function viewEarn() {
         <div class="panel action" id="action"></div>
         <div class="panel pos">
           <div><small>In this vault</small><b>${S.connected && posBal(v) != null ? fmt(posBal(v)) : '—'}</b></div>
-          <div><small>Est. per day</small><b class="gold">${S.connected && posBal(v) != null ? '+' + fmt(posBal(v) * n / 100 / 365, 4) : '—'}</b></div>
+          <div><small>Est. per day</small><b class="gold">${S.connected && posBal(v) != null ? '+' + fmt(earnDay(posBal(v), n), 4) : '—'}</b></div>
           <div><small>Wallet ${esc(sym(v))}</small><b>${S.connected && walletBal(v) != null ? fmt(walletBal(v)) : '—'}</b></div>
           ${otherNet(v) ? `<small style="grid-column:1/-1">${esc(switchToSee(v))}.</small>` : ''}
         </div>
@@ -2101,7 +2101,7 @@ function viewPortfolio() {
     <div class="page-head"><div><h1>Portfolio</h1><p>${c ? 'Wallet ' + esc(short(S.address)) + (W ? ' · ' + esc(W.info.name) : '') + (net ? ' · ' + esc(net.name) : '') : 'Connect a wallet to start'}</p></div></div>
     <div class="kgrid">
       <div class="panel kcard"><small>Total balance</small><b>${known ? '$' + fmt(total) : '—'}</b><em>across listed vaults${net ? ' on ' + esc(net.short) : ''}</em></div>
-      <div class="panel kcard"><small>Est. per day</small><b class="gold">${known && blended != null ? '+$' + fmt(total * blended / 100 / 365) : '—'}</b><em>at current net APY</em></div>
+      <div class="panel kcard"><small>Est. per day</small><b class="gold">${known && blended != null ? '+$' + fmt(earnDay(total, blended)) : '—'}</b><em>at current net APY</em></div>
       <div class="panel kcard"><small>Blended net APY</small><b>${blended != null ? fmt(blended) + '%' : '—'}</b><em>weighted by balance</em></div>
       <div class="panel kcard"><small>Open positions</small><b>${known ? held.length : '—'}</b><em>${net ? 'on ' + esc(net.short) : 'connect to see'}</em></div>
     </div>
@@ -2463,16 +2463,15 @@ function calc() {
   }
   $('cChart').style.display = ''; $('cMsg').hidden = true;
   const usd = parseFloat(($('cAmt').value || '').replace(/[^0-9.]/g, '')) || 0;
-  const v = vault(calcId()), r = netApy(v) / 100 / 365;
+  const v = vault(calcId()), apy = netApy(v), g = 1 + apy / 100;   // net APY already includes compounding
   $('cUnit').textContent = sym(v);
-  const days = months * 30.4167;
-  const final = usd * Math.pow(1 + r, days);
+  const final = usd * Math.pow(g, months / 12);
   $('cEarn').textContent = '+$' + fmt(final - usd);
   $('cFinal').textContent = '$' + fmt(final);
-  $('cDay').textContent = '+$' + fmt(usd * r);                                   // first day, same daily rate as the projection
-  $('cMonth').textContent = '+$' + fmt(usd * (Math.pow(1 + r, 30.4167) - 1));
+  $('cDay').textContent = '+$' + fmt(earnDay(usd, apy));
+  $('cMonth').textContent = '+$' + fmt(earnMonth(usd, apy));
   $('cApy').textContent = fmt(netApy(v)) + '% · Grade ' + risk(v).grade;
-  const vals = Array.from({ length: months + 1 }, (_, m) => usd * Math.pow(1 + r, m * 30.4167));
+  const vals = Array.from({ length: months + 1 }, (_, m) => usd * Math.pow(g, m / 12));
   if (vals.length < 2) vals.push(vals[0]);
   const c = chartPaths(vals.map(x => x || 0));
   $('cChart').innerHTML = `<defs><linearGradient id="cg" x1="0" x2="1"><stop offset="0" stop-color="#A99BFF"/><stop offset="1" stop-color="#7CC4FF"/></linearGradient></defs>
