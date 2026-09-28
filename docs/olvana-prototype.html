@@ -388,6 +388,7 @@ body.in-app #appShell{display:block}
 .wd-item{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:10px 14px;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--ink);font:inherit;font-size:15px;font-weight:500;text-align:left;text-decoration:none;cursor:pointer}
 .wd-item:hover{border-color:rgba(169,155,255,.45);background:rgba(169,155,255,.06)}.wd-item img{border-radius:8px}
 .wd-ph{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:rgba(169,155,255,.16);color:var(--gold);font-weight:600;flex:none}
+.wd-go{margin-left:auto;color:var(--faint);font-size:14px}
 .wd-danger{color:#FF9270}
 .linkbtn{background:none;border:0;padding:0;font:inherit;cursor:pointer;text-decoration:underline}
 .wd-note{color:var(--muted);font-size:13px;line-height:1.5;margin:14px 0 0}.wd-list+.wd-note{margin-top:16px}.wd-note+.wd-list{margin-top:12px}
@@ -601,6 +602,8 @@ html{overflow-x:hidden}
 .m-menu a{padding:14px 16px;border-radius:14px;font-size:16px}
 .m-menu a:hover{background:rgba(255,255,255,.05)}
 .m-menu.open{display:flex}
+.m-menu a.m-connect{margin-bottom:6px;text-align:center;font-weight:600;background:var(--gold-grad);color:#fff}
+.m-menu a.m-connect:hover{background:var(--gold-grad)}
 @media (max-width:1180px){
   .menu-btn{display:flex}
   .hero2{grid-template-columns:minmax(0,1.1fr) minmax(0,.9fr);gap:36px;padding-top:70px}
@@ -722,6 +725,7 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
       </div>
     </div>
     <nav class="m-menu" id="mMenu" aria-label="Mobile">
+      <a href="#app" id="mConnect" class="m-connect">Connect wallet</a>
       <a href="#yield">How it works</a><a href="#grades">Risk grades</a><a href="#calculator">Calculator</a><a href="#rewards-preview">Rewards</a><a href="#faq">FAQ</a><a href="#faq">CA coming soon</a><a href="https://x.com/Olvanaorg" target="_blank" rel="noopener">X · @Olvanaorg</a>
     </nav>
   </header>
@@ -1219,12 +1223,21 @@ async function connect() {
     <p class="wd-note">Olvana never asks for your seed phrase. Every transaction is signed in your wallet.</p>`);
   dlg.querySelectorAll('[data-k]').forEach(b => b.onclick = () => connectWith(list[+b.dataset.k]));
 }
+// Phone browsers (Safari, Chrome) have no wallet inside them. These links open this page in the wallet app's own
+// browser, where the wallet is injected and Connect works as on desktop. Formats are each wallet's documented deeplink.
+const MOBILE_WALLETS = [
+  { name: 'MetaMask', ph: 'M', col: '#F6851B', link: u => 'https://metamask.app.link/dapp/' + u.replace(/^https?:\/\//, '') },
+  { name: 'Trust Wallet', ph: 'T', col: '#3375BB', link: u => 'https://link.trustwallet.com/open_url?coin_id=60&url=' + encodeURIComponent(u) },
+  { name: 'Coinbase Wallet', ph: 'C', col: '#0052FF', link: u => 'https://go.cb-w.com/dapp?cb_url=' + encodeURIComponent(u) },
+  { name: 'OKX Wallet', ph: 'O', col: '#FFFFFF', fg: '#000', link: u => 'https://www.okx.com/download?deeplink=' + encodeURIComponent('okx://wallet/dapp/url?dappUrl=' + encodeURIComponent(u)) },
+  { name: 'Bitget Wallet', ph: 'B', col: '#00C2B8', link: u => 'https://bkcode.vip?action=dapp&url=' + encodeURIComponent(u) },
+];
 function openNoWallet() {
-  const here = location.host + location.pathname;
-  openDlg('No wallet found', isMobile()
-    ? `<p class="wd-note">Open Olvana inside your wallet app's browser:</p><div class="wd-list">
-        <a class="wd-item" href="https://metamask.app.link/dapp/${esc(here)}" rel="noopener"><span class="wd-ph">M</span><span>Open in MetaMask</span></a>
-        <a class="wd-item" href="https://go.cb-w.com/dapp?cb_url=${encodeURIComponent(location.href)}" rel="noopener"><span class="wd-ph">C</span><span>Open in Coinbase Wallet</span></a></div>`
+  const target = location.origin + location.pathname + '#app';   // land on Earn, where Connect is one tap away
+  openDlg(isMobile() ? 'Connect a wallet' : 'No wallet found', isMobile()
+    ? `<p class="wd-note" style="margin-top:0">Pick your wallet app. Olvana opens inside it, then tap <b>Connect wallet</b>.</p><div class="wd-list">
+        ${MOBILE_WALLETS.map(w => `<a class="wd-item" href="${esc(w.link(target))}" rel="noopener"><span class="wd-ph" style="background:${w.col};color:${w.fg || '#fff'};border:0">${w.ph}</span><span>${esc(w.name)}</span><span class="wd-go" aria-hidden="true">↗</span></a>`).join('')}</div>
+        <p class="wd-note">No wallet app yet? Install <a class="gold" href="https://metamask.io/download" target="_blank" rel="noopener">MetaMask</a> or <a class="gold" href="https://trustwallet.com/download" target="_blank" rel="noopener">Trust Wallet</a>, then come back. Olvana never asks for your seed phrase.</p>`
     : `<p class="wd-note">Install a browser wallet, then reload this page.</p><div class="wd-list">
         <a class="wd-item" href="https://metamask.io/download" target="_blank" rel="noopener"><span class="wd-ph">M</span><span>Get MetaMask</span></a>
         <a class="wd-item" href="https://rabby.io" target="_blank" rel="noopener"><span class="wd-ph">R</span><span>Get Rabby</span></a></div>`);
@@ -2702,6 +2715,8 @@ const menuBtn = $('menuBtn'), mMenu = $('mMenu');
 const setMenu = o => { mMenu.classList.toggle('open', o); menuBtn.setAttribute('aria-expanded', o); menuBtn.setAttribute('aria-label', t(o ? 'aria.closeMenu' : 'aria.openMenu')); };
 menuBtn.onclick = () => setMenu(!mMenu.classList.contains('open'));
 mMenu.querySelectorAll('a').forEach(a => a.addEventListener('click', () => setMenu(false)));
+// "Connect wallet" in the phone menu: open Earn, then start the same connect flow as the app's button
+$('mConnect').addEventListener('click', () => setTimeout(connect, 60));
 document.addEventListener('keydown', e => { if (e.key === 'Escape' && mMenu.classList.contains('open')) { setMenu(false); menuBtn.focus(); } });
 
 /* ===================== boot ===================== */
