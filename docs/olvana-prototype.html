@@ -272,7 +272,7 @@ footer{position:relative;z-index:1;padding:80px 0 calc(48px + env(safe-area-inse
 .deck-pick button{height:38px;padding:0 16px;border-radius:999px;border:0;background:transparent;color:var(--muted);font-size:14px;font-weight:500;display:flex;align-items:center;gap:8px}
 .deck-pick button.on{background:rgba(123,92,255,.18);color:var(--ink)}
 .deck-pick i{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
-.deck-pick button span{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.deck-pick button span{max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .marquee{position:relative;z-index:1;margin-top:40px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);overflow:hidden;background:rgba(10,10,20,.5)}
 .marquee-track{display:flex;width:max-content;animation:mq 38s linear infinite}
 .marquee:hover .marquee-track{animation-play-state:paused}
@@ -1175,7 +1175,8 @@ function collatCat(c) {
 function backedBy(v) {
   const g = new Map();
   for (const c of v.collateral) { const k = collatCat(c), e = g.get(k) || { s: 0, names: [] }; e.s += c.s; e.names.push(`${c.a} ${c.s}%`); g.set(k, e); }
-  const list = [...g].sort((a, b) => b[1].s - a[1].s);
+  // groups under 0.5% of lending are left out (they would read "Ethereum 0%"); the score still counts them
+  const list = [...g].filter(([, e]) => e.s >= 0.5).sort((a, b) => b[1].s - a[1].s);
   if (!list.length) return '';
   const pct = x => x >= 10 ? Math.round(x) + '%' : (Math.round(x * 10) / 10) + '%';
   return `<div class="backed"><div class="bbar">${list.map(([k, e]) => `<i style="width:${e.s}%;background:${CAT_COL[k]}"></i>`).join('')}</div>
@@ -2349,8 +2350,10 @@ function renderLanding() {
   $('hfApyLbl').textContent = bestA ? t('d.gradeA', { s: sym(bestA) + ' · ' + chainShort(bestA.chainId) }) : vs.length ? t('d.noGradeA') : t({ loading:'d.hfLoading', offline:'d.hfOff', empty:'d.hfEmpty' }[st] || 'd.hfLoading');
   $('heroNote').innerHTML = liveBadge();
   $('footStatus').textContent = CONFIG.status && CONFIG.status.level ? CONFIG.status.message : st === 'offline' ? t('d.statusOff') : t('d.status');
-  // deck: top 3 by TVL (VAULTS is sorted by TVL)
-  const top = vs.slice().sort((a, b) => b.tvl - a.tvl).slice(0, 3).map(v => v.id);
+  // deck: the 3 highest net APYs among grade A and B vaults (grade C is never the landing page's lead card);
+  // if fewer than 3 qualify, fill with the rest by APY
+  const byApy = vs.slice().sort((a, b) => (netApy(b) - netApy(a)) || (b.tvl - a.tvl));
+  const top = [...byApy.filter(v => risk(v).grade !== 'C'), ...byApy.filter(v => risk(v).grade === 'C')].slice(0, 3).map(v => v.id);
   if (heroOrder.length !== top.length || !top.every(id => heroOrder.includes(id))) heroOrder = top.slice();
   if (!vs.length) {
     $('heroDeck').innerHTML = `<div class="dcard msg" data-pos="0" role="status">
@@ -2371,7 +2374,7 @@ function renderLanding() {
           <div><span>${t('d.wd')}</span><span>${fmtUsdShort(v.liq)}</span></div>
         </div>
         ${collatRow(v)}
-        <span class="go"><span class="go-t">${esc(t('d.depositIn', { v: shortName(v.name) }))}</span></span>
+        <span class="go"><span class="go-t">Deposit ${esc(sym(v))}</span></span>
       </button>`;
     }).join('');
     const bringFront = id => {
