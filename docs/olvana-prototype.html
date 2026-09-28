@@ -1912,7 +1912,7 @@ const SORTS = { apy: 'Highest APY', tvl: 'Largest', grade: 'Best grade' };
 const earnYear = (amt, apy) => amt * apy / 100;
 const earnMonth = (amt, apy) => amt * (Math.pow(1 + apy / 100, 1 / 12) - 1);
 const fmtEst = n => n >= 1000 ? fmt(n, 0) : fmt(n, 2);
-const estLine = v => `<div class="est" data-apy="${netApy(v)}"><span class="muted">On <b data-est-amt>${fmtEst(UI.est)}</b> ${esc(sym(v))}</span><span><b class="gold" data-est-m>+${fmtEst(earnMonth(UI.est, netApy(v)))}</b> / month</span><span><b class="gold" data-est-y>+${fmtEst(earnYear(UI.est, netApy(v)))}</b> / year</span></div>`;
+const estLine = v => `<div class="est" data-apy="${netApy(v)}"><span class="muted">On <b data-est-amt>${fmtEst(UI.est)}</b> ${esc(sym(v))} you earn about</span><span><b class="gold" data-est-m>+${fmtEst(earnMonth(UI.est, netApy(v)))}</b> ${esc(sym(v))} / month</span><span><b class="gold" data-est-y>+${fmtEst(earnYear(UI.est, netApy(v)))}</b> ${esc(sym(v))} / year</span></div>`;
 const sortBy = (list, k) => [...list].sort((a, b) => k === 'tvl' ? b.tvl - a.tvl : k === 'grade' ? (risk(b).score - risk(a).score) || (netApy(b) - netApy(a)) : (netApy(b) - netApy(a)) || (b.tvl - a.tvl));
 // Short labels for the card; the full sentence stays in the tooltip, on the Earn page and in the table.
 const FLAG_SHORT = { equity: 'Stock collateral', lltv: 'Thin safety buffer', peg: 'Off $1 peg', synthetic: 'Synthetic dollar' };
@@ -1966,7 +1966,7 @@ function viewVaults() {
       <div class="scrollx"><table class="tbl">
         <thead><tr><th>Vault</th><th title="7-day average, after fees">Net APY</th><th>Grade</th><th>Flags</th><th>Utilization</th><th>Withdrawable</th><th>Running for</th><th title="At the current net APY">Per year on ${fmtEst(UI.est)}</th><th>Oracle</th><th>Blue-chip / cash-backed</th></tr></thead>
         <tbody>${list.map(v => { const blue = Math.round(v.collateral.filter(c => c.q === 'blue').reduce((t, c) => t + c.s, 0) * 10) / 10; const fl = riskFlags(v);
-          return `<tr><td><span style="display:inline-flex;align-items:center;gap:8px">${assetLogo(v, 18)}${esc(v.name)} <span class="mono muted" style="font-size:12px">${esc(sym(v))}</span>${chainChip(v)}</span></td><td class="n gold">${fmt(netApy(v))}%</td><td>${gradeChip(v)}</td><td class="n" style="${fl.length ? 'color:var(--warn)' : ''}" title="${esc(fl.map(f => f.text).join(' '))}">${fl.length ? warnSvg(14) + ' ' + fl.length : '—'}</td><td class="n">${v.util.toFixed(1)}%</td><td class="n">${fmtUsdShort(v.liq)}</td><td class="n">${fmtAge(v.ageDays)}</td><td class="n gold" data-apy="${netApy(v)}" data-est-y>+${fmtEst(earnYear(UI.est, netApy(v)))}</td><td>${v.oracle}</td><td class="n">${blue}%</td></tr>`; }).join('')}</tbody>
+          return `<tr><td><span style="display:inline-flex;align-items:center;gap:8px">${assetLogo(v, 18)}${esc(v.name)} <span class="mono muted" style="font-size:12px">${esc(sym(v))}</span>${chainChip(v)}</span></td><td class="n gold">${fmt(netApy(v))}%</td><td>${gradeChip(v)}</td><td class="n" style="${fl.length ? 'color:var(--warn)' : ''}" title="${esc(fl.map(f => f.text).join(' '))}">${fl.length ? warnSvg(14) + ' ' + fl.length : '—'}</td><td class="n">${v.util.toFixed(1)}%</td><td class="n">${fmtUsdShort(v.liq)}</td><td class="n">${fmtAge(v.ageDays)}</td><td class="n gold" data-apy="${netApy(v)}" data-est-y data-sym="${esc(sym(v))}">+${fmtEst(earnYear(UI.est, netApy(v)))} ${esc(sym(v))}</td><td>${v.oracle}</td><td class="n">${blue}%</td></tr>`; }).join('')}</tbody>
       </table></div>
     </div>`;
   bindPicks($('view'));
@@ -1983,7 +1983,7 @@ function viewVaults() {
       const apy = +e.dataset.apy;
       e.querySelectorAll('[data-est-m]').forEach(x => x.textContent = '+' + fmtEst(earnMonth(UI.est, apy)));
       const y = e.hasAttribute('data-est-y') ? e : e.querySelector('[data-est-y]');
-      if (y) y.textContent = '+' + fmtEst(earnYear(UI.est, apy));
+      if (y) y.textContent = '+' + fmtEst(earnYear(UI.est, apy)) + (y.dataset.sym ? ' ' + y.dataset.sym : '');
     });
     const th = $('view').querySelector('th[title="At the current net APY"]'); if (th) th.textContent = 'Per year on ' + fmtEst(UI.est);
   });
