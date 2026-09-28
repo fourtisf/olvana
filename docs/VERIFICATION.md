@@ -65,3 +65,25 @@ factory + Morpho listing.
 
 Only Morpho **Vault V2** vaults are listed. Large USDC/USDT vaults on Ethereum/Base
 that are still MetaMorpho (V1) are not included yet.
+
+## Deposit / withdraw calls (checked 2026-09-28)
+
+Read from Morpho's Vault V2 source, morpho-org/vault-v2 `src/VaultV2.sol`,
+`src/VaultV2Factory.sol` and `src/libraries/ErrorsLib.sol` @ `9ee4dbdcc9b261eef60768e3997e328224b68395`.
+Selectors computed with viem and pinned by `packages/core/test/tx.test.ts`.
+
+| Call | Selector | Notes |
+|---|---|---|
+| `deposit(uint256 assets, address onBehalf)` | `0x6e553f65` | pulls `assets` with `transferFrom`, so an allowance ≥ assets is needed |
+| `withdraw(uint256 assets, address receiver, address onBehalf)` | `0xb460af94` | partial exit |
+| `redeem(uint256 shares, address receiver, address onBehalf)` | `0xba087652` | full exit (all shares, no dust) |
+| `approve(address,uint256)` on the asset | `0x095ea7b3` | exact amount only; reset to 0 first when the token refuses non-zero → non-zero (USDT) |
+| `VaultV2Factory.isVaultV2(address)` | `0x5edec50d` | onchain allowlist check before any transaction |
+| `asset()` | `0x38d52e0f` | must equal the pinned stablecoin address |
+| `maxDeposit` / `maxWithdraw` / `maxRedeem` | — | **always return 0 in Vault V2** ("gross underestimation"), so HANDOFF §4.2's `maxWithdraw` cap cannot be used; the exact call is simulated with `eth_call` instead |
+
+Tested end to end on a local chain (id 4663) running this exact source at the
+mainnet factory address: `e2e/vault-v2/run.sh` (25 checks: exact approval,
+deposit, rejection + retry, partial withdraw, MAX redeem, USDT-style token,
+lookalike vault blocked). **Not yet tested on mainnet**: do one deposit and one
+withdrawal of ~$1 from the owner's wallet before announcing.

@@ -398,6 +398,7 @@ body.in-app #appShell{display:block}
 .review-amt{font-size:56px;font-weight:600;letter-spacing:-.035em;line-height:1}
 .review-amt small{font-size:22px;color:var(--muted);font-weight:500;letter-spacing:0}
 .pf{display:flex;flex-direction:column;gap:8px}
+.done-ic{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;color:var(--gold);background:rgba(126,224,184,.08);border:1px solid rgba(126,224,184,.35)}
 .pf-item{min-height:42px;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;background:#0A0A12;border:1px solid var(--line2);border-radius:12px;font-size:14px}
 .pf-item .st{font-family:var(--mono);font-size:12px;color:var(--dim);flex:none}
 .pf-item.ok .st{color:var(--gold)}
@@ -1004,7 +1005,7 @@ const fresh = () => ({
   alerted:{}
 });
 let S = fresh();
-let UI = { amount:'', stage:'form', chainId:null, asset:'All', net:'All' };  // chainId: the injected wallet's current chain · net: Vaults page network filter
+let UI = { amount:'', max:false, stage:'form', chainId:null, asset:'All', net:'All' };  // max: the MAX chip set the amount (use the exact onchain balance)  // chainId: the injected wallet's current chain · net: Vaults page network filter
 
 /* ===================== vault math ===================== */
 const vault = id => VAULTS.find(x => x.id === id) || VAULTS[0];
@@ -1112,7 +1113,7 @@ window.addEventListener('eip6963:announceProvider', e => {
 window.dispatchEvent(new Event('eip6963:requestProvider'));
 let W = null;                                             // { info, provider } of the connected wallet
 // bigint balances for the wallet's current network (BAL.chainId); keys = "chainId:lowercase address"
-const BAL = { chainId:null, eth:null, tok:{}, pos:{}, err:null, busy:false, again:false, at:0 };
+const BAL = { chainId:null, eth:null, tok:{}, pos:{}, sh:{}, err:null, busy:false, again:false, at:0 };   // tok: wallet token units · pos: vault position in asset units · sh: vault shares
 const safeIcon = s => typeof s === 'string' && /^data:image\/(png|svg\+xml|webp|jpeg|gif)[;,]/i.test(s) ? s : '';
 const isMobile = () => /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
 const hexChain = id => '0x' + Number(id).toString(16);
@@ -1238,7 +1239,7 @@ async function switchNet(targetChainId) {
 }
 
 /* ----- balances, read through the wallet (current network only) ----- */
-function resetBal() { Object.assign(BAL, { chainId: null, eth: null, tok: {}, pos: {}, err: null, at: 0 }); }
+function resetBal() { Object.assign(BAL, { chainId: null, eth: null, tok: {}, pos: {}, sh: {}, err: null, at: 0 }); }
 const pad32 = h => h.replace(/^0x/, '').padStart(64, '0');
 const hexBig = h => (h && h !== '0x') ? BigInt(h) : 0n;
 const ethCall = (to, data) => W.provider.request({ method: 'eth_call', params: [{ to, data }, 'latest'] });
@@ -1251,15 +1252,16 @@ async function refreshBalances() {
   const here = VAULTS.filter(v => v.chainId === cid);
   try {
     const eth = await W.provider.request({ method: 'eth_getBalance', params: [me, 'latest'] });
-    const tok = {}, pos = {};
+    const tok = {}, pos = {}, sh = {};
     const assets = [...new Set(here.map(v => lcA(v.asset.address)).filter(Boolean))];
     await Promise.all(assets.map(async a => { tok[bk(cid, a)] = hexBig(await ethCall(a, '0x70a08231' + pad32(me))); }));
     await Promise.all(here.map(async v => {
       const shares = hexBig(await ethCall(v.address, '0x70a08231' + pad32(me)));
+      sh[bk(cid, v.address)] = shares;
       pos[bk(cid, v.address)] = shares > 0n ? hexBig(await ethCall(v.address, '0x07a2d13a' + pad32(shares.toString(16)))) : 0n;
     }));
     if (S.address === me && UI.chainId === cid)                // skip if the account or network changed meanwhile
-      Object.assign(BAL, { chainId: cid, eth: hexBig(eth), tok, pos, err: null, at: Date.now() });
+      Object.assign(BAL, { chainId: cid, eth: hexBig(eth), tok, pos, sh, err: null, at: Date.now() });
   } catch (e) {
     if (S.address === me && UI.chainId === cid) BAL.err = 'Could not read balances from your wallet';
   } finally {
@@ -1367,6 +1369,7 @@ function viewEarn() {
     $('view').innerHTML = `<div class="page-head"><div><h1>Earn</h1><p>Deposit stablecoins into a graded Morpho vault on ${esc(listNames(CONFIG.chains.map(c => c.name), 'or'))}.</p></div>${liveBadge()}</div>${statusPanel()}`;
     return;
   }
+  if (txBusy()) S.vaultId = TX.vid;                      // a transaction in flight keeps its vault on screen
   const v = vault(S.vaultId), r = risk(v), n = netApy(v);
   S.vaultId = v.id;
   const hot = v.util >= S.alerts.threshold;
@@ -1423,7 +1426,7 @@ function viewEarn() {
         </div>
       </div>
     </div>`;
-  $('view').querySelectorAll('[data-v]').forEach(b => b.onclick = () => { S.vaultId = b.dataset.v; UI.amount = ''; UI.stage = 'form'; render(); });
+  $('view').querySelectorAll('[data-v]').forEach(b => b.onclick = () => { if (txBusy()) return toast('Finish the transaction in your wallet first', true); S.vaultId = b.dataset.v; Object.assign(UI, { amount: '', max: false, stage: 'form' }); render(); });
   ({ form: renderForm, review: renderReview })[UI.stage === 'review' ? 'review' : 'form']();
 }
 
@@ -1433,15 +1436,17 @@ const maxAmt = () => { const v = vault(S.vaultId); return v ? (S.tab === 'deposi
 
 function formState() {
   const isDep = S.tab === 'deposit', a = amt(), max = maxAmt(), v = vault(S.vaultId);
-  const over = max != null && a > max + 1e-9;
+  const over = !UI.max && max != null && a > max + 1e-9;
+  const badDec = a > 0 && amtUnits(v, UI.amount) == null;
   const liqBlock = !isDep && a > v.liq;
   const paused = isDep && !!v.paused, net = wrongNet();
-  const valid = S.connected && a > 0 && !over && !liqBlock && !paused && !net;
+  const valid = S.connected && a > 0 && !badDec && !over && !liqBlock && !paused && !net;
   let label;
   if (paused) label = 'Deposits paused';
   else if (!S.connected) label = 'Connect wallet';
   else if (net) label = 'Switch network to continue';
   else if (a <= 0) label = 'Enter an amount';
+  else if (badDec) label = `Up to ${v.asset.decimals} decimals`;
   else if (over) label = 'Exceeds your balance';
   else if (liqBlock) label = 'Not enough vault liquidity';
   else label = isDep ? 'Review deposit' : 'Review withdrawal';
@@ -1476,7 +1481,7 @@ function renderForm() {
     <button type="button" class="btn btn-gold" id="primary" ${f.enabled ? '' : 'disabled'}>${f.label}</button>`;
   const br = $('balRetry'); if (br) br.onclick = () => { BAL.err = null; refreshBalances(); };
 
-  $('action').querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { S.tab = b.dataset.tab; UI.amount = ''; renderForm(); });
+  $('action').querySelectorAll('[data-tab]').forEach(b => b.onclick = () => { S.tab = b.dataset.tab; UI.amount = ''; UI.max = false; renderForm(); });
   $('action').querySelectorAll('[data-p]').forEach(b => b.onclick = () => {
     if (!S.connected) return connect();
     const m = maxAmt();
@@ -1484,6 +1489,7 @@ function renderForm() {
     if (m == null) return toast(otherNet(cv) ? esc(switchToSee(cv)) : 'Reading your balance…', true);
     if (m <= 0) return toast(S.tab === 'deposit' ? 'You have no ' + esc(sym(cv)) + ' on ' + esc(chainNm(cv.chainId)) : 'Nothing to withdraw from this vault', true);
     UI.amount = (Math.floor(m * +b.dataset.p) / 100).toFixed(2);
+    UI.max = +b.dataset.p === 100;
     $('amt').value = UI.amount; updateForm();
   });
   const inp = $('amt');
@@ -1491,7 +1497,7 @@ function renderForm() {
     let v = inp.value.replace(/[^0-9.]/g, ''); const parts = v.split('.');
     if (parts.length > 2) v = parts[0] + '.' + parts.slice(1).join('');
     if (v !== inp.value) inp.value = v;
-    UI.amount = v; updateForm();
+    UI.amount = v; UI.max = false; updateForm();
   });
   inp.addEventListener('keydown', e => { if (e.key === 'Enter') $('primary').click(); });
   $('primary').onclick = () => {
@@ -1506,42 +1512,297 @@ function updateForm() {
   const b = $('primary'); b.textContent = f.label; b.disabled = !f.enabled;
 }
 
+/* ===================== transactions (signed in the user's own wallet) =====================
+   Vault V2 is ERC-4626 with Morpho's signatures (morpho-org/vault-v2 src/VaultV2.sol):
+   deposit(assets, onBehalf) · withdraw(assets, receiver, onBehalf) · redeem(shares, receiver, onBehalf).
+   Its maxDeposit / maxWithdraw always return 0, so limits come from simulating the exact call (eth_call) instead.
+   Every call goes through the connected wallet: nothing is signed or sent by Olvana. */
+const SEL = { deposit: '0x6e553f65', withdraw: '0xb460af94', redeem: '0xba087652', approve: '0x095ea7b3', allowance: '0xdd62ed3e',
+  balanceOf: '0x70a08231', asset: '0x38d52e0f', isVaultV2: '0x5edec50d' };
+const encA = a => pad32(lcA(a));
+const encU = n => pad32(BigInt(n).toString(16));
+// exact decimal string → token units (bigint); null when it has more decimals than the token
+function amtUnits(v, str) {
+  const m = /^(\d*)(?:\.(\d*))?$/.exec(String(str || '').trim());
+  if (!v || !m || (!m[1] && !m[2])) return null;
+  const d = Number(v.asset.decimals), frac = m[2] || '';
+  if (!(d >= 0) || (frac.length > d && /[1-9]/.test(frac.slice(d)))) return null;
+  return BigInt(m[1] || '0') * 10n ** BigInt(d) + BigInt(frac.slice(0, d).padEnd(d, '0') || '0');
+}
+const userErr = msg => Object.assign(new Error(msg), { user: true });
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const txLink = (v, h) => `${esc(explorerFor(v.chainId))}/tx/${esc(h)}`;
+
+// Plain-English reasons for Vault V2 custom errors (ErrorsLib.sol) and Morpho Blue require strings.
+const REVERTS = {
+  '0x4616e4af': 'The vault is full: the curator\'s deposit cap is reached. Try a smaller amount or another vault.',
+  '0x44e1772c': 'The vault is full: the curator\'s deposit cap is reached. Try a smaller amount or another vault.',
+  '0x861a96d6': 'This vault only accepts deposits from approved addresses.',
+  '0x515b7cd9': 'This vault only accepts deposits from approved addresses.',
+  '0x876736d1': 'This vault\'s rules block withdrawals for this address right now.',
+  '0x8181c5ea': 'This vault\'s rules block withdrawals for this address right now.',
+  '0xe65b7a77': 'The token transfer failed. Check your balance and approval, then try again.',
+  '0x1eded19c': 'The token transfer failed. Check your balance and approval, then try again.',
+  '0xace2a47e': 'The vault could not send the tokens. Try again later.',
+  '0x2f0470fc': 'The vault could not send the tokens. Try again later.',
+};
+function revertData(e) {
+  const seen = new Set();
+  const walk = x => {
+    if (!x || seen.has(x)) return null;
+    if (typeof x === 'string') return /^0x[0-9a-fA-F]{8,}$/.test(x) ? x : null;
+    if (typeof x !== 'object') return null;
+    seen.add(x);
+    for (const k of ['data', 'error', 'originalError', 'cause', 'info']) { const r = walk(x[k]); if (r) return r; }
+    return null;
+  };
+  return walk(e);
+}
+function reasonText(r) {
+  const s = String(r || '').trim();
+  if (/insufficient liquidity/i.test(s)) return 'Not enough liquidity in the vault\'s markets right now. Try a smaller amount, or wait for borrowers to repay.';
+  if (/insufficient (balance|allowance)|exceeds (balance|allowance)/i.test(s)) return 'Not enough balance or approval for this amount.';
+  return s ? 'The contract refused: ' + s.slice(0, 160) : '';
+}
+function explainRevert(e) {
+  if (e && e.user) return e.message;
+  if (e && (e.code === 4001 || e.code === 'ACTION_REJECTED')) return 'You rejected the request in your wallet.';
+  const d = revertData(e);
+  if (d) {
+    const sel = d.slice(0, 10).toLowerCase();
+    if (REVERTS[sel]) return REVERTS[sel];
+    if (sel === '0x08c379a0' && d.length >= 138) {         // Error(string)
+      try {
+        const len = Number(BigInt('0x' + d.slice(74, 138)));
+        const hex = d.slice(138, 138 + len * 2);
+        const txt = new TextDecoder().decode(new Uint8Array(hex.match(/../g).map(h => parseInt(h, 16))));
+        const r = reasonText(txt); if (r) return r;
+      } catch (x) {}
+    }
+    if (sel === '0x4e487b71') return 'The amount is more than this wallet holds in the vault.';   // Panic (arithmetic underflow)
+  }
+  const m = /reverted(?: with reason string)?:?\s*['"]?([^'"\n]+)/i.exec((e && e.message) || '');
+  if (m && reasonText(m[1])) return reasonText(m[1]);
+  if (/insufficient funds/i.test((e && e.message) || '')) return 'Not enough ETH to pay the network fee.';
+  return 'The transaction would fail, and the contract gave no reason. Nothing was sent.';
+}
+
+const simCall = (to, data) => W.provider.request({ method: 'eth_call', params: [{ from: S.address, to, data }, 'latest'] });
+async function simOk(to, data) { try { await simCall(to, data); return { ok: true }; } catch (e) { return { ok: false, why: explainRevert(e) }; } }
+// right before every wallet prompt: same account, vault's network, vault still allowlisted
+async function guard(v) {
+  if (!W || !S.connected) throw userErr('Connect your wallet first.');
+  const a = await W.provider.request({ method: 'eth_accounts' }).catch(() => null);
+  if (!a || lcA(a[0]) !== S.address) throw userErr('The account in your wallet changed. Reconnect and try again.');
+  const cid = parseInt(await W.provider.request({ method: 'eth_chainId' }), 16);
+  if (cid !== v.chainId) throw userErr('Switch your wallet to ' + chainNm(v.chainId) + ' first.');
+  if (!VAULTS.some(x => x.id === v.id)) throw userErr('This vault is no longer on the allowlist.');
+}
+async function sendTx(v, to, data) {
+  await guard(v);
+  if (lcA(to) !== v.address && lcA(to) !== v.asset.address) throw userErr('Blocked: unexpected contract.');   // only the vault or its token
+  return W.provider.request({ method: 'eth_sendTransaction', params: [{ from: S.address, to, data }] });
+}
+async function waitReceipt(hash) {
+  const t0 = Date.now();
+  while (Date.now() - t0 < 15 * 60e3) {
+    const r = await W.provider.request({ method: 'eth_getTransactionReceipt', params: [hash] }).catch(() => null);
+    if (r && r.blockNumber) return r.status === '0x1' || r.status === 1;
+    await sleep(1500);
+  }
+  throw userErr('Still waiting for confirmation. Check the transaction in your wallet or on the explorer.');
+}
+
+// TX: the review in progress. key = what it was checked for; a new key re-runs the checks.
+let TX = null;
+const txBusy = () => !!(TX && TX.busy);
+const txKey = v => [v.id, S.tab, UI.amount, UI.max, S.address, UI.chainId].join('|');
+
+async function preflight(tx) {
+  const v = vault(tx.vid), set = (i, s, st) => { Object.assign(tx.checks[i], { s, st }); paintReview(); };
+  const me = S.address, dep = tx.isDep;
+  const call = (to, data) => ethCall(to, data);
+  try {
+    // 0 · allowlist: listed here, created by Morpho's Vault V2 factory for this network, holding the expected token
+    const ch = chainById(v.chainId);
+    const [isV2, assetWord] = await Promise.all([call(ch.vaultV2Factory, SEL.isVaultV2 + encA(v.address)), call(v.address, SEL.asset)]);
+    const listed = VAULTS.some(x => x.id === v.id) && hexBig(isV2) === 1n && lcA('0x' + String(assetWord).slice(-40)) === v.asset.address;
+    set(0, listed ? 'ok' : 'bad', listed ? 'Passed' : 'Not verified');
+    if (!listed) tx.block = 'This vault could not be verified onchain, so the app will not send to it.';
+    if (dep) {
+      const [bal, allow] = await Promise.all([call(v.asset.address, SEL.balanceOf + encA(me)), call(v.asset.address, SEL.allowance + encA(me) + encA(v.address))]);
+      tx.units = UI.max ? hexBig(bal) : amtUnits(v, UI.amount);
+      const enough = tx.units > 0n && hexBig(bal) >= tx.units;
+      set(1, enough ? 'ok' : 'bad', enough ? 'Passed' : 'Not enough ' + sym(v));
+      if (!enough) tx.block = tx.block || 'Your wallet holds less ' + sym(v) + ' than this amount.';
+      tx.allowance = hexBig(allow);
+      tx.needApprove = tx.allowance < tx.units;
+      if (tx.needApprove) {
+        // tokens like USDT refuse to change a non-zero allowance straight to another non-zero one
+        const a = await simOk(v.asset.address, SEL.approve + encA(v.address) + encU(tx.units));
+        tx.resetFirst = !a.ok && tx.allowance > 0n;
+        if (!a.ok && !tx.resetFirst) tx.block = tx.block || a.why;
+        set(2, 'wait', 'After approval'); set(3, 'wait', 'After approval');
+      } else {
+        const r = await simOk(v.address, SEL.deposit + encU(tx.units) + encA(me));
+        set(2, r.ok ? 'ok' : 'bad', r.ok ? 'Passed' : 'Would fail');
+        set(3, r.ok ? 'ok' : 'bad', r.ok ? 'Passed' : 'Not accepting');
+        if (!r.ok) tx.block = tx.block || r.why;
+      }
+    } else {
+      const shares = BAL.sh[bk(v.chainId, v.address)], pos = BAL.pos[bk(v.chainId, v.address)];
+      const want = UI.max ? pos : amtUnits(v, UI.amount);
+      // full exit (MAX, or the whole position) redeems every share so no dust is left behind
+      tx.redeemAll = shares != null && pos != null && (UI.max || want >= pos);
+      tx.units = tx.redeemAll ? pos : want;
+      tx.data = tx.redeemAll ? SEL.redeem + encU(shares) + encA(me) + encA(me) : SEL.withdraw + encU(want) + encA(me) + encA(me);
+      const r = shares != null && want > 0n ? await simOk(v.address, tx.data) : { ok: false, why: 'Your vault balance is still loading. Go back and try again.' };
+      set(1, r.ok ? 'ok' : 'bad', r.ok ? 'Passed' : 'Would fail');
+      const liq = r.ok || !/liquidity/i.test(r.why);
+      set(2, liq ? (r.ok ? 'ok' : 'wait') : 'bad', liq ? (r.ok ? 'Passed' : '—') : 'About ' + fmtUsdShort(v.liq) + ' free');
+      if (!r.ok) tx.block = r.why;
+    }
+  } catch (e) {
+    tx.block = tx.block || 'Could not run the checks through your wallet. ' + explainRevert(e);
+    tx.checks.forEach(c => { if (c.s === 'run') { c.s = 'bad'; c.st = 'Unavailable'; } });
+  }
+  tx.checks.forEach(c => { if (c.s === 'run') { c.s = 'bad'; c.st = 'Unavailable'; } });
+  tx.phase = tx.block ? 'blocked' : 'ready';
+  paintReview();
+}
+
+async function execute(tx) {
+  const v = vault(tx.vid), me = S.address, step = (i, s, h) => { Object.assign(tx.steps[i], { s }, h ? { h } : {}); paintReview(); };
+  tx.busy = true; tx.phase = 'running'; tx.err = null; paintReview();
+  let i = 0;
+  try {
+    if (tx.isDep) {
+      if (tx.needApprove) {
+        if (tx.resetFirst) {
+          step(i, 'sign');
+          const h0 = await sendTx(v, v.asset.address, SEL.approve + encA(v.address) + encU(0));
+          step(i, 'mine', h0);
+          if (!await waitReceipt(h0)) throw userErr('Resetting the old approval failed onchain.');
+          step(i++, 'done');
+        }
+        const ap = await simOk(v.asset.address, SEL.approve + encA(v.address) + encU(tx.units));
+        if (!ap.ok) throw userErr(ap.why);
+        step(i, 'sign');
+        const h1 = await sendTx(v, v.asset.address, SEL.approve + encA(v.address) + encU(tx.units));   // exact amount, never unlimited
+        step(i, 'mine', h1);
+        if (!await waitReceipt(h1)) throw userErr('The approval failed onchain. Nothing was deposited.');
+        step(i++, 'done');
+      }
+      // simulate the deposit itself right before the wallet prompt
+      const dd = SEL.deposit + encU(tx.units) + encA(me);
+      const r = await simOk(v.address, dd);
+      set2(tx, r.ok ? 'ok' : 'bad');
+      if (!r.ok) { throw userErr(r.why + (tx.needApprove ? ' Your approval stays set for this amount only.' : '')); }
+      step(i, 'sign');
+      const h = await sendTx(v, v.address, dd);
+      step(i, 'mine', h);
+      if (!await waitReceipt(h)) throw userErr('The deposit failed onchain. Your ' + sym(v) + ' stayed in your wallet.');
+      step(i, 'done'); tx.hash = h;
+    } else {
+      const r = await simOk(v.address, tx.data);
+      if (!r.ok) throw userErr(r.why);
+      step(0, 'sign');
+      const h = await sendTx(v, v.address, tx.data);
+      step(0, 'mine', h);
+      if (!await waitReceipt(h)) throw userErr('The withdrawal failed onchain. Your position is unchanged.');
+      step(0, 'done'); tx.hash = h;
+    }
+    tx.phase = 'done';
+    toast(tx.isDep ? 'Deposit confirmed' : 'Withdrawal confirmed');
+  } catch (e) {
+    tx.err = explainRevert(e);
+    tx.steps.forEach(s => { if (s.s === 'sign' || s.s === 'mine') s.s = 'fail'; });
+    tx.phase = 'failed';
+  } finally {
+    tx.busy = false;
+    refreshBalances();
+    paintReview();
+  }
+}
+// after the approval lands, the deposit simulation rows can finally be checked
+function set2(tx, s) { [2, 3].forEach(k => { tx.checks[k].s = s; tx.checks[k].st = s === 'ok' ? 'Passed' : 'Would fail'; }); }
+
 function renderReview() {
-  const isDep = S.tab === 'deposit', v = vault(S.vaultId), a = amt(), r = risk(v);
-  // s: 'ok' passed on live data · 'bad' warning on live data · 'later' runs when the transaction is built and signed
-  const checks = [
-    { l: 'Vault contract on allowlist', s: 'ok' },
-    { l: 'Transaction simulated', s: 'later' },
-    isDep ? { l: 'Vault accepting deposits', s: 'later' } : { l: 'Liquidity available to exit', s: a <= v.liq ? 'ok' : 'bad', warn: 'Not enough liquidity' },
-    { l: 'Oracle prices in range', s: v.oracle === 'Chainlink' ? 'later' : 'bad', warn: 'Non-Chainlink oracle' }
-  ];
-  $('action').innerHTML = `
-    <div><div class="mono muted" style="font-size:12px;margin-bottom:10px">${isDep ? 'Review deposit' : 'Review withdrawal'} · ${esc(v.name)}</div>
-    <div class="review-amt">${fmt(a)} <small>${esc(sym(v))}</small></div></div>
+  const v = vault(S.vaultId), key = txKey(v);
+  if (!txBusy() && !(TX && TX.phase === 'done') && (!S.connected || wrongNet())) { UI.stage = 'form'; return renderForm(); }   // checks need the vault's network
+  if (!(TX && (TX.busy || TX.key === key || (TX.phase === 'done' && TX.vid === v.id)))) {
+    const isDep = S.tab === 'deposit';
+    const oracleOk = v.oracle === 'Chainlink';
+    const checks = isDep
+      ? [{ l: 'Vault contract on allowlist' }, { l: 'Enough ' + sym(v) + ' in wallet' }, { l: 'Transaction simulated' }, { l: 'Vault accepting deposits' }]
+      : [{ l: 'Vault contract on allowlist' }, { l: 'Transaction simulated' }, { l: 'Liquidity available to exit' }];
+    checks.forEach(c => Object.assign(c, { s: 'run', st: 'Checking' }));
+    checks.push({ l: 'Oracle source', s: oracleOk ? 'ok' : 'bad', st: oracleOk ? 'Chainlink' : 'Non-Chainlink oracle', soft: true });
+    TX = { key, vid: v.id, isDep, a: amt(), max: UI.max, checks, phase: 'checking', block: null, busy: false, steps: [] };
+    paintReview();
+    preflight(TX);
+    return;
+  }
+  paintReview();
+}
+
+function paintReview() {
+  const box = $('action'); if (!box || !TX || UI.stage !== 'review' || location.hash.replace('#', '') !== 'app') return;
+  const tx = TX, v = vault(tx.vid), r = risk(v), u = esc(sym(v));
+  const a = tx.units != null ? toUnits(tx.units, v.asset.decimals) : tx.a;
+  const amtTxt = `${fmt(a, a < 1 ? 4 : 2)} ${u}`;
+  if (tx.phase !== 'checking' && !tx.steps.length) {
+    tx.steps = tx.isDep
+      ? [...(tx.needApprove && tx.resetFirst ? [{ l: 'Reset old approval to 0' }] : []), ...(tx.needApprove ? [{ l: `Approve exactly ${amtTxt}` }] : []), { l: `Deposit ${amtTxt}` }]
+      : [{ l: tx.redeemAll ? `Withdraw everything (${amtTxt})` : `Withdraw ${amtTxt}` }];
+    tx.steps.forEach(s => s.s = 'todo');
+  }
+  if (tx.phase === 'done') {
+    box.innerHTML = `
+      <div class="done-ic">${tickSvg(28)}</div>
+      <div><div class="mono muted" style="font-size:12px;margin-bottom:10px">${tx.isDep ? 'Deposit' : 'Withdrawal'} confirmed · ${esc(v.name)}</div>
+      <div class="review-amt">${fmt(a, a < 1 ? 4 : 2)} <small>${u}</small></div></div>
+      <p class="muted" style="margin:0;font-size:14px;line-height:1.55">${tx.isDep ? `Your ${u} is in ${esc(v.name)} on ${esc(chainNm(v.chainId))} and earns the vault's variable yield. You can withdraw any time the vault has liquidity.` : `The ${u} is back in your wallet on ${esc(chainNm(v.chainId))}.`}</p>
+      <div class="rows" style="font-size:14px">${tx.steps.map(s => `<div><span>${esc(s.l)}</span><span>${s.h ? `<a class="gold" href="${txLink(v, s.h)}" target="_blank" rel="noopener">View ↗</a>` : '—'}</span></div>`).join('')}</div>
+      <div class="grow"></div>
+      <div class="two"><a class="btn btn-glass" href="#portfolio">Portfolio</a><button type="button" class="btn btn-gold" id="again" style="flex:1">Done</button></div>`;
+    $('again').onclick = () => { TX = null; Object.assign(UI, { stage: 'form', amount: '', max: false }); render(); };
+    return;
+  }
+  const icon = s => s === 'ok' ? tickSvg() : s === 'bad' ? warnSvg(16) : s === 'run' ? '<span class="spin"></span>' : '<span class="dot" style="background:var(--dim);box-shadow:none;margin:0 4px"></span>';
+  const stepSt = s => ({ todo: '', sign: 'Confirm in wallet…', mine: 'Confirming onchain…', done: 'Done', fail: 'Stopped' }[s.s] || '');
+  const ready = tx.phase === 'ready' || tx.phase === 'failed';
+  const btn = tx.phase === 'checking' ? 'Running checks…' : tx.phase === 'blocked' ? 'Blocked by a check' : tx.busy ? 'Waiting for your wallet…'
+    : tx.phase === 'failed' ? 'Try again' : tx.steps.length > 1 ? `Approve & deposit` : tx.isDep ? `Deposit ${amtTxt}` : `Withdraw ${amtTxt}`;
+  box.innerHTML = `
+    <div><div class="mono muted" style="font-size:12px;margin-bottom:10px">${tx.isDep ? 'Review deposit' : 'Review withdrawal'} · ${esc(v.name)}</div>
+    <div class="review-amt">${fmt(a, a < 1 ? 4 : 2)} <small>${u}</small></div></div>
     <div class="rows" style="font-size:14px;border-top:1px solid var(--line2)">
-      <div><span>Vault</span><span>${esc(v.name)} · Morpho</span></div>
+      <div><span>Vault</span><span><a class="gold" href="${esc(explorerFor(v.chainId))}/address/${esc(v.address)}" target="_blank" rel="noopener">${esc(v.name)} · ${esc(short(v.address))} ↗</a></span></div>
       <div><span>Network</span><span>${esc(chainNm(v.chainId))}</span></div>
-      <div><span>Token</span><span style="display:inline-flex;align-items:center;gap:6px">${assetLogo(v, 16)}${esc(sym(v))}</span></div>
+      <div><span>Token</span><span style="display:inline-flex;align-items:center;gap:6px">${assetLogo(v, 16)}${u}</span></div>
       <div><span>Risk grade</span><span>${gradeChip(v)}</span></div>
       <div><span>Network fee</span><span>Shown in your wallet</span></div>
     </div>
     <div style="font-size:13px;font-weight:600">Pre-flight checks</div>
-    <div class="pf">${checks.map((c, i) => `<div class="pf-item" id="pf${i}"><span class="ic"><span class="spin"></span>${c.l}</span><span class="st">Checking</span></div>`).join('')}</div>
-    ${isDep && r.grade === 'C' ? `<div class="alert" style="margin:0">${warnSvg()}<div><b>Grade C vault.</b> Higher yield comes from riskier collateral and pricing. Only deposit what you can afford to have locked or lost.</div></div>` : ''}
+    <div class="pf">${tx.checks.map(c => `<div class="pf-item ${c.s === 'ok' ? 'ok' : c.s === 'bad' ? 'bad' : ''}"><span class="ic">${icon(c.s)}${esc(c.l)}</span><span class="st">${esc(c.st)}</span></div>`).join('')}</div>
+    ${tx.steps.length && tx.phase !== 'blocked' ? `<div style="font-size:13px;font-weight:600">In your wallet</div>
+    <div class="pf">${tx.steps.map((s, i) => `<div class="pf-item ${s.s === 'done' ? 'ok' : s.s === 'fail' ? 'bad' : ''}"><span class="ic">${s.s === 'done' ? tickSvg() : s.s === 'sign' || s.s === 'mine' ? '<span class="spin"></span>' : s.s === 'fail' ? warnSvg(16) : `<span class="mono muted" style="width:16px;text-align:center">${i + 1}</span>`}${esc(s.l)}</span><span class="st">${s.h ? `<a class="gold" href="${txLink(v, s.h)}" target="_blank" rel="noopener">${esc(stepSt(s) || 'View')} ↗</a>` : esc(stepSt(s))}</span></div>`).join('')}</div>` : ''}
+    ${tx.block ? `<div class="alert" role="alert" style="margin:0">${warnSvg()}<div>${esc(tx.block)}</div></div>` : ''}
+    ${tx.err ? `<div class="alert" role="alert" style="margin:0">${warnSvg()}<div>${esc(tx.err)}</div></div>` : ''}
+    ${tx.isDep && r.grade === 'C' && !tx.block ? `<div class="alert" style="margin:0">${warnSvg()}<div><b>Grade C vault.</b> Higher yield comes from riskier collateral and pricing. Only deposit what you can afford to have locked or lost.</div></div>` : ''}
     <div class="grow"></div>
     <div class="two">
-      <button type="button" class="btn btn-glass" id="back">Back</button>
-      <button type="button" class="btn btn-gold" id="confirm" style="flex:1;white-space:normal;line-height:1.2" disabled>Onchain ${isDep ? 'deposits' : 'withdrawals'} launch soon</button>
+      <button type="button" class="btn btn-glass" id="back" ${tx.busy ? 'disabled' : ''}>Back</button>
+      <button type="button" class="btn btn-gold" id="confirm" style="flex:1;white-space:normal;line-height:1.2" ${ready && !tx.busy ? '' : 'disabled'}>${btn}</button>
     </div>
-    <p class="muted" style="margin:0;font-size:12px;line-height:1.5">This preview does not move funds. Deposits will be signed in your wallet and go straight into the vault.</p>`;
-  $('back').onclick = () => { UI.stage = 'form'; renderForm(); };
-  checks.forEach((c, i) => setTimeout(() => {
-    const el = $('pf' + i); if (!el) return;
-    const sp = el.querySelector('.spin'); if (!sp) return;
-    if (c.s === 'ok') { el.classList.add('ok'); sp.outerHTML = tickSvg(); el.querySelector('.st').textContent = 'Passed'; }
-    else if (c.s === 'bad') { el.classList.add('bad'); sp.outerHTML = warnSvg(16); el.querySelector('.st').textContent = c.warn; }
-    else { sp.outerHTML = '<span class="dot" style="background:var(--dim);box-shadow:none;margin:0 4px"></span>'; el.querySelector('.st').textContent = 'At signing'; }
-  }, reduceMotion ? 0 : 320 + i * 360));
+    <p class="muted" style="margin:0;font-size:12px;line-height:1.5">${tx.isDep ? 'Approval is for this exact amount, never unlimited. ' : ''}Check that the contract in your wallet prompt is ${esc(short(tx.isDep && tx.steps.length > 1 ? v.asset.address : v.address))}${tx.isDep && tx.steps.length > 1 ? ` (${u}), then ${esc(short(v.address))} (vault)` : ''}. Olvana never holds your funds.</p>`;
+  $('back').onclick = () => { if (txBusy()) return; TX = null; UI.stage = 'form'; renderForm(); };
+  $('confirm').onclick = () => {
+    if (txBusy() || !(tx.phase === 'ready' || tx.phase === 'failed')) return;
+    if (tx.phase === 'failed') { TX = null; renderReview(); return; }   // re-run every check from fresh chain state
+    execute(tx);
+  };
 }
 
 /* ===================== VAULTS ===================== */
@@ -1560,7 +1821,7 @@ function vaultCard(v, inApp) {
     <a href="#app" class="btn ${r.grade === 'C' || v.paused ? 'btn-glass' : 'btn-gold'}" data-pick="${v.id}" style="width:100%">${v.paused ? 'Deposits paused · view vault' : 'Deposit in ' + esc(shortName(v.name))}</a>
   </article>`;
 }
-function bindPicks(root) { root.querySelectorAll('[data-pick]').forEach(a => a.addEventListener('click', () => { S.vaultId = a.dataset.pick; S.tab = 'deposit'; })); }
+function bindPicks(root) { root.querySelectorAll('[data-pick]').forEach(a => a.addEventListener('click', e => { if (txBusy()) { e.preventDefault(); return toast('Finish the transaction in your wallet first', true); } S.vaultId = a.dataset.pick; S.tab = 'deposit'; Object.assign(UI, { amount: '', max: false, stage: 'form' }); })); }
 
 function viewVaults() {
   const head = `<div class="page-head"><div><h1>Vaults</h1><p>Compare yield against risk. Grades update as utilization and collateral change.</p></div>${liveBadge()}</div>`;
@@ -1787,11 +2048,12 @@ function viewSecurity() {
   const addr = (a, chainId) => a ? `<a href="${esc(explorerFor(chainId))}/address/${esc(lcA(a))}" target="_blank" rel="noopener" class="gold">${esc(short(lcA(a)))} ↗</a>` : '<span class="muted">[pending]</span>';
   const site = CONFIG.siteUrl.replace(/^https?:\/\//, '');
   const checks = [
-    ['Vault contract on allowlist', 'Blocks if not listed'],
+    ['Vault contract on allowlist, verified onchain with the Morpho factory', 'Blocks if not verified'],
+    ['Enough balance in your wallet', 'Blocks if short'],
     ['Transaction simulated', 'Blocks on revert'],
     ['Liquidity available to exit', 'Blocks if short'],
-    ['Vault accepting deposits', 'Blocks if paused'],
-    ['Oracle prices in range', 'Warns']
+    ['Vault accepting deposits', 'Blocks if paused or full'],
+    ['Oracle source', 'Warns if not Chainlink']
   ];
   // contracts grouped per network: listed vaults, then the pinned stablecoins and Morpho core contracts on that network
   const vaultRows = (VAULTS.length ? '' : `<tr><td colspan="3" class="muted" style="white-space:normal">${esc(liveMsg())}</td></tr>`) + CONFIG.chains.map(ch => `

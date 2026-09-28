@@ -11,7 +11,8 @@
     "./points": "./src/points.ts",
     "./stats": "./src/stats.ts",
     "./alerts": "./src/alerts.ts",
-    "./morpho": "./src/morpho.ts"
+    "./morpho": "./src/morpho.ts",
+    "./tx": "./src/tx.ts"
   },
   "scripts": {
     "typecheck": "tsc -p tsconfig.json",

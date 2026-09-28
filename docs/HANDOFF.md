@@ -75,6 +75,7 @@ Everything below lives in `packages/core/config.ts` (and `.env`). Do **not** har
 
 ### 4.2 Withdraw
 1. `vault.maxWithdraw(user)` → cap input. Also show vault-level liquidity.
+   **Vault V2:** `maxWithdraw` / `maxDeposit` always return 0 (see `VaultV2.sol`), so cap the input at the user's position (`convertToAssets(balanceOf)`) and let the simulation of the exact call decide; show the vault's free liquidity from the API.
 2. Partial: `vault.withdraw(assets, receiver = user, owner = user)`.
    Full exit: `vault.redeem(vault.balanceOf(user), user, user)` (avoids dust).
 3. Simulate first, then send.
@@ -91,9 +92,9 @@ Robinhood Chain only has **Morpho Vault V2**. Use `vaultV2Abi` from `packages/co
 ### 4.4 Pre-flight checks (shown in the Review step, must all run before the wallet prompt)
 | Check | Implementation | On fail |
 |---|---|---|
-| Contract allowlist | target vault address ∈ `VAULTS[]` config | block |
+| Contract allowlist | target vault address ∈ `VAULTS[]` config, `VaultV2Factory.isVaultV2(vault)` and `vault.asset()` = pinned token, read onchain | block |
 | Transaction simulated | `publicClient.simulateContract` succeeds | block, show revert reason |
-| Liquidity available (withdraw) | `amount <= vault.maxWithdraw(user)` | block, show available amount |
+| Liquidity available (withdraw) | simulation of the exact `withdraw`/`redeem` succeeds (Vault V2 `maxWithdraw` is always 0) | block, show available amount |
 | Vault accepting deposits | simulate succeeds / not paused / cap not hit | block |
 | Oracle in range | collateral oracle price vs reference DEX price, deviation ≤ X% (config) | **warn**, don't block (v1 may treat non-Chainlink oracles as warn, like the prototype) |
 
