@@ -2434,13 +2434,6 @@ async function fetchDetails(cands) {
   if (cands.length && !ok.length) { const f = res.find(r => r.status === 'rejected'); if (f) throw f.reason; }
   return ok;
 }
-async function fetchVaultItems() {
-  // networks in parallel: one failing network must not hide the others; only when all fail is it an error
-  const lists = await Promise.allSettled(CONFIG.chains.map(fetchChainList));
-  if (lists.every(r => r.status === 'rejected')) throw lists[0].reason;
-  LIVE.failed = CONFIG.chains.filter((c, k) => lists[k].status === 'rejected').map(c => c.id);
-  return fetchDetails(lists.flatMap(r => r.status === 'fulfilled' ? r.value : []).filter(keepVault));
-}
 // Vault V1 loads after the V2 vaults are on screen, so it never delays the page; failures only log.
 async function fetchVaultItemsV1() {
   const v1 = await Promise.allSettled(CONFIG.chains.map(fetchChainListV1));
@@ -2542,21 +2535,34 @@ function sortVaults(list) {
 async function refreshLive() {
   if (LIVE.busy) return;
   LIVE.busy = true;
-  const first = !LIVE.loaded && !LIVE.err;
-  try {
-    const items = await fetchVaultItems();
-    VAULTS = sortVaults([...items.filter(keepVault).map(mapVault), ...V1_VAULTS]);   // previous V1 set until the new one lands
+  const first = !LIVE.loaded && !LIVE.err, t0 = performance.now();
+  const paint = () => { if (document.body.classList.contains('in-app')) render(); else renderLanding(); };
+  // Each network is shown as soon as its own list + details are in, so one slow network (Ethereum has the most
+  // vaults) never holds the others back. Networks not reported yet keep their previous vaults during a refresh.
+  const got = new Map();
+  const merge = () => sortVaults([...VAULTS.filter(v => v.kind !== 'v1' && !got.has(v.chainId)), ...[...got.values()].flat(), ...V1_VAULTS]);
+  const res = await Promise.allSettled(CONFIG.chains.map(async ch => {
+    const list = await fetchChainList(ch);
+    const items = await fetchDetails(list.filter(keepVault));
+    got.set(ch.id, items.filter(keepVault).map(mapVault));
+    console.info(`[olvana] ${ch.name}: ${got.get(ch.id).length} vault(s) in ${Math.round(performance.now() - t0)} ms`);
+    VAULTS = merge();
     LIVE.at = Date.now(); LIVE.err = null; LIVE.loaded = true;
-    if (S.connected) setTimeout(refreshBalances, 0);
-    checkAlerts(first || !document.body.classList.contains('in-app'));
-  } catch (e) {
-    LIVE.err = e && e.message || 'error';
+    paint();
+  }));
+  res.forEach((r, k) => { if (r.status === 'rejected') console.warn(`[olvana] ${CONFIG.chains[k].name} failed:`, r.reason && r.reason.message); });
+  LIVE.failed = CONFIG.chains.filter((c, k) => res[k].status === 'rejected').map(c => c.id);
+  if (res.every(r => r.status === 'rejected')) {
+    LIVE.err = (res[0].reason && res[0].reason.message) || 'error';
     LIVE.failed = [];
     if (LIVE.at && Date.now() - LIVE.at > DROP_MS) { VAULTS = []; V1_VAULTS = []; }   // never keep showing numbers more than an hour old
-  } finally {
-    LIVE.busy = false;
+  } else {
+    VAULTS = sortVaults([...[...got.values()].flat(), ...V1_VAULTS]);   // a network that failed this round drops out
+    if (S.connected) setTimeout(refreshBalances, 0);
+    checkAlerts(first || !document.body.classList.contains('in-app'));
   }
-  if (document.body.classList.contains('in-app')) render(); else renderLanding();
+  LIVE.busy = false;
+  paint();
   if (!LIVE.err) refreshV1();
 }
 
