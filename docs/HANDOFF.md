@@ -237,6 +237,9 @@ model CuratorIncident { id Int @id @default(autoincrement())  curator String  no
 
 Points balance for display = ledger sum + live accrual since last `periodEnd` (computed in API).
 
+### 7.2b Vault snapshot (live today)
+Until the worker/API exist, the server runs `pnpm --filter @olvana/core snapshot /var/www/olvana/vaults.json` every 2 minutes (cron). `buildSnapshot()` fetches every network's Vault V2 + V1 lists and details once and writes them atomically; the site loads `/vaults.json` first so every vault appears at once. The site still applies `keepVault`, ignores a snapshot older than 20 minutes and then falls back to live Morpho API calls. A failed run keeps the previous file.
+
 ### 7.3 API (Fastify)
 ```
 GET  /vaults                         latest snapshot per vault + grade breakdown

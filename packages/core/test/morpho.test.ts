@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { USDG_ADDRESS, VAULT_V2_FACTORY_ADDRESS } from '../src/config';
 import {
+  buildSnapshot,
   fetchLiveStableVaults,
   fromApiV1,
   keepVault,
@@ -377,5 +378,28 @@ describe('Vault V1 (MetaMorpho)', () => {
     const { f } = api([vault()], { v1: [v1()], failV1: true });
     const out = await fetchLiveStableVaults({ fetchImpl: f, url: 'x' });
     expect(out.map((v) => v.name)).toEqual(['Steakhouse USDG']);
+  });
+});
+
+describe('buildSnapshot (server-side /vaults.json)', () => {
+  it('collects V2 + V1 detail items with kind and chainId, filtered like the site', async () => {
+    const eth = { chainId: 1, address: '0x' + '5'.repeat(40), name: 'Steakhouse USDC', listed: true, factory: { address: '0xA9c3D3a366466Fa809d1Ae982Fb2c46E5fC41101' },
+      asset: { address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', symbol: 'USDC', decimals: 6 }, liquidity: { underlying: '1', usd: 1e6 },
+      state: { totalAssets: '1', totalAssetsUsd: 50e6, fee: 0.1, weeklyApy: 0.05, dailyApy: 0.05, curators: [], allocation: [] } } as ApiVaultV1 & { chainId: number };
+    const { f } = api([vault(), vault({ address: '0x' + '9'.repeat(40), name: 'Fake', factory: { address: '0x' + '1'.repeat(40) } })], { v1: [eth], failChain: 8453 });
+    const snap = await buildSnapshot({ fetchImpl: f, url: 'x', now: new Date('2026-09-28T00:00:00Z') });
+    expect(snap.version).toBe(1);
+    expect(snap.at).toBe('2026-09-28T00:00:00.000Z');
+    expect(snap.items.map((v) => [v.name, v.kind, v.chainId])).toEqual([
+      ['Steakhouse USDG', 'v2', 4663],
+      ['Steakhouse USDC', 'v1', 1],
+    ]);
+    expect(snap.items[0]!.adapters?.items?.length).toBeGreaterThan(0);
+    expect(snap.failed).toEqual([8453]);
+    expect(JSON.parse(JSON.stringify(snap)).items.length).toBe(2);   // plain JSON
+  });
+  it('throws when every network fails (the script then keeps the previous file)', async () => {
+    const { f } = api([vault()], { status: 500 });
+    await expect(buildSnapshot({ fetchImpl: f, url: 'x' })).rejects.toThrow();
   });
 });

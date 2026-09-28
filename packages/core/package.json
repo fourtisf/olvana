@@ -19,7 +19,8 @@
     "test": "vitest run",
     "config:todos": "tsx scripts/config-todos.ts",
     "verify:onchain": "tsx scripts/verify-onchain.ts",
-    "live:vaults": "tsx scripts/live-vaults.ts"
+    "live:vaults": "tsx scripts/live-vaults.ts",
+    "snapshot": "tsx scripts/snapshot.ts"
   },
   "dependencies": {
     "viem": "^2.56.9"

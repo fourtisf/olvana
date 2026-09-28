@@ -2631,9 +2631,41 @@ function sortVaults(list) {
   const home = v => v.chainId === CONFIG.homeChainId && sym(v) === 'USDG' ? 1 : 0;
   return list.sort((a, b) => (home(b) - home(a)) || (b.tvl - a.tvl) || a.id.localeCompare(b.id));
 }
+// Server-side snapshot (/vaults.json, written every few minutes by packages/core scripts/snapshot.ts): one request,
+// every vault at once, already detailed. Items still go through keepVault + mapVault here. Missing, broken or older
+// than 20 minutes → the live per-network path below.
+const SNAP_MAX_AGE = 20 * 60e3;
+async function loadSnapshot() {
+  if (!/^https?:$/.test(location.protocol)) return false;
+  const ctl = new AbortController(), tm = setTimeout(() => ctl.abort(), 6000);
+  try {
+    const r = await fetch('/vaults.json', { cache: 'no-store', signal: ctl.signal });
+    if (!r.ok) return false;
+    const j = await r.json();
+    const at = Date.parse(j && j.at);
+    if (!j || j.version !== 1 || !Array.isArray(j.items) || !(Date.now() - at < SNAP_MAX_AGE)) return false;
+    const list = sortVaults(j.items.filter(keepVault).map(mapVault));
+    if (!list.length) return false;
+    VAULTS = list; V1_VAULTS = list.filter(v => v.kind === 'v1');
+    Object.assign(LIVE, { at, err: null, loaded: true, failed: (Array.isArray(j.failed) ? j.failed : []).filter(id => chainById(id)).map(Number) });
+    return true;
+  } catch (e) {
+    return false;
+  } finally {
+    clearTimeout(tm);
+  }
+}
 async function refreshLive() {
   if (LIVE.busy) return;
   LIVE.busy = true;
+  const firstLoad = !LIVE.loaded && !LIVE.err;
+  if (await loadSnapshot()) {
+    LIVE.busy = false;
+    if (S.connected) setTimeout(refreshBalances, 0);
+    checkAlerts(firstLoad || !document.body.classList.contains('in-app'));
+    if (document.body.classList.contains('in-app')) render(); else renderLanding();
+    return;
+  }
   const first = !LIVE.loaded && !LIVE.err, t0 = performance.now();
   const paint = () => { if (document.body.classList.contains('in-app')) render(); else renderLanding(); };
   // Each network is shown as soon as its own list + details are in, so one slow network (Ethereum has the most

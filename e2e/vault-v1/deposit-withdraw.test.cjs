@@ -76,6 +76,7 @@ const WALLET = (user) => {
   await page.route('**/api/morpho', r => r.fulfill(api(r.request().postData())));
   await page.route('https://api.morpho.org/**', r => r.fulfill(api(r.request().postData())));
   await page.route(ORIGIN + '/', r => r.fulfill({ status: 200, contentType: 'text/html', body: HTML }));
+  await page.route('**/vaults.json', r => r.fulfill({ status: 404, body: '' }));   // no server snapshot: live API path
   await page.addInitScript(WALLET, USER);
   await page.goto(ORIGIN + '/#app'); await page.waitForTimeout(1500);
 

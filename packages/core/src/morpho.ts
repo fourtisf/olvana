@@ -479,3 +479,64 @@ export async function fetchLiveStableVaults(
     .map((v) => toLiveVault(v, { overrides: opts.overrides }))
     .sort((a, b) => (a.asset.symbol === 'USDG' ? 0 : 1) - (b.asset.symbol === 'USDG' ? 0 : 1) || b.tvlUsd - a.tvlUsd);
 }
+
+/* ------------------------------------------------------------------ */
+/* Server-side snapshot                                               */
+/* ------------------------------------------------------------------ */
+
+/**
+ * Everything the website needs to draw every vault at once, prepared on the
+ * server (scripts/snapshot.ts, run every few minutes) and served as
+ * /vaults.json. Items are the raw API shapes the site already maps (Vault V2
+ * detail, or Vault V1 through `fromApiV1`); the site still applies its own
+ * `keepVault` filter, so the snapshot never widens what gets listed.
+ */
+export interface VaultSnapshot {
+  version: 1;
+  /** ISO time the data was fetched. The site ignores a snapshot older than 20 minutes. */
+  at: string;
+  items: ApiVaultV2[];
+  /** Chains whose Vault V2 list failed this round. */
+  failed: number[];
+}
+
+async function mapLimit<T, R>(items: readonly T[], n: number, fn: (x: T) => Promise<R>): Promise<PromiseSettledResult<R>[]> {
+  const out: PromiseSettledResult<R>[] = new Array(items.length);
+  let i = 0;
+  await Promise.all(
+    Array.from({ length: Math.min(n, items.length) }, async () => {
+      while (i < items.length) {
+        const k = i++;
+        try {
+          out[k] = { status: 'fulfilled', value: await fn(items[k]!) };
+        } catch (reason) {
+          out[k] = { status: 'rejected', reason };
+        }
+      }
+    }),
+  );
+  return out;
+}
+
+export async function buildSnapshot(
+  opts: { url?: string; fetchImpl?: typeof fetch; chainIds?: readonly number[]; concurrency?: number; now?: Date } = {},
+): Promise<VaultSnapshot> {
+  const gql = gqlClient(opts.url ?? MORPHO_API_URL, opts.fetchImpl ?? fetch);
+  const chainIds = opts.chainIds ?? CHAINS.map((c) => c.id);
+  const [v2, v1] = await Promise.all([
+    Promise.allSettled(chainIds.map((id) => listVaults(gql, id))),
+    Promise.allSettled(chainIds.map((id) => listVaultsV1(gql, id))),
+  ]);
+  if (v2.every((r) => r.status === 'rejected') && v2.length) throw (v2[0] as PromiseRejectedResult).reason;
+  const candidates = [...v2, ...v1].flatMap((r) => (r.status === 'fulfilled' ? r.value : [])).filter((v) => keepVault(v));
+  const details = await mapLimit(candidates, opts.concurrency ?? 8, (c) =>
+    c.kind === 'v1' ? fetchVaultDetailV1(gql, c.address, c.chainId!) : fetchVaultDetail(gql, c.address, c.chainId),
+  );
+  const items = details.flatMap((r) => (r.status === 'fulfilled' && r.value && keepVault(r.value) ? [r.value] : []));
+  return {
+    version: 1,
+    at: (opts.now ?? new Date()).toISOString(),
+    items,
+    failed: chainIds.filter((_, k) => v2[k]!.status === 'rejected'),
+  };
+}
