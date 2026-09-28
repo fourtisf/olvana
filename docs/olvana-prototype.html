@@ -185,6 +185,13 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;bac
 .vstat small{font-size:11px;color:var(--faint)}
 .vstat b{font-family:var(--mono);font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .vflags{display:flex;flex-wrap:wrap;gap:6px}
+.backed{display:flex;flex-direction:column;gap:10px}
+.bbar{display:flex;gap:2px;height:6px;border-radius:999px;overflow:hidden;background:var(--line2)}
+.bbar i{display:block;height:100%;min-width:3px}
+.blist{display:flex;flex-wrap:wrap;align-items:center;gap:6px 14px;font-size:12.5px}
+.blist span{display:inline-flex;align-items:center;gap:6px;cursor:help}
+.blist span.muted{cursor:default}
+.blist span i{width:8px;height:8px;border-radius:50%}
 .vflags span{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid rgba(255,146,112,.3);color:var(--warn);cursor:help}
 .vbtn{width:100%;margin-top:auto}
 .vcard .apy{font-size:46px;font-weight:600;letter-spacing:-.04em;line-height:1}
@@ -258,12 +265,14 @@ footer{position:relative;z-index:1;padding:80px 0 calc(48px + env(safe-area-inse
 .dcard.msg p{margin:0;font-size:15px;line-height:1.55;color:var(--muted)}
 .dcard .apy{font-size:72px;font-weight:600;letter-spacing:-.045em;line-height:1}
 .dcard .apy small{font-size:18px;color:var(--muted);font-weight:500;letter-spacing:0;margin-left:6px}
-.dcard .go{margin-top:auto;flex:none;height:50px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:15px;background:var(--gold-grad);color:#fff}
+.dcard .go{margin-top:auto;flex:none;height:50px;border-radius:999px;display:flex;align-items:center;justify-content:center;font-weight:600;font-size:15px;background:var(--gold-grad);color:#fff;min-width:0}
+.dcard .go-t{padding:0 20px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .deck-hint{margin:0;font-size:12px;color:var(--faint);font-family:var(--mono)}
 .deck-pick{display:flex;gap:6px;padding:5px;border-radius:999px;border:1px solid var(--line);background:rgba(10,10,20,.6)}
 .deck-pick button{height:38px;padding:0 16px;border-radius:999px;border:0;background:transparent;color:var(--muted);font-size:14px;font-weight:500;display:flex;align-items:center;gap:8px}
 .deck-pick button.on{background:rgba(123,92,255,.18);color:var(--ink)}
-.deck-pick i{width:8px;height:8px;border-radius:50%;display:inline-block}
+.deck-pick i{width:8px;height:8px;border-radius:50%;display:inline-block;flex:none}
+.deck-pick button span{max-width:160px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .marquee{position:relative;z-index:1;margin-top:40px;border-top:1px solid var(--line);border-bottom:1px solid var(--line);overflow:hidden;background:rgba(10,10,20,.5)}
 .marquee-track{display:flex;width:max-content;animation:mq 38s linear infinite}
 .marquee:hover .marquee-track{animation-play-state:paused}
@@ -1103,7 +1112,31 @@ const gradeChip = (v, withScore = true) => { const r = risk(v); return `<span cl
 const MIN_SHOW = 0.5;
 const shownCollat = v => v.collateral.filter(c => c.s >= MIN_SHOW);
 const collatChips = v => shownCollat(v).map(c => `<span>${collatLogo(c)}${esc(c.a)} ${c.s}%</span>`).join('');
-const collatRow = v => { const h = collatChips(v); return h ? `<div class="collat">${h}</div>` : ''; };
+// Plain-language collateral groups for cards. Token names (PT-USDat-14JAN2027, sUSDai…) stay in the tooltips and on
+// the Earn page, where each token also carries its group.
+const CAT = { stable: 'Stablecoins', fixed: 'Fixed-rate stablecoins', btc: 'Bitcoin', eth: 'Ethereum', stock: 'Stocks', gold: 'Gold', other: 'Other tokens' };
+const CAT_COL = { stable: '#7EE0B8', fixed: '#A99BFF', btc: '#F5B85A', eth: '#7CC4FF', stock: '#FF9270', gold: '#E8C872', other: '#6B6D8A' };
+const DOLLARISH = /USD|DAI|GHO|FRAX/i;
+function collatCat(c) {
+  const a = String(c.a);
+  if (c.kind === 'equity') return 'stock';
+  if (/^PT-/i.test(a)) return DOLLARISH.test(a) ? 'fixed' : /BTC/i.test(a) ? 'btc' : /ETH/i.test(a) ? 'eth' : 'other';   // Pendle principal tokens
+  if (/BTC/i.test(a)) return 'btc';
+  if (/ETH/i.test(a)) return 'eth';
+  if (/XAU|PAXG|GOLD/i.test(a)) return 'gold';
+  if (c.kind === 'stable' || DOLLARISH.test(a)) return 'stable';
+  return 'other';
+}
+function backedBy(v) {
+  const g = new Map();
+  for (const c of v.collateral) { const k = collatCat(c), e = g.get(k) || { s: 0, names: [] }; e.s += c.s; e.names.push(`${c.a} ${c.s}%`); g.set(k, e); }
+  const list = [...g].sort((a, b) => b[1].s - a[1].s);
+  if (!list.length) return '';
+  const pct = x => x >= 10 ? Math.round(x) + '%' : (Math.round(x * 10) / 10) + '%';
+  return `<div class="backed"><div class="bbar">${list.map(([k, e]) => `<i style="width:${e.s}%;background:${CAT_COL[k]}"></i>`).join('')}</div>
+    <div class="blist"><span class="muted">Backed by</span>${list.map(([k, e]) => `<span title="${esc(e.names.join(', '))}"><i style="background:${CAT_COL[k]}"></i>${CAT[k]} ${pct(e.s)}</span>`).join('')}</div></div>`;
+}
+const collatRow = v => backedBy(v);
 const refCode = () => 'OLV-' + (S.address ? S.address.slice(-4).toUpperCase() : '0000');
 const refLink = () => `${CONFIG.siteUrl}/?ref=${refCode()}`;
 
@@ -1458,7 +1491,7 @@ function viewEarn() {
           <div class="panel">
             <h3 class="h4">Collateral exposure</h3>
             ${shownCollat(v).length ? `<div class="comp">${shownCollat(v).map((c, i) => `<div style="width:${c.s}%;background:${SW_COLORS[i % SW_COLORS.length]}"></div>`).join('')}</div>` : v.collateral.length ? '' : '<p class="muted" style="font-size:13px;margin:14px 0">No lending markets with collateral right now.</p>'}
-            <div class="rows" style="font-size:14px">${shownCollat(v).map((c, i) => `<div><span style="color:var(--ink);display:flex;align-items:center;gap:8px"><i class="sw" style="background:${SW_COLORS[i % SW_COLORS.length]};margin-right:2px"></i>${collatLogo(c, 16)}${esc(c.a)}</span><span class="muted">${c.s}% · LLTV ${c.l}%</span></div>`).join('')}
+            <div class="rows" style="font-size:14px">${shownCollat(v).map((c, i) => `<div><span style="color:var(--ink);display:flex;align-items:center;gap:8px"><i class="sw" style="background:${SW_COLORS[i % SW_COLORS.length]};margin-right:2px"></i>${collatLogo(c, 16)}<span style="display:flex;flex-direction:column;line-height:1.25">${esc(c.a)}<small class="muted" style="font-size:11px">${CAT[collatCat(c)]}</small></span></span><span class="muted">${c.s}% · LLTV ${c.l}%</span></div>`).join('')}
               <div><span>Oracle</span><span>${v.oracle}</span></div>
             </div>
           </div>
@@ -1882,10 +1915,9 @@ const fmtEst = n => n >= 1000 ? fmt(n, 0) : fmt(n, 2);
 const estLine = v => `<div class="est" data-apy="${netApy(v)}"><span class="muted">On <b data-est-amt>${fmtEst(UI.est)}</b> ${esc(sym(v))}</span><span><b class="gold" data-est-m>+${fmtEst(earnMonth(UI.est, netApy(v)))}</b> / month</span><span><b class="gold" data-est-y>+${fmtEst(earnYear(UI.est, netApy(v)))}</b> / year</span></div>`;
 const sortBy = (list, k) => [...list].sort((a, b) => k === 'tvl' ? b.tvl - a.tvl : k === 'grade' ? (risk(b).score - risk(a).score) || (netApy(b) - netApy(a)) : (netApy(b) - netApy(a)) || (b.tvl - a.tvl));
 // Short labels for the card; the full sentence stays in the tooltip, on the Earn page and in the table.
-const FLAG_SHORT = { equity: 'Tokenized stocks', lltv: 'High LLTV', peg: 'Off peg', synthetic: 'Synthetic dollar' };
+const FLAG_SHORT = { equity: 'Stock collateral', lltv: 'Thin safety buffer', peg: 'Off $1 peg', synthetic: 'Synthetic dollar' };
 function vaultCard(v, inApp) {
   const r = risk(v), hot = v.util >= S.alerts.threshold, fl = riskFlags(v);
-  const col = shownCollat(v), top = col.slice(0, 3), more = col.length - top.length;
   const stat = (label, value, style = '') => `<div class="vstat"><small>${label}</small><b style="${style}">${value}</b></div>`;
   return `<article class="vcard ${inApp && S.vaultId === v.id ? 'sel' : ''}">
     <div class="vcard-top"><div class="vcard-id">${assetLogo(v, 36)}<div style="min-width:0"><h3 title="${esc(v.name)}">${esc(v.name)}</h3><div class="vmeta">${esc(sym(v))} ${chainChip(v)} <span>· ${esc(v.curator)}</span></div></div></div>${gradeChip(v)}</div>
@@ -1900,7 +1932,7 @@ function vaultCard(v, inApp) {
       ${stat('Oracle', esc(v.oracle))}
       ${stat('Running for', `<span title="${v.ageDays != null ? 'Since ' + esc(sinceDate(v)) : ''}">${fmtAge(v.ageDays)}</span>`)}
     </div>
-    ${col.length ? `<div class="collat">${top.map(c => `<span title="${esc(c.a)} ${c.s}%">${collatLogo(c)}<i>${esc(c.a)}</i> ${c.s}%</span>`).join('')}${more > 0 ? `<span class="more" title="${esc(col.slice(3).map(c => c.a + ' ' + c.s + '%').join(', '))}">+${more} more</span>` : ''}</div>` : ''}
+    ${backedBy(v)}
     ${fl.length ? `<div class="vflags">${fl.map(f => `<span title="${esc(f.text)}">${warnSvg(12)}${esc(FLAG_SHORT[f.k] || 'Risk flag')}</span>`).join('')}</div>` : ''}
     <a href="#app" class="btn ${r.grade === 'C' || v.paused ? 'btn-glass' : 'btn-gold'} vbtn" data-pick="${v.id}">${v.paused ? 'Deposits paused · view' : 'Deposit ' + esc(sym(v))}</a>
   </article>`;
@@ -2265,7 +2297,7 @@ function renderLanding() {
           <div><span>${t('d.wd')}</span><span>${fmtUsdShort(v.liq)}</span></div>
         </div>
         ${collatRow(v)}
-        <span class="go">${esc(t('d.depositIn', { v: shortName(v.name) }))}</span>
+        <span class="go"><span class="go-t">${esc(t('d.depositIn', { v: shortName(v.name) }))}</span></span>
       </button>`;
     }).join('');
     const bringFront = id => {
@@ -2274,7 +2306,7 @@ function renderLanding() {
       $('deckPick').querySelectorAll('button').forEach(b => { const on = b.dataset.id === id; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on); });
     };
     $('deckPick').style.display = top.length > 1 ? '' : 'none';
-    $('deckPick').innerHTML = top.length > 1 ? top.map(id => { const v = vault(id); return `<button type="button" data-id="${id}"><i style="background:${GCOL[risk(v).grade]}"></i>${esc(shortName(v.name))}</button>`; }).join('') : '';
+    $('deckPick').innerHTML = top.length > 1 ? top.map(id => { const v = vault(id); return `<button type="button" data-id="${id}"><i style="background:${GCOL[risk(v).grade]}"></i><span title="${esc(v.name)}">${esc(shortName(v.name))}</span></button>`; }).join('') : '';
     $('deckPick').querySelectorAll('button').forEach(b => b.onclick = () => bringFront(b.dataset.id));
     $('heroDeck').querySelectorAll('.dcard').forEach(c => c.onclick = () => {
       const id = c.dataset.id;
