@@ -45,7 +45,7 @@ describe('networks', () => {
     const { getAddress } = await import('viem');
     const { CHAINS } = await import('../src/config');
     for (const c of CHAINS) {
-      for (const a of [c.morphoBlue, c.vaultV2Factory, ...Object.values(c.stablecoinPins)]) expect(getAddress(a)).toBe(a);
+      for (const a of [c.morphoBlue, c.vaultV2Factory, ...c.metaMorphoFactories, ...Object.values(c.stablecoinPins)]) expect(getAddress(a)).toBe(a);
     }
   });
   it('ids are unique and include the home network', async () => {

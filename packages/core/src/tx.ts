@@ -10,6 +10,11 @@
  * Its maxDeposit / maxWithdraw / maxRedeem always return 0 ("gross
  * underestimation" because gates can revert), so limits come from simulating
  * the exact call rather than from the max* views.
+ *
+ * Vault V1 (MetaMorpho) is plain ERC-4626 with the same selectors
+ * (deposit(assets, receiver), withdraw / redeem(…, receiver, owner)), so the
+ * same plans apply. Its maxDeposit is real (room left under the caps): check it
+ * before asking for an approval.
  */
 import { decodeErrorResult, encodeFunctionData, type Address, type Hex } from 'viem';
 import { erc20Abi, vaultV2Abi } from './abis';
@@ -115,6 +120,14 @@ const VAULT_REASONS: Record<string, string> = {
   TransferFromReturnedFalse: 'The token transfer failed. Check your balance and approval, then try again.',
   TransferReverted: 'The vault could not send the tokens. Try again later.',
   TransferReturnedFalse: 'The vault could not send the tokens. Try again later.',
+  // Vault V1 (MetaMorpho v1.1 ErrorsLib, OpenZeppelin ERC-4626 / ERC-20)
+  AllCapsReached: 'The vault is full: every market it lends to is at its cap. Try a smaller amount or another vault.',
+  ERC4626ExceededMaxDeposit: "The vault is full: the curator's deposit cap is reached. Try a smaller amount or another vault.",
+  NotEnoughLiquidity: "Not enough liquidity in the vault's markets right now. Try a smaller amount, or wait for borrowers to repay.",
+  ERC4626ExceededMaxWithdraw: 'Not enough liquidity in the vault right now. Try a smaller amount, or wait for borrowers to repay.',
+  ERC4626ExceededMaxRedeem: 'Not enough liquidity in the vault right now. Try a smaller amount, or wait for borrowers to repay.',
+  ERC20InsufficientBalance: 'Not enough balance for this amount.',
+  ERC20InsufficientAllowance: 'The approval is lower than this amount. Go back and review again.',
 };
 
 function reasonText(reason: string): string {
@@ -124,9 +137,25 @@ function reasonText(reason: string): string {
   return s ? 'The contract refused: ' + s.slice(0, 160) : '';
 }
 
-// Vault V2 errors plus the two Solidity built-ins, so every name is typed.
+// Vault V2 errors, the Vault V1 (MetaMorpho v1.1) errors a depositor can hit, and the two Solidity built-ins.
+const exceeded = (name: string) => ({
+  type: 'error',
+  name,
+  inputs: [
+    { name: 'account', type: 'address' },
+    { name: 'amount', type: 'uint256' },
+    { name: 'max', type: 'uint256' },
+  ],
+}) as const;
 const REVERT_ABI = [
   ...vaultV2Abi,
+  { type: 'error', name: 'AllCapsReached', inputs: [] },
+  { type: 'error', name: 'NotEnoughLiquidity', inputs: [] },
+  exceeded('ERC4626ExceededMaxDeposit'),
+  exceeded('ERC4626ExceededMaxWithdraw'),
+  exceeded('ERC4626ExceededMaxRedeem'),
+  exceeded('ERC20InsufficientBalance'),
+  exceeded('ERC20InsufficientAllowance'),
   { type: 'error', name: 'Error', inputs: [{ name: 'message', type: 'string' }] },
   { type: 'error', name: 'Panic', inputs: [{ name: 'code', type: 'uint256' }] },
 ] as const;

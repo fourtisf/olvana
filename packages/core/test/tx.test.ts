@@ -32,6 +32,17 @@ describe('selectors the site hand-encodes (docs/olvana-prototype.html SEL)', () 
     expect(toFunctionSelector('allowance(address,address)')).toBe('0xdd62ed3e');
     expect(toFunctionSelector('isVaultV2(address)')).toBe('0x5edec50d');
     expect(toFunctionSelector('asset()')).toBe('0x38d52e0f');
+    expect(toFunctionSelector('isMetaMorpho(address)')).toBe('0x29b5352c');
+    expect(toFunctionSelector('maxDeposit(address)')).toBe('0x402d267d');
+    for (const [sel, sig] of [
+      ['0xded0652d', 'AllCapsReached()'],
+      ['0x4323a555', 'NotEnoughLiquidity()'],
+      ['0x79012fb2', 'ERC4626ExceededMaxDeposit(address,uint256,uint256)'],
+      ['0xfe9cceec', 'ERC4626ExceededMaxWithdraw(address,uint256,uint256)'],
+      ['0xb94abeec', 'ERC4626ExceededMaxRedeem(address,uint256,uint256)'],
+      ['0xe450d38c', 'ERC20InsufficientBalance(address,uint256,uint256)'],
+      ['0xfb8f41b2', 'ERC20InsufficientAllowance(address,uint256,uint256)'],
+    ]) expect(toFunctionSelector(sig!)).toBe(sel);
     expect(encodeFunctionData({ abi: vaultV2Abi, functionName: 'deposit', args: [1n, USER] }).slice(0, 10)).toBe('0x6e553f65');
   });
 });
@@ -92,6 +103,12 @@ describe('explainRevert', () => {
   });
   it('decodes Panic as more than the position', () => {
     expect(explainRevert(('0x4e487b71' + word(0x11n)) as `0x${string}`)).toMatch(/more than this wallet holds/);
+  });
+  it('maps Vault V1 (MetaMorpho) errors', () => {
+    expect(explainRevert('0xded0652d')).toMatch(/every market it lends to is at its cap/); // AllCapsReached()
+    expect(explainRevert('0x4323a555')).toMatch(/Not enough liquidity/); // NotEnoughLiquidity()
+    const over = ('0x79012fb2' + word(USER) + word(5n) + word(1n)) as `0x${string}`; // ERC4626ExceededMaxDeposit
+    expect(explainRevert(over)).toMatch(/vault is full/);
   });
   it('falls back when there is no reason', () => {
     expect(explainRevert(undefined)).toBe(UNKNOWN_REVERT);

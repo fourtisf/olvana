@@ -1,6 +1,15 @@
 import { describe, expect, it } from 'vitest';
 import { USDG_ADDRESS, VAULT_V2_FACTORY_ADDRESS } from '../src/config';
-import { fetchLiveStableVaults, keepVault, toLiveVault, visibleCollateral, type ApiMarketPosition, type ApiVaultV2 } from '../src/morpho';
+import {
+  fetchLiveStableVaults,
+  fromApiV1,
+  keepVault,
+  toLiveVault,
+  visibleCollateral,
+  type ApiMarketPosition,
+  type ApiVaultV1,
+  type ApiVaultV2,
+} from '../src/morpho';
 
 const FACTORY = VAULT_V2_FACTORY_ADDRESS!;
 const pos = (symbol: string | null, usd: number, util: number, lltv: string, oracle = 'ChainlinkOracleV2'): ApiMarketPosition => ({
@@ -195,32 +204,53 @@ describe('toLiveVault', () => {
   });
 });
 
-describe('fetchLiveStableVaults (list → detail)', () => {
-  /** Fake API: answers the list query with `items`, the detail query by address. */
-  const api = (items: ApiVaultV2[], opt: { failDetail?: boolean; status?: number; errors?: string; failChain?: number } = {}) => {
-    const calls: string[] = [];
-    const f = (async (_url: string, init: { body: string }) => {
-      const { query, variables } = JSON.parse(init.body);
-      const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
-      if (opt.status) return json({}, opt.status);
-      if (opt.errors) return json({ errors: [{ message: opt.errors }] });
-      const onChain = (v: ApiVaultV2) => (v.chainId ?? 4663) === (variables.c?.[0] ?? variables.c);
-      if (query.includes('vaultV2s(')) {
-        calls.push('list:' + variables.c[0]);
-        if (opt.failChain === variables.c[0]) return json({}, 500);
-        const pool = items.filter(onChain).map(({ chainId: _c, ...v }) => v);
-        return json({ data: { vaultV2s: { items: pool.slice(variables.s, variables.s + 50) } } });
+/** Fake API: answers the list query with `items`, the detail query by address. */
+const api = (
+  items: ApiVaultV2[],
+  opt: { failDetail?: boolean; status?: number; errors?: string; failChain?: number; v1?: (ApiVaultV1 & { chainId: number })[]; failV1?: boolean } = {},
+) => {
+  const calls: string[] = [];
+  const f = (async (_url: string, init: { body: string }) => {
+    const { query, variables } = JSON.parse(init.body);
+    const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status, headers: { 'content-type': 'application/json' } });
+    if (opt.status) return json({}, opt.status);
+    if (opt.errors) return json({ errors: [{ message: opt.errors }] });
+    const onChain = (v: ApiVaultV2) => (v.chainId ?? 4663) === (variables.c?.[0] ?? variables.c);
+    if (query.includes('vaults(') || query.includes('vaultByAddress(')) {
+      // Vault V1 (MetaMorpho)
+      if (opt.failV1) return json({ errors: [{ message: 'Unknown argument "listed"' }] });
+      const chain = variables.c?.[0] ?? variables.c;
+      const pool = (opt.v1 ?? []).filter((v) => v.chainId === chain);
+      if (query.includes('vaults(')) {
+        calls.push('v1list:' + chain);
+        return json({ data: { vaults: { items: pool.filter((v) => variables.sy.includes(v.asset.symbol)).map(({ chainId: _c, ...v }) => ({ ...v, state: { totalAssets: v.state?.totalAssets, totalAssetsUsd: v.state?.totalAssetsUsd } })) } } });
       }
-      const isAlloc = query.includes('adapters(');
-      calls.push((isAlloc ? 'alloc:' : 'detail:') + variables.a);
-      if (opt.failDetail) return json({ errors: [{ message: 'Query is too complex' }] });
-      const v = items.find((x) => x.address === variables.a && onChain(x)) ?? null;
-      if (isAlloc) return json({ data: { vaultV2ByAddress: v ? { adapters: v.adapters } : null } });
-      const base = v ? { ...v, adapters: undefined } : null;
-      return json({ data: { vaultV2ByAddress: base } });
-    }) as unknown as typeof fetch;
-    return { f, calls };
-  };
+      const v = pool.find((x) => x.address === variables.a);
+      const isAlloc = query.includes('allocation');
+      calls.push((isAlloc ? 'v1alloc:' : 'v1detail:') + variables.a);
+      if (!v) return json({ data: { vaultByAddress: null } });
+      const rest = { ...v, chainId: undefined }; // dropped by JSON.stringify
+      if (isAlloc) return json({ data: { vaultByAddress: { state: { allocation: rest.state?.allocation ?? [] } } } });
+      return json({ data: { vaultByAddress: { ...rest, state: { ...rest.state, allocation: undefined } } } });
+    }
+    if (query.includes('vaultV2s(')) {
+      calls.push('list:' + variables.c[0]);
+      if (opt.failChain === variables.c[0]) return json({}, 500);
+      const pool = items.filter(onChain).map(({ chainId: _c, ...v }) => v);
+      return json({ data: { vaultV2s: { items: pool.slice(variables.s, variables.s + 50) } } });
+    }
+    const isAlloc = query.includes('adapters(');
+    calls.push((isAlloc ? 'alloc:' : 'detail:') + variables.a);
+    if (opt.failDetail) return json({ errors: [{ message: 'Query is too complex' }] });
+    const v = items.find((x) => x.address === variables.a && onChain(x)) ?? null;
+    if (isAlloc) return json({ data: { vaultV2ByAddress: v ? { adapters: v.adapters } : null } });
+    const base = v ? { ...v, adapters: undefined } : null;
+    return json({ data: { vaultV2ByAddress: base } });
+  }) as unknown as typeof fetch;
+  return { f, calls };
+};
+
+describe('fetchLiveStableVaults (list → detail)', () => {
 
   it('lists, filters, then fetches details only for kept vaults; USDG first, then TVL', async () => {
     const items = [
@@ -268,5 +298,84 @@ describe('fetchLiveStableVaults (list → detail)', () => {
     await expect(fetchLiveStableVaults({ fetchImpl: api([], { status: 500 }).f })).rejects.toThrow('HTTP 500');
     await expect(fetchLiveStableVaults({ fetchImpl: api([], { errors: 'bad field' }).f })).rejects.toThrow('bad field');
     await expect(fetchLiveStableVaults({ fetchImpl: api([vault()], { failDetail: true }).f })).rejects.toThrow('too complex');
+  });
+});
+
+describe('Vault V1 (MetaMorpho)', () => {
+  const ETH_USDC = '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48';
+  const V1_0 = '0xA9c3D3a366466Fa809d1Ae982Fb2c46E5fC41101';
+  const V1_1_ETH = '0x1897A8997241C1cD4bD0698647e4EB7213535c24';
+  const v1 = (o: Partial<ApiVaultV1> = {}, chainId = 1): ApiVaultV1 & { chainId: number } => ({
+    chainId,
+    address: '0x' + '5'.repeat(40),
+    name: 'Steakhouse USDC',
+    symbol: 'steakUSDC',
+    listed: true,
+    creationTimestamp: String(Date.parse('2024-01-01T00:00:00Z') / 1000),
+    factory: { address: V1_0.toLowerCase() },
+    asset: { address: ETH_USDC, symbol: 'USDC', decimals: 6, logoURI: null },
+    liquidity: { underlying: '90000000000000', usd: 90e6 },
+    state: {
+      totalAssets: '400000000000000',
+      totalAssetsUsd: 400e6,
+      fee: 0.1,
+      curator: '0x' + 'c'.repeat(40),
+      weeklyApy: 0.05,
+      dailyApy: 0.048,
+      curators: [{ name: 'Steakhouse Financial', verified: true }],
+      allocation: [
+        { supplyAssetsUsd: 200e6, market: pos('wstETH', 1, 0.9, '860000000000000000').market },
+        { supplyAssetsUsd: 150e6, market: pos('WBTC', 1, 0.88, '860000000000000000').market },
+        { supplyAssetsUsd: 50e6, market: pos(null, 1, 0, '0').market },
+      ],
+    },
+    ...o,
+  });
+
+  it('maps to the shared shape: net = weeklyApy × (1 − fee), no reward tokens; allocation → collateral', () => {
+    const lv = toLiveVault(fromApiV1(v1(), 1), { now });
+    expect(lv.kind).toBe('v1');
+    expect(lv.netApy).toBeCloseTo(4.5, 10);
+    expect(lv.grossApy).toBeCloseTo(5, 10);
+    expect(lv.tvlUsd).toBe(400e6);
+    expect(lv.liquidityUsd).toBe(90e6);
+    expect(lv.collateral.map((c) => [c.symbol, c.share])).toEqual([
+      ['wstETH', 57.1],
+      ['WBTC', 42.9],
+    ]);
+    expect(lv.curator).toBe('Steakhouse Financial');
+    expect(lv.risk.grade).toBe('A');
+  });
+
+  it('keepVault accepts the v1.0 and v1.1 MetaMorpho factories of the network, nothing else', () => {
+    expect(keepVault(fromApiV1(v1(), 1))).toBe(true);
+    expect(keepVault(fromApiV1(v1({ factory: { address: V1_1_ETH } }), 1))).toBe(true);
+    expect(keepVault(fromApiV1(v1({ factory: { address: '0x' + '9'.repeat(40) } }), 1))).toBe(false);
+    // a V1 vault never passes as V2, and the V2 factory never passes for a V1 vault
+    expect(keepVault({ ...fromApiV1(v1(), 1), kind: 'v2' })).toBe(false);
+    expect(keepVault(fromApiV1(v1({ factory: { address: '0xA1D94F746dEfa1928926b84fB2596c06926C0405' } }), 1))).toBe(false);
+    // Arbitrum has only v1.1; Robinhood Chain has no V1 factory at all
+    expect(keepVault(fromApiV1(v1({ factory: { address: V1_0 } }), 42161))).toBe(false);
+    expect(keepVault(fromApiV1(v1({ asset: { address: USDG_ADDRESS!, symbol: 'USDG', decimals: 6 } }), 4663))).toBe(false);
+    // pins and TVL still apply
+    expect(keepVault(fromApiV1(v1({ asset: { address: '0x' + '4'.repeat(40), symbol: 'USDC', decimals: 6 } }), 1))).toBe(false);
+    expect(keepVault(fromApiV1(v1({ state: { ...v1().state, totalAssetsUsd: 900 } }), 1))).toBe(false);
+  });
+
+  it('fetchLiveStableVaults lists V1 next to V2; V1 list only runs where a MetaMorpho factory exists', async () => {
+    const { f, calls } = api([vault()], { v1: [v1(), v1({ address: '0x' + '7'.repeat(40), name: 'Rogue', factory: { address: '0x' + '9'.repeat(40) } })] });
+    const out = await fetchLiveStableVaults({ fetchImpl: f, url: 'x' });
+    expect(out.map((v) => [v.name, v.kind])).toEqual([
+      ['Steakhouse USDG', 'v2'],
+      ['Steakhouse USDC', 'v1'],
+    ]);
+    expect(calls.filter((c) => c.startsWith('v1list:')).sort()).toEqual(['v1list:1', 'v1list:42161', 'v1list:8453']);
+    expect(calls).not.toContain('v1detail:0x' + '7'.repeat(40));   // filtered before any detail query
+  });
+
+  it('a failing V1 query never hides the V2 vaults', async () => {
+    const { f } = api([vault()], { v1: [v1()], failV1: true });
+    const out = await fetchLiveStableVaults({ fetchImpl: f, url: 'x' });
+    expect(out.map((v) => v.name)).toEqual(['Steakhouse USDG']);
   });
 });

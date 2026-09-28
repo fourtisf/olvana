@@ -7,8 +7,9 @@
  *
  * `toLiveVault` turns one API vault into the shape the risk score and UI use.
  * `keepVault` is the safety filter: anyone can deploy a vault called "USDG",
- * so only listed vaults from the official Vault V2 factory whose asset is an
- * allowlisted stablecoin trading near $1 are kept.
+ * so only listed vaults from an official factory of their network (Vault V2
+ * factory, or a MetaMorpho factory for Vault V1) whose asset is an allowlisted
+ * stablecoin trading near $1 are kept.
  */
 import { CHAINS, CHAIN_ID, MIN_TVL_USD, MORPHO_API_URL, STABLECOINS, SYNTHETIC_STABLECOINS, chainById } from './config';
 import {
@@ -59,6 +60,30 @@ export const VAULT_ALLOCATION_QUERY = `query($a:String!,$c:Int!){
   }
 }`;
 
+/**
+ * Morpho Vault V1 (MetaMorpho), same list → detail → allocation split. The list
+ * is narrowed server-side to listed vaults in a listed stablecoin.
+ */
+export const V1_LIST_QUERY = `query($c:[Int!],$s:Int,$sy:[String!]){
+  vaults(first: 50, skip: $s, where:{chainId_in:$c, listed:true, assetSymbol_in:$sy}){
+    items{ address name listed factory{ address } asset{ address symbol decimals } state{ totalAssets totalAssetsUsd } }
+  }
+}`;
+export const V1_DETAIL_QUERY = `query($a:String!,$c:Int!){
+  vaultByAddress(address:$a, chainId:$c){
+    address name symbol listed creationTimestamp
+    factory{ address }
+    asset{ address symbol decimals logoURI }
+    liquidity{ underlying usd }
+    state{ totalAssets totalAssetsUsd fee curator weeklyApy dailyApy curators{ name verified } }
+  }
+}`;
+export const V1_ALLOCATION_QUERY = `query($a:String!,$c:Int!){
+  vaultByAddress(address:$a, chainId:$c){
+    state{ allocation{ supplyAssetsUsd market{ lltv collateralAsset{ symbol address logoURI } oracle{ type } state{ utilization } } } }
+  }
+}`;
+
 /** Kept for the website copy and older callers: the per-vault detail query. */
 export const STABLE_VAULTS_QUERY = VAULT_DETAIL_QUERY;
 
@@ -75,6 +100,8 @@ export interface ApiMarketPosition {
 export interface ApiVaultV2 {
   /** Set by us from the query's chain (the list query is run per chain). */
   chainId?: number;
+  /** Set by us: 'v1' for MetaMorpho vaults mapped by `fromApiV1`; absent or 'v2' for Vault V2. */
+  kind?: VaultKind;
   address: string;
   name: string;
   symbol: string;
@@ -97,6 +124,72 @@ export interface ApiVaultV2 {
   } | null;
 }
 
+export type VaultKind = 'v1' | 'v2';
+
+/** Morpho API `Vault` (MetaMorpho / Vault V1), as far as the queries above read it. */
+export interface ApiVaultV1 {
+  address: string;
+  name: string;
+  symbol?: string;
+  listed: boolean;
+  creationTimestamp?: string;
+  factory: { address: string };
+  asset: { address: string; symbol: string; decimals: number; priceUsd?: number | null; logoURI?: string | null };
+  liquidity?: { underlying: string | null; usd: number | null } | null;
+  state?: {
+    totalAssets?: string | null;
+    totalAssetsUsd?: number | null;
+    fee?: number | null;
+    curator?: string | null;
+    weeklyApy?: number | null;
+    dailyApy?: number | null;
+    curators?: { name: string; verified: boolean }[] | null;
+    allocation?: { supplyAssetsUsd: number | null; market: ApiMarketPosition['market'] }[] | null;
+  } | null;
+}
+
+/**
+ * Vault V1 → the Vault V2 shape used everywhere else. Net APY is the weekly APY
+ * *without* reward tokens, after the curator fee (weeklyApy × (1 − fee)), so
+ * incentives never inflate the headline number.
+ */
+export function fromApiV1(v: ApiVaultV1, chainId: number): ApiVaultV2 {
+  const st = v.state ?? {};
+  const fee = st.fee ?? 0;
+  const net = (x: number | null | undefined) => (x == null ? null : x * (1 - fee));
+  return {
+    kind: 'v1',
+    chainId,
+    address: v.address,
+    name: v.name,
+    symbol: v.symbol ?? '',
+    listed: v.listed,
+    creationTimestamp: v.creationTimestamp,
+    factory: v.factory,
+    asset: v.asset,
+    totalAssets: st.totalAssets ?? null,
+    totalAssetsUsd: st.totalAssetsUsd ?? null,
+    liquidity: v.liquidity?.underlying ?? null,
+    liquidityUsd: v.liquidity?.usd ?? null,
+    performanceFee: fee,
+    managementFee: 0,
+    net7d: net(st.weeklyApy),
+    net1d: net(st.dailyApy),
+    curator: st.curator ? { address: st.curator } : undefined,
+    curators: { items: st.curators ?? [] },
+    adapters: {
+      items: [
+        {
+          address: v.address,
+          type: 'MetaMorphoAllocation',
+          assetsUsd: null,
+          positions: { items: (st.allocation ?? []).map((a) => ({ state: { supplyAssetsUsd: a.supplyAssetsUsd }, market: a.market })) },
+        },
+      ],
+    },
+  };
+}
+
 export interface LiveCollateral {
   symbol: string;
   /** Share of market allocation, percent (1 decimal). */
@@ -111,6 +204,8 @@ export interface LiveCollateral {
 
 export interface LiveVault {
   chainId: number;
+  /** Morpho Vault V1 (MetaMorpho) or Vault V2. Both are ERC-4626; deposit / withdraw / redeem share selectors. */
+  kind: VaultKind;
   address: string;
   name: string;
   /** The stablecoin deposited into the vault. */
@@ -161,7 +256,8 @@ export const STABLE_PRICE_TOLERANCE = 0.02;
 
 /**
  * Safety filter. Defaults come from the vault's network in CHAINS: its official
- * Vault V2 factory and its stablecoin address pins. Options override them (tests).
+ * factories (Vault V2, or MetaMorpho for `kind: 'v1'`) and its stablecoin
+ * address pins. Options override them (tests).
  */
 export function keepVault(
   v: ApiVaultV2,
@@ -176,7 +272,7 @@ export function keepVault(
   } = {},
 ): boolean {
   const chain = chainById(v.chainId ?? CHAIN_ID);
-  const factory = 'factory' in opts ? opts.factory : chain?.vaultV2Factory;
+  const factories = 'factory' in opts ? [opts.factory] : v.kind === 'v1' ? (chain?.metaMorphoFactories ?? []) : [chain?.vaultV2Factory];
   const pins: Record<string, string | null | undefined> = { ...(opts.pins ?? chain?.stablecoinPins ?? {}) };
   if ('usdgAddress' in opts) pins.USDG = opts.usdgAddress;
   const symbols = opts.stablecoins ?? STABLECOINS;
@@ -187,7 +283,7 @@ export function keepVault(
   const pin = pins[v.asset.symbol];
   if (pin && !eq(v.asset.address, pin)) return false;
   if (!v.listed && !opts.allowUnlisted) return false;
-  if (!factory || !eq(v.factory?.address, factory)) return false;
+  if (!factories.some((f) => eq(v.factory?.address, f))) return false;
   return tvlOf(v) >= (opts.minTvlUsd ?? MIN_TVL_USD);
 }
 
@@ -259,6 +355,7 @@ export function toLiveVault(v: ApiVaultV2, opts: { now?: Date; overrides?: Colla
 
   return {
     chainId: v.chainId ?? CHAIN_ID!,
+    kind: v.kind === 'v1' ? 'v1' : 'v2',
     address: v.address,
     name: v.name,
     asset: { symbol: v.asset.symbol, address: v.asset.address, decimals: v.asset.decimals },
@@ -318,7 +415,32 @@ export async function fetchVaultDetail(gql: Gql, address: string, chainId: numbe
     gql<{ vaultV2ByAddress: Pick<ApiVaultV2, 'adapters'> | null }>(VAULT_ALLOCATION_QUERY, { a: address, c: chainId }),
   ]);
   if (!base.vaultV2ByAddress) return null;
-  return { ...base.vaultV2ByAddress, chainId, adapters: alloc.vaultV2ByAddress?.adapters ?? { items: [] } };
+  return { ...base.vaultV2ByAddress, kind: 'v2', chainId, adapters: alloc.vaultV2ByAddress?.adapters ?? { items: [] } };
+}
+
+/** Stage 1 for Vault V1: listed stablecoin MetaMorpho vaults on one chain ([] where the chain has no V1 factory). */
+export async function listVaultsV1(gql: Gql, chainId: number, maxPages = 10): Promise<ApiVaultV2[]> {
+  if (!chainById(chainId)?.metaMorphoFactories.length) return [];
+  const out: ApiVaultV2[] = [];
+  for (let page = 0; page < maxPages; page++) {
+    const d = await gql<{ vaults: { items: ApiVaultV1[] | null } }>(V1_LIST_QUERY, { c: [chainId], s: page * 50, sy: STABLECOINS });
+    const items = d.vaults?.items ?? [];
+    out.push(...items.map((v) => fromApiV1(v, chainId)));
+    if (items.length < 50) break;
+  }
+  return out;
+}
+
+/** Stage 2 for Vault V1: vault fields + market allocation (two queries, merged). */
+export async function fetchVaultDetailV1(gql: Gql, address: string, chainId: number): Promise<ApiVaultV2 | null> {
+  type R = { vaultByAddress: ApiVaultV1 | null };
+  const [base, alloc] = await Promise.all([
+    gql<R>(V1_DETAIL_QUERY, { a: address, c: chainId }),
+    gql<{ vaultByAddress: { state: { allocation: NonNullable<ApiVaultV1['state']>['allocation'] } | null } | null }>(V1_ALLOCATION_QUERY, { a: address, c: chainId }),
+  ]);
+  if (!base.vaultByAddress) return null;
+  const st = { ...(base.vaultByAddress.state ?? {}), allocation: alloc.vaultByAddress?.state?.allocation ?? [] };
+  return fromApiV1({ ...base.vaultByAddress, state: st }, chainId);
 }
 
 /**
@@ -342,11 +464,17 @@ export async function fetchLiveStableVaults(
 ): Promise<LiveVault[]> {
   const gql = gqlClient(opts.url ?? MORPHO_API_URL, opts.fetchImpl ?? fetch, opts.signal);
   const chainIds = opts.chainIds ?? CHAINS.map((c) => c.id);
-  const lists = await Promise.allSettled(chainIds.map((id) => listVaults(gql, id)));
+  const [lists, v1] = await Promise.all([
+    Promise.allSettled(chainIds.map((id) => listVaults(gql, id))),
+    // Vault V1 is best-effort: a failing V1 query never hides the V2 vaults.
+    Promise.allSettled(chainIds.map((id) => listVaultsV1(gql, id))),
+  ]);
   const listFailures = lists.filter((r) => r.status === 'rejected') as PromiseRejectedResult[];
   if (listFailures.length === lists.length && lists.length) throw listFailures[0]!.reason;
-  const candidates = lists.flatMap((r) => (r.status === 'fulfilled' ? r.value : [])).filter((v) => keepVault(v));
-  const details = await Promise.allSettled(candidates.map((c) => fetchVaultDetail(gql, c.address, c.chainId)));
+  const candidates = [...lists, ...v1].flatMap((r) => (r.status === 'fulfilled' ? r.value : [])).filter((v) => keepVault(v));
+  const details = await Promise.allSettled(
+    candidates.map((c) => (c.kind === 'v1' ? fetchVaultDetailV1(gql, c.address, c.chainId!) : fetchVaultDetail(gql, c.address, c.chainId))),
+  );
   const ok = details.flatMap((r) => (r.status === 'fulfilled' && r.value && keepVault(r.value) ? [r.value] : []));
   const failed = details.filter((r) => r.status === 'rejected') as PromiseRejectedResult[];
   if (candidates.length && !ok.length && failed.length) throw failed[0]!.reason;

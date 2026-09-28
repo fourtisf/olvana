@@ -98,8 +98,14 @@ export interface ChainConfig {
   short: string;
   explorer: string;
   morphoBlue: Address;
-  /** Only vaults created by this factory are listed on this chain. */
+  /** Only vaults created by this factory (Vault V2) or one of `metaMorphoFactories` (Vault V1) are listed on this chain. */
   vaultV2Factory: Address;
+  /**
+   * Morpho Vault V1 (MetaMorpho) factories: the registry's `metaMorphoFactory` (v1.1), plus the v1.0 factory
+   * that Morpho's SDK also accepts on Ethereum and Base (blue-sdk-viem contracts/GetVault.sol @ 61a904b).
+   * Empty where Morpho has no V1 deployment (Robinhood Chain: Vault V2 only).
+   */
+  metaMorphoFactories: readonly Address[];
   /** Stablecoin symbol → the one token address accepted for it on this chain. */
   stablecoinPins: Readonly<Record<string, Address>>;
   /** Only for chains wallets may not know yet (used by wallet_addEthereumChain). */
@@ -113,6 +119,10 @@ export interface ChainConfig {
  * Chain was verified onchain. See docs/VERIFICATION.md. Robinhood Chain is the
  * home network. To add a chain: copy its values from the same registry.
  */
+/** MetaMorpho v1.0 factory, same address on Ethereum and Base (Morpho SDK GetVault.sol @ 61a904b). */
+export const METAMORPHO_V1_0_FACTORY: Address = '0xA9c3D3a366466Fa809d1Ae982Fb2c46E5fC41101';
+const METAMORPHO_V1_1_FACTORY_ETHEREUM: Address = '0x1897A8997241C1cD4bD0698647e4EB7213535c24';
+
 export const CHAINS: readonly ChainConfig[] = [
   {
     id: 4663,
@@ -122,6 +132,7 @@ export const CHAINS: readonly ChainConfig[] = [
     explorer: 'https://robinhoodchain.blockscout.com',
     morphoBlue: '0x9D53d5E3bd5E8d4Cbfa6DB1ca238AEA02E651010',
     vaultV2Factory: '0x0FBad98595b0186dA120E41f77C102beb49f803c',
+    metaMorphoFactories: [],
     stablecoinPins: { USDG: '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168' },
     rpcUrl: 'https://rpc.mainnet.chain.robinhood.com',
   },
@@ -133,6 +144,7 @@ export const CHAINS: readonly ChainConfig[] = [
     explorer: 'https://etherscan.io',
     morphoBlue: '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb',
     vaultV2Factory: '0xA1D94F746dEfa1928926b84fB2596c06926C0405',
+    metaMorphoFactories: [METAMORPHO_V1_1_FACTORY_ETHEREUM, METAMORPHO_V1_0_FACTORY],
     stablecoinPins: {
       USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48',
       USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
@@ -147,6 +159,7 @@ export const CHAINS: readonly ChainConfig[] = [
     explorer: 'https://basescan.org',
     morphoBlue: '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb',
     vaultV2Factory: '0x4501125508079A99ebBebCE205DeC9593C2b5857',
+    metaMorphoFactories: ['0xFf62A7c278C62eD665133147129245053Bbf5918', METAMORPHO_V1_0_FACTORY],
     stablecoinPins: { USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' },
   },
   {
@@ -157,6 +170,7 @@ export const CHAINS: readonly ChainConfig[] = [
     explorer: 'https://arbiscan.io',
     morphoBlue: '0x6c247b1F6182318877311737BaC0844bAa518F5e',
     vaultV2Factory: '0x6b46fa3cc9EBF8aB230aBAc664E37F2966Bf7971',
+    metaMorphoFactories: ['0x878988f5f561081deEa117717052164ea1Ef0c82'],
     stablecoinPins: { USDC: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' },
   },
 ];

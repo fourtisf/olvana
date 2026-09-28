@@ -8,5 +8,5 @@ coverage/
 !.env.example
 packages/db/src/generated/
 .DS_Store
-e2e/**/.tools/
+e2e/.tools/
 e2e/**/.build/

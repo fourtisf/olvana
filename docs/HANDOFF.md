@@ -81,6 +81,8 @@ Everything below lives in `packages/core/config.ts` (and `.env`). Do **not** har
 3. Simulate first, then send.
 
 ### 4.2b Vault version
+Olvana lists both **Morpho Vault V2** and **Vault V1 (MetaMorpho)**. Both are ERC-4626 with the same deposit / withdraw / redeem selectors. Each network's official factories are in `CHAINS` (`vaultV2Factory`, `metaMorphoFactories`); a vault is listed only if created by one of them (checked in the API data and again onchain before every transaction: `isVaultV2` / `isMetaMorpho`). V1 net APY = `weeklyApy × (1 − fee)` (no reward tokens). V1's `maxDeposit` is real and is checked before any approval.
+
 Robinhood Chain only has **Morpho Vault V2**. Use `vaultV2Abi` from `packages/core` (vendored from Morpho's SDK): fee = `performanceFee()` (WAD), recipient = `performanceFeeRecipient()`, also `managementFee()`. Market exposure comes from the vault's adapters (`adapters()`, `liquidityAdapter()`, `morphoMarketV1AdapterV2Abi`). Before allowlisting a vault, check it was created by `VAULT_V2_FACTORY_ADDRESS`.
 
 ### 4.3 Reads

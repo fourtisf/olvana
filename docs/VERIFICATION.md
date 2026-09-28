@@ -87,3 +87,31 @@ mainnet factory address: `e2e/vault-v2/run.sh` (25 checks: exact approval,
 deposit, rejection + retry, partial withdraw, MAX redeem, USDT-style token,
 lookalike vault blocked). **Not yet tested on mainnet**: do one deposit and one
 withdrawal of ~$1 from the owner's wallet before announcing.
+
+## Morpho Vault V1 (MetaMorpho) — checked 2026-09-28
+
+| Network | Factory | Source |
+|---|---|---|
+| Ethereum (1) | `0x1897A8997241C1cD4bD0698647e4EB7213535c24` (v1.1) | morpho-org/sdks `packages/morpho-ts/src/addresses.ts` @ `61a904b`, `metaMorphoFactory` |
+| Ethereum (1) | `0xA9c3D3a366466Fa809d1Ae982Fb2c46E5fC41101` (v1.0) | same commit, `packages/blue-sdk-viem/contracts/GetVault.sol`: "MetaMorpho factory V1.0 only exists on Ethereum (1) and Base (8453)" |
+| Base (8453) | `0xFf62A7c278C62eD665133147129245053Bbf5918` (v1.1) and the v1.0 factory above | same two files |
+| Arbitrum One (42161) | `0x878988f5f561081deEa117717052164ea1Ef0c82` (v1.1) | addresses.ts |
+| Robinhood Chain (4663) | none (Vault V2 only) | addresses.ts has no `metaMorphoFactory` for 4663 |
+
+Onchain allowlist check: `isMetaMorpho(address)` = `0x29b5352c` on each factory of the vault's network
+(`IMetaMorphoV1_1Factory.sol`, morpho-org/metamorpho-v1.1 @ `3b17547ee464d00370d1e5e7cd997c3cdb8b0fb7`).
+V1 vaults are plain ERC-4626: same `deposit` / `withdraw` / `redeem` selectors as Vault V2. Unlike V2, V1's
+`maxDeposit(address)` (`0x402d267d`) is real, so a full vault is blocked before any approval.
+Errors mapped to plain English: `AllCapsReached`, `NotEnoughLiquidity` (ErrorsLib.sol), OpenZeppelin
+`ERC4626ExceededMax{Deposit,Withdraw,Redeem}`, `ERC20Insufficient{Balance,Allowance}`.
+
+API fields (`vaults`, `vaultByAddress`, `VaultState.weeklyApy/dailyApy/fee/allocation`, `Vault.liquidity`) come
+from the API types in morpho-org/sdks `packages/liquidity-sdk-viem/src/api/types.ts` @ `61a904b`. **Not yet run
+against the live API** (it is unreachable from the build environment): run
+`pnpm --filter @olvana/core live:vaults` on the VPS and check the "Vault V1" lines. If the V1 query fails there,
+the site still shows every V2 vault (V1 is loaded separately and failures are skipped).
+
+Net APY for V1 = `weeklyApy × (1 − fee)`: the vault's own yield after the curator fee, **without** reward tokens.
+
+Tested end to end on a local chain (id 1) running Morpho Blue + MetaMorpho v1.1 compiled from source, factory at
+its Ethereum address: `e2e/vault-v1/run.sh` (14 checks).

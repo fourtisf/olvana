@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.28;
+pragma solidity ^0.8.19;
 
 /// Test-only stand-in for USDG (6 decimals). `strict` mimics USDT: approve from non-zero to non-zero reverts.
 contract MockToken {

@@ -911,21 +911,27 @@ const CONFIG = {
   homeChainId: 4663,             // Robinhood Chain mainnet — the home network (USDG vaults first). Verified, see docs/VERIFICATION.md.
   // Morpho Vault V2 factories / Blue / stablecoin pins from Morpho's official address registry
   // (morpho-org/sdks packages/morpho-ts, commit 61a904b) — see docs/VERIFICATION.md.
+  // metaMorphoFactories: Morpho Vault V1 (MetaMorpho) factories — registry `metaMorphoFactory` (v1.1) plus the v1.0 factory
+  //   0xA9c3…1101 that Morpho's own SDK checks on Ethereum and Base (blue-sdk-viem contracts/GetVault.sol, same commit).
+  //   Robinhood Chain has none: only Vault V2 there.
   // pins: a vault whose asset symbol has a pin must hold exactly that token address (anyone can deploy a token named "USDC").
   // rpcUrl: only for networks wallets may not know yet — handed to the wallet when it needs to add the network.
   chains: [
     { id: 4663,  key: 'robinhood', name: 'Robinhood Chain', short: 'Robinhood', explorer: 'https://robinhoodchain.blockscout.com',
       vaultV2Factory: '0x0FBad98595b0186dA120E41f77C102beb49f803c', morphoBlue: '0x9D53d5E3bd5E8d4Cbfa6DB1ca238AEA02E651010',
-      rpcUrl: 'https://rpc.mainnet.chain.robinhood.com',
+      rpcUrl: 'https://rpc.mainnet.chain.robinhood.com', metaMorphoFactories: [],
       pins: { USDG: '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168' } },
     { id: 1,     key: 'ethereum',  name: 'Ethereum', short: 'Ethereum', explorer: 'https://etherscan.io',
       vaultV2Factory: '0xA1D94F746dEfa1928926b84fB2596c06926C0405', morphoBlue: '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb',
+      metaMorphoFactories: ['0x1897A8997241C1cD4bD0698647e4EB7213535c24', '0xA9c3D3a366466Fa809d1Ae982Fb2c46E5fC41101'],
       pins: { USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7', DAI: '0x6B175474E89094C44Da98b954EedeAC495271d0F' } },
     { id: 8453,  key: 'base',      name: 'Base', short: 'Base', explorer: 'https://basescan.org',
       vaultV2Factory: '0x4501125508079A99ebBebCE205DeC9593C2b5857', morphoBlue: '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb',
+      metaMorphoFactories: ['0xFf62A7c278C62eD665133147129245053Bbf5918', '0xA9c3D3a366466Fa809d1Ae982Fb2c46E5fC41101'],
       pins: { USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' } },
     { id: 42161, key: 'arbitrum',  name: 'Arbitrum One', short: 'Arbitrum', explorer: 'https://arbiscan.io',
       vaultV2Factory: '0x6b46fa3cc9EBF8aB230aBAc664E37F2966Bf7971', morphoBlue: '0x6c247b1F6182318877311737BaC0844bAa518F5e',
+      metaMorphoFactories: ['0x878988f5f561081deEa117717052164ea1Ef0c82'],
       pins: { USDC: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' } },
   ],
   morphoApi: 'https://api.morpho.org/graphql',   // fallback when the same-origin /api/morpho proxy is unavailable
@@ -985,6 +991,7 @@ const assetTokenI = v => { const u = v && v.asset && safeUrl(v.asset.logo); retu
 // "Steakhouse USDC" stays as is; a name without its token gets " · USDC"
 const vLabel = v => String(v.name).toUpperCase().includes(sym(v).toUpperCase()) ? v.name : v.name + ' · ' + sym(v);
 // small network chip next to the asset symbol ("Base", "Ethereum", …)
+const vVer = v => v && v.kind === 'v1' ? 'Vault V1' : 'Vault V2';
 const chainChip = v => { const c = chainById(v && v.chainId); return `<span class="tag cn" title="Network: ${esc(c ? c.name : 'unknown')}">${esc(c ? c.short : '?')}</span>`; };
 const collatLogo = (c, s = 14) => { const u = safeUrl(c.logo); return u ? imgTag(u, '', s, '') : ''; };
 document.addEventListener('error', e => {
@@ -1391,7 +1398,7 @@ function viewEarn() {
       </div>
       <div class="right">
         <div class="vault-head">
-          <div style="display:flex;align-items:center;gap:14px;min-width:0">${assetLogo(v, 40)}<div style="min-width:0"><h2>${esc(v.name)}</h2><p>${esc(sym(v))} ${chainChip(v)} · curated by ${esc(v.curator)} · <a href="${esc(explorerFor(v.chainId))}/address/${esc(v.address)}" target="_blank" rel="noopener">${esc(short(v.address))} ↗</a> · non-custodial</p></div></div>
+          <div style="display:flex;align-items:center;gap:14px;min-width:0">${assetLogo(v, 40)}<div style="min-width:0"><h2>${esc(v.name)}</h2><p>${esc(sym(v))} ${chainChip(v)} · Morpho ${vVer(v)} · curated by ${esc(v.curator)} · <a href="${esc(explorerFor(v.chainId))}/address/${esc(v.address)}" target="_blank" rel="noopener">${esc(short(v.address))} ↗</a> · non-custodial</p></div></div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${gradeChip(v)}${liveBadge()}</div>
         </div>
         <div class="statrow">
@@ -1401,7 +1408,7 @@ function viewEarn() {
           <div class="panel"><small>Withdrawable now</small><b>${fmtUsdShort(v.liq)}</b></div>
         </div>
         <div class="panel">
-          <div class="chart-head"><h3 class="h4">Yield</h3><span class="mono muted" style="font-size:12px">realized, from Morpho</span></div>
+          <div class="chart-head"><h3 class="h4">Yield</h3><span class="mono muted" style="font-size:12px">${v.kind === 'v1' ? 'from Morpho · excludes reward tokens' : 'realized, from Morpho'}</span></div>
           <div class="rows" style="font-size:14px">
             <div><span>Net APY · 7-day average</span><span class="gold">${fmt(n)}%</span></div>
             <div><span>Net APY · 1-day average</span><span>${v.net1d != null ? fmt(v.net1d) + '%' : '—'}</span></div>
@@ -1515,10 +1522,11 @@ function updateForm() {
 /* ===================== transactions (signed in the user's own wallet) =====================
    Vault V2 is ERC-4626 with Morpho's signatures (morpho-org/vault-v2 src/VaultV2.sol):
    deposit(assets, onBehalf) · withdraw(assets, receiver, onBehalf) · redeem(shares, receiver, onBehalf).
+   Vault V1 (MetaMorpho) is plain ERC-4626 with the same selectors: deposit(assets, receiver) · withdraw / redeem(…, receiver, owner).
    Its maxDeposit / maxWithdraw always return 0, so limits come from simulating the exact call (eth_call) instead.
    Every call goes through the connected wallet: nothing is signed or sent by Olvana. */
 const SEL = { deposit: '0x6e553f65', withdraw: '0xb460af94', redeem: '0xba087652', approve: '0x095ea7b3', allowance: '0xdd62ed3e',
-  balanceOf: '0x70a08231', asset: '0x38d52e0f', isVaultV2: '0x5edec50d' };
+  balanceOf: '0x70a08231', asset: '0x38d52e0f', isVaultV2: '0x5edec50d', isMetaMorpho: '0x29b5352c', maxDeposit: '0x402d267d' };
 const encA = a => pad32(lcA(a));
 const encU = n => pad32(BigInt(n).toString(16));
 // exact decimal string → token units (bigint); null when it has more decimals than the token
@@ -1545,6 +1553,14 @@ const REVERTS = {
   '0x1eded19c': 'The token transfer failed. Check your balance and approval, then try again.',
   '0xace2a47e': 'The vault could not send the tokens. Try again later.',
   '0x2f0470fc': 'The vault could not send the tokens. Try again later.',
+  // Vault V1 (MetaMorpho v1.1 ErrorsLib + OpenZeppelin ERC-4626 / ERC-20 errors)
+  '0xded0652d': 'The vault is full: every market it lends to is at its cap. Try a smaller amount or another vault.',
+  '0x79012fb2': 'The vault is full: the curator\'s deposit cap is reached. Try a smaller amount or another vault.',
+  '0x4323a555': 'Not enough liquidity in the vault\'s markets right now. Try a smaller amount, or wait for borrowers to repay.',
+  '0xfe9cceec': 'Not enough liquidity in the vault right now. Try a smaller amount, or wait for borrowers to repay.',
+  '0xb94abeec': 'Not enough liquidity in the vault right now. Try a smaller amount, or wait for borrowers to repay.',
+  '0xe450d38c': 'Not enough balance for this amount.',
+  '0xfb8f41b2': 'The approval is lower than this amount. Go back and review again.',
 };
 function revertData(e) {
   const seen = new Set();
@@ -1623,10 +1639,14 @@ async function preflight(tx) {
   const me = S.address, dep = tx.isDep;
   const call = (to, data) => ethCall(to, data);
   try {
-    // 0 · allowlist: listed here, created by Morpho's Vault V2 factory for this network, holding the expected token
+    // 0 · allowlist: listed here, created by an official Morpho factory for this network (Vault V2 factory, or a
+    //     MetaMorpho factory for V1), holding the expected token
     const ch = chainById(v.chainId);
-    const [isV2, assetWord] = await Promise.all([call(ch.vaultV2Factory, SEL.isVaultV2 + encA(v.address)), call(v.address, SEL.asset)]);
-    const listed = VAULTS.some(x => x.id === v.id) && hexBig(isV2) === 1n && lcA('0x' + String(assetWord).slice(-40)) === v.asset.address;
+    const facts = v.kind === 'v1' ? (ch.metaMorphoFactories || []).map(f => [f, SEL.isMetaMorpho]) : [[ch.vaultV2Factory, SEL.isVaultV2]];
+    const [made, assetWord] = await Promise.all([
+      Promise.all(facts.map(([f, sel]) => call(f, sel + encA(v.address)).then(hexBig, () => 0n))),
+      call(v.address, SEL.asset)]);
+    const listed = VAULTS.some(x => x.id === v.id) && made.some(x => x === 1n) && lcA('0x' + String(assetWord).slice(-40)) === v.asset.address;
     set(0, listed ? 'ok' : 'bad', listed ? 'Passed' : 'Not verified');
     if (!listed) tx.block = 'This vault could not be verified onchain, so the app will not send to it.';
     if (dep) {
@@ -1637,7 +1657,17 @@ async function preflight(tx) {
       if (!enough) tx.block = tx.block || 'Your wallet holds less ' + sym(v) + ' than this amount.';
       tx.allowance = hexBig(allow);
       tx.needApprove = tx.allowance < tx.units;
-      if (tx.needApprove) {
+      // Vault V1 reports its real room left under the curator's caps (Vault V2's maxDeposit is always 0), so a full
+      // V1 vault is caught here, before any approval is asked for.
+      if (v.kind === 'v1' && !tx.block) {
+        const room = hexBig(await call(v.address, SEL.maxDeposit + encA(me)));
+        if (room < tx.units) {
+          tx.block = room > 0n ? `The vault is almost full: up to ${fmt(toUnits(room, v.asset.decimals))} ${sym(v)} can be deposited right now.` : 'The vault is full: the curator\'s deposit caps are reached. Try another vault.';
+          set(2, 'bad', 'Would fail'); set(3, 'bad', room > 0n ? 'Only ' + fmt(toUnits(room, v.asset.decimals)) + ' left' : 'Vault full');
+        }
+      }
+      if (tx.block) [2, 3].forEach(k => { if (tx.checks[k].s === 'run') set(k, 'wait', '—'); });   // blocked above
+      else if (tx.needApprove) {
         // tokens like USDT refuse to change a non-zero allowance straight to another non-zero one
         const a = await simOk(v.asset.address, SEL.approve + encA(v.address) + encU(tx.units));
         tx.resetFirst = !a.ok && tx.allowance > 0n;
@@ -2058,10 +2088,11 @@ function viewSecurity() {
   // contracts grouped per network: listed vaults, then the pinned stablecoins and Morpho core contracts on that network
   const vaultRows = (VAULTS.length ? '' : `<tr><td colspan="3" class="muted" style="white-space:normal">${esc(liveMsg())}</td></tr>`) + CONFIG.chains.map(ch => `
         <tr><th colspan="3" style="padding-top:22px;color:var(--ink)">${esc(ch.name)} <span class="muted">· chain ${ch.id}</span></th></tr>
-        ${VAULTS.filter(v => v.chainId === ch.id).map(v => `<tr><td>${esc(vLabel(v))} vault ${chainChip(v)}</td><td>${esc(v.curator)}</td><td class="n">${addr(v.address, ch.id)}</td></tr>`).join('')}
+        ${VAULTS.filter(v => v.chainId === ch.id).map(v => `<tr><td>${esc(vLabel(v))} ${vVer(v)} ${chainChip(v)}</td><td>${esc(v.curator)}</td><td class="n">${addr(v.address, ch.id)}</td></tr>`).join('')}
         ${Object.entries(ch.pins || {}).map(([sy, a]) => `<tr><td>${esc(sy)} token</td><td class="muted">—</td><td class="n">${addr(a, ch.id)}</td></tr>`).join('')}
         <tr><td>Morpho Blue core</td><td class="muted">—</td><td class="n">${addr(ch.morphoBlue, ch.id)}</td></tr>
-        <tr><td>Morpho Vault V2 factory</td><td class="muted">—</td><td class="n">${addr(ch.vaultV2Factory, ch.id)}</td></tr>`).join('');
+        <tr><td>Morpho Vault V2 factory</td><td class="muted">—</td><td class="n">${addr(ch.vaultV2Factory, ch.id)}</td></tr>
+        ${(ch.metaMorphoFactories || []).map(f => `<tr><td>Morpho Vault V1 factory</td><td class="muted">—</td><td class="n">${addr(f, ch.id)}</td></tr>`).join('')}`).join('');
   const feeRows = VAULTS.length
     ? VAULTS.map(v => `<div><span>${esc(v.name)} performance fee</span><span>${fmtFee(v.perfFee)} of yield${v.mgmtFee ? ' · ' + fmtFee(v.mgmtFee) + ' a year management' : ''}</span></div>`).join('')
     : `<div><span>${esc(liveMsg())}</span><span></span></div>`;
@@ -2070,7 +2101,7 @@ function viewSecurity() {
     <div class="note">Anything marked [pending] is not live yet. Only send funds to a contract address listed on this page.</div>
     <p>Olvana is a non-custodial interface. Your funds move only when you sign a transaction in your own wallet. Here is every contract the app talks to, what it charges, and how each transaction is checked.</p>
     <h2>Contracts</h2>
-    <p style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px">${liveBadge()}<span class="muted" style="font-size:14px">Vaults are Morpho Vault V2s listed by Morpho and created by the Vault V2 factory of their own network, shown below.</span></p>
+    <p style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px">${liveBadge()}<span class="muted" style="font-size:14px">Vaults are Morpho Vault V2s and Vault V1s (MetaMorpho) that Morpho lists, created by an official factory of their own network, shown below. The app checks the factory onchain again before every transaction.</span></p>
     <div class="scrollx"><table class="tbl">
       <thead><tr><th>Contract</th><th>Curator</th><th>Address</th></tr></thead>
       <tbody>
@@ -2290,6 +2321,38 @@ const DETAIL_Q = `query($a:String!,$c:Int!){
     curators(first: 3){ items{ name verified } }
   }
 }`;
+// Morpho Vault V1 (MetaMorpho): same list → detail → allocation split. Only listed vaults in a listed stablecoin.
+const V1_LIST_Q = `query($c:[Int!],$s:Int,$sy:[String!]){
+  vaults(first: 50, skip: $s, where:{chainId_in:$c, listed:true, assetSymbol_in:$sy}){
+    items{ address name listed factory{ address } asset{ address symbol decimals } state{ totalAssets totalAssetsUsd } }
+  }
+}`;
+const V1_DETAIL_Q = `query($a:String!,$c:Int!){
+  vaultByAddress(address:$a, chainId:$c){
+    address name symbol listed creationTimestamp
+    factory{ address }
+    asset{ address symbol decimals logoURI }
+    liquidity{ underlying usd }
+    state{ totalAssets totalAssetsUsd fee curator weeklyApy dailyApy curators{ name verified } }
+  }
+}`;
+const V1_ALLOC_Q = `query($a:String!,$c:Int!){
+  vaultByAddress(address:$a, chainId:$c){
+    state{ allocation{ supplyAssetsUsd market{ lltv collateralAsset{ symbol address logoURI } oracle{ type } state{ utilization } } } }
+  }
+}`;
+// Vault V1 → the Vault V2 item shape the rest of the page uses. Net APY = weekly APY without reward tokens,
+// after the curator fee (weeklyApy × (1 − fee)), so incentives never inflate the number.
+function v1Item(v, chainId, alloc) {
+  const s = v.state || {}, fee = num(s.fee) || 0, w = num(s.weeklyApy), d = num(s.dailyApy);
+  return { ...v, kind: 'v1', chainId,
+    totalAssets: s.totalAssets, totalAssetsUsd: s.totalAssetsUsd,
+    liquidity: v.liquidity ? v.liquidity.underlying : null, liquidityUsd: v.liquidity ? v.liquidity.usd : null,
+    performanceFee: fee, managementFee: 0,
+    net7d: w != null ? w * (1 - fee) : null, net1d: d != null ? d * (1 - fee) : null,
+    curator: { address: s.curator }, curators: { items: s.curators || [] },
+    adapters: { items: [{ positions: { items: (alloc || []).map(a => ({ state: { supplyAssetsUsd: a.supplyAssetsUsd }, market: a.market })) } }] } };
+}
 // Market allocation separately and page-limited — nested in one query it exceeds the API's complexity limit.
 const ALLOC_Q = `query($a:String!,$c:Int!){
   vaultV2ByAddress(address:$a, chainId:$c){
@@ -2328,27 +2391,45 @@ async function mapLimit(items, n, fn) {
   }));
   return out;
 }
-// List stage, one network: every Vault V2 page (50 per page), each item tagged with its chainId.
+// List stage, one network: every Vault V2 page (50 per page), each item tagged with its chainId and kind.
 async function fetchChainList(ch) {
   const all = [];
   for (let p = 0; p < 10; p++) {
     const d = await gql(LIST_Q, { c: [ch.id], s: p * 50 });
     const it = (d.vaultV2s && d.vaultV2s.items) || [];
-    all.push(...it.map(x => ({ ...x, chainId: ch.id })));
+    all.push(...it.map(x => ({ ...x, kind: 'v2', chainId: ch.id })));
+    if (it.length < 50) break;
+  }
+  return all;
+}
+// Same for Vault V1 on networks that have a MetaMorpho factory. A failure here never hides the V2 vaults.
+async function fetchChainListV1(ch) {
+  if (!ch.metaMorphoFactories || !ch.metaMorphoFactories.length) return [];
+  const all = [];
+  for (let p = 0; p < 10; p++) {
+    const d = await gql(V1_LIST_Q, { c: [ch.id], s: p * 50, sy: CONFIG.stablecoins });
+    const it = (d.vaults && d.vaults.items) || [];
+    all.push(...it.map(x => ({ ...x, kind: 'v1', chainId: ch.id, totalAssets: x.state && x.state.totalAssets, totalAssetsUsd: x.state && x.state.totalAssetsUsd })));
     if (it.length < 50) break;
   }
   return all;
 }
 async function fetchVaultItems() {
   // networks in parallel: one failing network must not hide the others; only when all fail is it an error
-  const lists = await Promise.allSettled(CONFIG.chains.map(fetchChainList));
+  const [lists, v1] = await Promise.all([Promise.allSettled(CONFIG.chains.map(fetchChainList)), Promise.allSettled(CONFIG.chains.map(fetchChainListV1))]);
   if (lists.every(r => r.status === 'rejected')) throw lists[0].reason;
   LIVE.failed = CONFIG.chains.filter((c, k) => lists[k].status === 'rejected').map(c => c.id);
-  const cands = lists.flatMap(r => r.status === 'fulfilled' ? r.value : []).filter(keepVault);
+  v1.forEach((r, k) => { if (r.status === 'rejected') console.warn('Vault V1 list failed on ' + CONFIG.chains[k].name + ':', r.reason && r.reason.message); });
+  const cands = [...lists, ...v1].flatMap(r => r.status === 'fulfilled' ? r.value : []).filter(keepVault);
   const detail = async it => {
     const q = { a: it.address, c: it.chainId };
+    if (it.kind === 'v1') {
+      const [b, al] = await Promise.all([gql(V1_DETAIL_Q, q), gql(V1_ALLOC_Q, q)]);
+      const alloc = al.vaultByAddress && al.vaultByAddress.state && al.vaultByAddress.state.allocation;
+      return b.vaultByAddress ? v1Item(b.vaultByAddress, it.chainId, alloc) : null;
+    }
     const [b, al] = await Promise.all([gql(DETAIL_Q, q), gql(ALLOC_Q, q)]);
-    return b.vaultV2ByAddress ? { ...b.vaultV2ByAddress, chainId: it.chainId, adapters: (al.vaultV2ByAddress && al.vaultV2ByAddress.adapters) || { items: [] } } : null;
+    return b.vaultV2ByAddress ? { ...b.vaultV2ByAddress, kind: 'v2', chainId: it.chainId, adapters: (al.vaultV2ByAddress && al.vaultV2ByAddress.adapters) || { items: [] } } : null;
   };
   const res = await mapLimit(cands, 8, detail);
   const ok = res.filter(r => r.status === 'fulfilled' && r.value).map(r => r.value);
@@ -2360,7 +2441,7 @@ const lc = a => String(a || '').toLowerCase();
 const isAddr = a => /^0x[0-9a-fA-F]{40}$/.test(String(a || ''));
 const CHAINLINK = ['ChainlinkOracle', 'ChainlinkOracleV2'];
 const BLUE = /^(WETH|WBTC|wstETH|cbBTC)$/i;
-// Safety filter: anyone can create a vault named after a stablecoin, so only keep Morpho-listed Vault V2s from the
+// Safety filter: anyone can create a vault named after a stablecoin, so only keep Morpho-listed Vault V2s (or Vault V1s) from a
 // verified factory of the vault's own network, whose asset is a listed stablecoin (at the pinned address when that network
 // pins the symbol) trading within 2% of $1 when a price is known (same rules as packages/core/src/morpho.ts).
 // USD value of a stablecoin amount: the API's USD figure, else the raw token amount (≈ $1; the API has no USDG price yet).
@@ -2374,7 +2455,8 @@ function keepVault(it) {
   if (typeof a.priceUsd === 'number' && !(a.priceUsd >= 0.98 && a.priceUsd <= 1.02)) return false;   // peg check when a price is known
   const pin = ch.pins && Object.prototype.hasOwnProperty.call(ch.pins, a.symbol) ? ch.pins[a.symbol] : null;
   if (pin && lc(a.address) !== lc(pin)) return false;
-  if (!it.factory || lc(it.factory.address) !== lc(ch.vaultV2Factory)) return false;
+  const factories = it.kind === 'v1' ? (ch.metaMorphoFactories || []) : [ch.vaultV2Factory];
+  if (!it.factory || !factories.some(f => lc(f) === lc(it.factory.address))) return false;
   return stableUsd(it.totalAssetsUsd, it.totalAssets, it.asset) >= CONFIG.minTvlUsd;
 }
 function mapVault(it) {
@@ -2411,7 +2493,7 @@ function mapVault(it) {
   const created = num(it.creationTimestamp);
   const address = lc(it.address), chainId = Number(it.chainId);
   return {
-    id: chainId + ':' + address, chainId, address, name: String(it.name || sym({ asset: it.asset }) + ' vault'), live: true,
+    id: chainId + ':' + address, kind: it.kind === 'v1' ? 'v1' : 'v2', chainId, address, name: String(it.name || sym({ asset: it.asset }) + ' vault'), live: true,
     curator: cur ? String(cur.name) : (isAddr(it.curator && it.curator.address) ? short(lc(it.curator.address)) : 'Unknown curator'),
     curatorVerified: !!(cur && cur.verified),
     net: (net7 ?? net1 ?? 0) * 100,

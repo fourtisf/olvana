@@ -6,7 +6,7 @@
  */
 import { CHAINS, CHAIN_ID, MORPHO_API_URL, MIN_TVL_USD, STABLECOINS, chainById } from '../src/config';
 import type { ApiVaultV2 } from '../src/morpho';
-import { fetchVaultDetail, gqlClient, keepVault, listVaults, toLiveVault, tvlOf, type LiveVault } from '../src/morpho';
+import { fetchVaultDetail, fetchVaultDetailV1, gqlClient, keepVault, listVaults, listVaultsV1, toLiveVault, tvlOf, type LiveVault } from '../src/morpho';
 
 const url = process.argv[2] ?? MORPHO_API_URL;
 const gql = gqlClient(url, fetch);
@@ -24,12 +24,20 @@ async function main() {
     } catch (e) {
       console.log(`list: ${c.name.padEnd(16)} FAILED — ${(e as Error).message}`);
     }
+    if (!c.metaMorphoFactories.length) continue;
+    try {
+      const l = await listVaultsV1(gql, c.id);
+      all.push(...l);
+      console.log(`list: ${c.name.padEnd(16)} ${String(l.length).padStart(4)} Vault V1s (listed, stablecoin)`);
+    } catch (e) {
+      console.log(`list: ${c.name.padEnd(16)} Vault V1 FAILED — ${(e as Error).message}`);
+    }
   }
 
   // Every asset that has a Vault V2 on this chain — shows which stablecoins actually exist here.
   const byAsset = new Map<string, { n: number; listed: number; tvl: number; big: number }>();
   for (const v of all) {
-    const k = `${chainById(v.chainId)?.short ?? v.chainId}:${v.asset?.symbol ?? '?'}`;
+    const k = `${chainById(v.chainId)?.short ?? v.chainId}:${v.asset?.symbol ?? '?'}${v.kind === 'v1' ? ' (V1)' : ''}`;
     const e = byAsset.get(k) ?? { n: 0, listed: 0, tvl: 0, big: 0 };
     e.n++;
     if (v.listed) e.listed++;
@@ -39,7 +47,7 @@ async function main() {
   }
   console.log('\nstablecoin vaults per network (network:symbol · vaults · listed · ≥$10k · total TVL):');
   for (const [k, e] of [...byAsset].sort((a, b) => b[1].tvl - a[1].tvl)) {
-    if (!STABLECOINS.includes(k.split(':')[1]!)) continue;   // stablecoins only
+    if (!STABLECOINS.includes(k.split(':')[1]!.replace(' (V1)', ''))) continue;   // stablecoins only
     const tag = '';
     console.log(`  ${k.padEnd(18)} ${String(e.n).padStart(3)} · ${String(e.listed).padStart(2)} listed · ${String(e.big).padStart(2)} ≥$10k · ${usd(e.tvl).padStart(15)}${tag}`);
   }
@@ -50,12 +58,13 @@ async function main() {
     const chain = chainById(v.chainId);
     const why: string[] = [];
     if (!v.listed) why.push('not Morpho-listed');
-    if (!eq(v.factory?.address, chain?.vaultV2Factory)) why.push('other factory');
+    const factories = v.kind === 'v1' ? (chain?.metaMorphoFactories ?? []) : [chain?.vaultV2Factory];
+    if (!factories.some((f) => eq(v.factory?.address, f))) why.push('other factory');
     const pin = chain?.stablecoinPins[v.asset.symbol];
     if (pin && !eq(v.asset.address, pin)) why.push(`not the verified ${v.asset.symbol}`);
     if (tvlOf(v) < MIN_TVL_USD) why.push(`TVL < ${usd(MIN_TVL_USD)}`);
     const tvlSrc = v.totalAssetsUsd == null ? ' (from token amount)' : '';
-    console.log(`  ${keepVault(v) ? 'KEEP' : 'skip'}  ${(chain?.short ?? '?').padEnd(9)} ${v.asset.symbol.padEnd(5)} ${v.name.slice(0, 32).padEnd(32)} ${usd(tvlOf(v)).padStart(14)}${tvlSrc}  ${why.join(', ')}`);
+    console.log(`  ${keepVault(v) ? 'KEEP' : 'skip'}  ${(chain?.short ?? '?').padEnd(9)} ${v.kind === 'v1' ? 'V1' : 'V2'} ${v.asset.symbol.padEnd(5)} ${v.name.slice(0, 32).padEnd(32)} ${usd(tvlOf(v)).padStart(14)}${tvlSrc}  ${why.join(', ')}`);
   }
 
   const kept = all.filter((v) => keepVault(v));
@@ -63,7 +72,7 @@ async function main() {
   const out: LiveVault[] = [];
   for (const c of kept) {
     try {
-      const v = await fetchVaultDetail(gql, c.address, c.chainId);
+      const v = c.kind === 'v1' ? await fetchVaultDetailV1(gql, c.address, c.chainId!) : await fetchVaultDetail(gql, c.address, c.chainId);
       if (v) out.push(toLiveVault(v));
     } catch (e) {
       console.log(`  ${c.name}: ${(e as Error).message}`);
@@ -71,7 +80,7 @@ async function main() {
   }
   for (const v of out.sort((a, b) => b.tvlUsd - a.tvlUsd)) {
     console.log(
-      `  ${(chainById(v.chainId)?.short ?? '?').padEnd(9)} ${v.asset.symbol.padEnd(5)} ${v.name.slice(0, 32).padEnd(32)} TVL ${usd(v.tvlUsd).padStart(14)}  net ${v.netApy.toFixed(2)}%  util ${v.utilization.toFixed(1)}%  ${v.collateral.length} collateral  grade ${v.risk.grade} ${v.risk.score}`,
+      `  ${(chainById(v.chainId)?.short ?? '?').padEnd(9)} ${v.kind === 'v1' ? 'V1' : 'V2'} ${v.asset.symbol.padEnd(5)} ${v.name.slice(0, 32).padEnd(32)} TVL ${usd(v.tvlUsd).padStart(14)}  net ${v.netApy.toFixed(2)}%  util ${v.utilization.toFixed(1)}%  ${v.collateral.length} collateral  grade ${v.risk.grade} ${v.risk.score}`,
     );
   }
   // Risk inputs for the largest vaults, so a surprising grade can be traced to its cause.
