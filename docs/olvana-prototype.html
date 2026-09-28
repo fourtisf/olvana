@@ -402,6 +402,10 @@ body.in-app #appShell{display:block}
 .review-amt{font-size:56px;font-weight:600;letter-spacing:-.035em;line-height:1}
 .review-amt small{font-size:22px;color:var(--muted);font-weight:500;letter-spacing:0}
 .pf{display:flex;flex-direction:column;gap:8px}
+.vsort{display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin:-4px 0 22px;font-size:13px}
+.vsort button{height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:transparent;color:#B3B5D0;font:inherit;cursor:pointer}
+.vsort button.on{border-color:rgba(123,92,255,.5);color:var(--ink);background:rgba(123,92,255,.12)}
+.vsort button:hover{color:var(--ink)}
 .done-ic{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;color:var(--gold);background:rgba(126,224,184,.08);border:1px solid rgba(126,224,184,.35)}
 .pf-item{min-height:42px;padding:8px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px;background:#0A0A12;border:1px solid var(--line2);border-radius:12px;font-size:14px}
 .pf-item .st{font-family:var(--mono);font-size:12px;color:var(--dim);flex:none}
@@ -1018,7 +1022,7 @@ const fresh = () => ({
   alerted:{}
 });
 let S = fresh();
-let UI = { amount:'', max:false, stage:'form', chainId:null, asset:'All', net:'All' };  // max: the MAX chip set the amount (use the exact onchain balance)  // chainId: the injected wallet's current chain · net: Vaults page network filter
+let UI = { amount:'', max:false, stage:'form', chainId:null, asset:'All', net:'All', sort:'apy' };  // max: the MAX chip set the amount (use the exact onchain balance)  // chainId: the injected wallet's current chain · net: Vaults page network filter
 
 /* ===================== vault math ===================== */
 const vault = id => VAULTS.find(x => x.id === id) || VAULTS[0];
@@ -1842,6 +1846,11 @@ function paintReview() {
 }
 
 /* ===================== VAULTS ===================== */
+// "40 days", "7 months", "2.1 years" — how long the vault has been live
+const fmtAge = d => d == null ? '—' : d < 60 ? Math.max(1, Math.floor(d)) + ' days' : d < 730 ? Math.floor(d / 30.44) + ' months' : (d / 365.25).toFixed(1) + ' years';
+const sinceDate = v => new Date(Date.now() - v.ageDays * 86400000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+const SORTS = { apy: 'Highest APY', tvl: 'Largest', grade: 'Best grade' };
+const sortBy = (list, k) => [...list].sort((a, b) => k === 'tvl' ? b.tvl - a.tvl : k === 'grade' ? (risk(b).score - risk(a).score) || (netApy(b) - netApy(a)) : (netApy(b) - netApy(a)) || (b.tvl - a.tvl));
 function vaultCard(v, inApp) {
   const r = risk(v), hot = v.util >= S.alerts.threshold;
   return `<article class="vcard ${inApp && S.vaultId === v.id ? 'sel' : ''}">
@@ -1851,6 +1860,8 @@ function vaultCard(v, inApp) {
       <div><span>Total deposits</span><span>${fmtUsdShort(v.tvl)}</span></div>
       <div><span>Utilization</span><span style="${hot ? 'color:var(--warn)' : ''}">${v.util.toFixed(1)}%</span></div>
       <div><span>Oracle</span><span>${v.oracle}</span></div>
+      <div><span>Running for</span><span title="${v.ageDays != null ? 'Since ' + esc(sinceDate(v)) : ''}">${fmtAge(v.ageDays)}</span></div>
+      <div><span>Lock-up</span><span title="No lock-up. Withdrawals are instant while the vault has free liquidity (${esc(fmtUsdShort(v.liq))} now).">None · withdraw anytime</span></div>
     </div>
     ${collatRow(v)}
     <div class="flags">${flagRows(riskFlags(v))}</div>
@@ -1868,26 +1879,29 @@ function viewVaults() {
   const onNet = UI.net === 'All' ? VAULTS : VAULTS.filter(v => String(v.chainId) === UI.net);
   const syms = [...new Set(onNet.map(sym))];             // VAULTS order: home-network USDG first, then by TVL
   if (UI.asset !== 'All' && !syms.includes(UI.asset)) UI.asset = 'All';
-  const list = UI.asset === 'All' ? onNet : onNet.filter(v => sym(v) === UI.asset);
+  if (!SORTS[UI.sort]) UI.sort = 'apy';
+  const list = sortBy(UI.asset === 'All' ? onNet : onNet.filter(v => sym(v) === UI.asset), UI.sort);
   const netFilt = `<div class="vpick nets" role="tablist" aria-label="Filter by network">${[{ id: 'All', short: 'All networks' }, ...nets].map(c => { const on = UI.net === String(c.id);
     return `<button type="button" role="tab" aria-selected="${on}" class="${on ? 'on' : ''}" data-net="${esc(c.id)}" style="padding:0 16px">${esc(c.short)}</button>`; }).join('')}</div>`;
   const filt = `<div class="vpick" role="tablist" aria-label="Filter by stablecoin">${['All', ...syms].map(s0 => { const on = UI.asset === s0, ex = onNet.find(v => sym(v) === s0);
     return `<button type="button" role="tab" aria-selected="${on}" class="${on ? 'on' : ''}" data-asset="${esc(s0)}" style="padding:0 16px">${ex ? assetLogo(ex, 18) : ''}${esc(s0)}</button>`; }).join('')}</div>`;
   const failed = LIVE.failed.length ? `<p class="muted" style="margin:-8px 0 16px;font-size:13px">${warnSvg(14)} Couldn't load ${esc(listNames(LIVE.failed.map(chainNm)))} vaults right now. Showing the other networks.</p>` : '';
-  $('view').innerHTML = `${head}${failed}${netFilt}${filt}
+  const sortBar = `<div class="vsort" role="group" aria-label="Sort vaults"><span class="muted">Sort</span>${Object.entries(SORTS).map(([k, l]) => `<button type="button" class="${UI.sort === k ? 'on' : ''}" aria-pressed="${UI.sort === k}" data-sort="${k}">${l}</button>`).join('')}</div>`;
+  $('view').innerHTML = `${head}${failed}${netFilt}${filt}${sortBar}
     <div class="vgrid" style="margin-top:0">${list.map(v => vaultCard(v, true)).join('')}</div>
     <div class="panel" style="margin-top:20px">
       <h3 class="h4" style="margin-bottom:6px">Side by side</h3>
-      <p class="muted" style="margin:0 0 18px;font-size:12px">Net APY is a 7-day average, after fees. Flags are risks the grade doesn't score.</p>
+      <p class="muted" style="margin:0 0 18px;font-size:12px">Net APY is a 7-day average, after fees, and changes daily. No vault has a lock-up: you can withdraw anytime the vault has free liquidity. Flags are risks the grade doesn't score.</p>
       <div class="scrollx"><table class="tbl">
-        <thead><tr><th>Vault</th><th title="7-day average, after fees">Net APY</th><th>Grade</th><th>Flags</th><th>Utilization</th><th>Withdrawable</th><th>Oracle</th><th>Blue-chip / cash-backed</th></tr></thead>
+        <thead><tr><th>Vault</th><th title="7-day average, after fees">Net APY</th><th>Grade</th><th>Flags</th><th>Utilization</th><th>Withdrawable</th><th>Running for</th><th>Oracle</th><th>Blue-chip / cash-backed</th></tr></thead>
         <tbody>${list.map(v => { const blue = Math.round(v.collateral.filter(c => c.q === 'blue').reduce((t, c) => t + c.s, 0) * 10) / 10; const fl = riskFlags(v);
-          return `<tr><td><span style="display:inline-flex;align-items:center;gap:8px">${assetLogo(v, 18)}${esc(v.name)} <span class="mono muted" style="font-size:12px">${esc(sym(v))}</span>${chainChip(v)}</span></td><td class="n gold">${fmt(netApy(v))}%</td><td>${gradeChip(v)}</td><td class="n" style="${fl.length ? 'color:var(--warn)' : ''}" title="${esc(fl.map(f => f.text).join(' '))}">${fl.length ? warnSvg(14) + ' ' + fl.length : '—'}</td><td class="n">${v.util.toFixed(1)}%</td><td class="n">${fmtUsdShort(v.liq)}</td><td>${v.oracle}</td><td class="n">${blue}%</td></tr>`; }).join('')}</tbody>
+          return `<tr><td><span style="display:inline-flex;align-items:center;gap:8px">${assetLogo(v, 18)}${esc(v.name)} <span class="mono muted" style="font-size:12px">${esc(sym(v))}</span>${chainChip(v)}</span></td><td class="n gold">${fmt(netApy(v))}%</td><td>${gradeChip(v)}</td><td class="n" style="${fl.length ? 'color:var(--warn)' : ''}" title="${esc(fl.map(f => f.text).join(' '))}">${fl.length ? warnSvg(14) + ' ' + fl.length : '—'}</td><td class="n">${v.util.toFixed(1)}%</td><td class="n">${fmtUsdShort(v.liq)}</td><td class="n">${fmtAge(v.ageDays)}</td><td>${v.oracle}</td><td class="n">${blue}%</td></tr>`; }).join('')}</tbody>
       </table></div>
     </div>`;
   bindPicks($('view'));
   $('view').querySelectorAll('[data-asset]').forEach(b => b.onclick = () => { UI.asset = b.dataset.asset; viewVaults(); });
   $('view').querySelectorAll('[data-net]').forEach(b => b.onclick = () => { UI.net = b.dataset.net; viewVaults(); });
+  $('view').querySelectorAll('[data-sort]').forEach(b => b.onclick = () => { UI.sort = b.dataset.sort; viewVaults(); });
 }
 
 /* ===================== PORTFOLIO ===================== */
