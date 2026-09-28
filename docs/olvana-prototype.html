@@ -172,13 +172,26 @@ input[type=range]::-moz-range-thumb{width:22px;height:22px;border-radius:50%;bac
 
 /* vault cards */
 .vgrid{margin-top:56px;display:grid;grid-template-columns:repeat(3,1fr);gap:20px}
-.vcard{background:var(--glass);border:1px solid var(--line);border-radius:24px;box-shadow:inset 0 1px 0 rgba(255,255,255,.07);padding:28px;display:flex;flex-direction:column;gap:22px}
+.vcard{background:var(--glass);border:1px solid var(--line);border-radius:24px;box-shadow:inset 0 1px 0 rgba(255,255,255,.07);padding:26px;display:flex;flex-direction:column;gap:18px;min-width:0}
 .vcard.sel{border-color:rgba(123,92,255,.5)}
 .vcard-top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
-.vcard h3{margin:0;font-size:22px;font-weight:600;letter-spacing:-.02em}
-.vcard .apy{font-size:52px;font-weight:600;letter-spacing:-.04em;line-height:1}
+.vcard h3{margin:0;font-size:20px;font-weight:600;letter-spacing:-.02em;line-height:1.2;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.vcard-id{display:flex;align-items:center;gap:12px;min-width:0}
+.vcard .grade{flex:none}
+.vmeta{font-size:13px;margin-top:4px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vsub{font-size:12px;color:var(--faint);margin-top:8px}
+.vstats{display:grid;grid-template-columns:1fr 1fr;gap:1px;background:var(--line2);border:1px solid var(--line2);border-radius:14px;overflow:hidden}
+.vstat{background:#0B0B14;padding:11px 14px;display:flex;flex-direction:column;gap:4px;min-width:0}
+.vstat small{font-size:11px;color:var(--faint)}
+.vstat b{font-family:var(--mono);font-weight:500;font-size:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vflags{display:flex;flex-wrap:wrap;gap:6px}
+.vflags span{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:4px 10px;border-radius:999px;border:1px solid rgba(255,146,112,.3);color:var(--warn);cursor:help}
+.vbtn{width:100%;margin-top:auto}
+.vcard .apy{font-size:46px;font-weight:600;letter-spacing:-.04em;line-height:1}
 .collat{display:flex;flex-wrap:wrap;gap:6px}
-.collat span{font-family:var(--mono);font-size:12px;padding:4px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);display:inline-flex;align-items:center;gap:5px}
+.collat span{font-family:var(--mono);font-size:12px;padding:4px 9px;border-radius:999px;border:1px solid var(--line);color:var(--muted);display:inline-flex;align-items:center;gap:5px;max-width:100%}
+.collat span i{font-style:normal;max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.collat .more{color:var(--faint);cursor:help}
 .tlogo{border-radius:50%;flex:none;display:inline-block;vertical-align:middle;object-fit:cover}
 
 .steps{margin-top:72px;position:relative;display:grid;grid-template-columns:repeat(3,1fr);gap:48px}
@@ -406,10 +419,13 @@ body.in-app #appShell{display:block}
 .vsort button{height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:transparent;color:#B3B5D0;font:inherit;cursor:pointer}
 .vsort button.on{border-color:rgba(123,92,255,.5);color:var(--ink);background:rgba(123,92,255,.12)}
 .vsort button:hover{color:var(--ink)}
+.vnote{display:flex;align-items:center;gap:8px;margin:-6px 0 14px;font-size:13px;color:var(--muted)}
+.vnote svg{flex:none}
+@media (max-width:760px){.vcard-top{flex-wrap:wrap}.vcard-id{flex:1 1 100%}.vcard h3{-webkit-line-clamp:3}}
 .est-in{margin-left:auto;display:flex;align-items:center;gap:10px}
 .est-in input{width:120px;height:34px;padding:0 14px;border-radius:999px;border:1px solid var(--line);background:#0A0A12;color:var(--ink);font:inherit;font-family:var(--mono);text-align:right}
 .est-in input:focus{outline:none;border-color:rgba(123,92,255,.6)}
-.est{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:12px;padding:10px 12px;border-radius:12px;background:rgba(123,92,255,.07);border:1px solid rgba(123,92,255,.18);font-size:12.5px}
+.est{display:flex;flex-wrap:wrap;gap:4px 14px;margin-top:14px;padding:10px 12px;border-radius:12px;background:rgba(123,92,255,.07);border:1px solid rgba(123,92,255,.18);font-size:12.5px}
 .est b{font-family:var(--mono);font-weight:500}
 @media (max-width:760px){.est-in{margin-left:0;width:100%}.est-in input{flex:1}}
 .done-ic{width:52px;height:52px;border-radius:50%;display:grid;place-items:center;color:var(--gold);background:rgba(126,224,184,.08);border:1px solid rgba(126,224,184,.35)}
@@ -1865,21 +1881,28 @@ const earnMonth = (amt, apy) => amt * (Math.pow(1 + apy / 100, 1 / 12) - 1);
 const fmtEst = n => n >= 1000 ? fmt(n, 0) : fmt(n, 2);
 const estLine = v => `<div class="est" data-apy="${netApy(v)}"><span class="muted">On <b data-est-amt>${fmtEst(UI.est)}</b> ${esc(sym(v))}</span><span><b class="gold" data-est-m>+${fmtEst(earnMonth(UI.est, netApy(v)))}</b> / month</span><span><b class="gold" data-est-y>+${fmtEst(earnYear(UI.est, netApy(v)))}</b> / year</span></div>`;
 const sortBy = (list, k) => [...list].sort((a, b) => k === 'tvl' ? b.tvl - a.tvl : k === 'grade' ? (risk(b).score - risk(a).score) || (netApy(b) - netApy(a)) : (netApy(b) - netApy(a)) || (b.tvl - a.tvl));
+// Short labels for the card; the full sentence stays in the tooltip, on the Earn page and in the table.
+const FLAG_SHORT = { equity: 'Tokenized stocks', lltv: 'High LLTV', peg: 'Off peg', synthetic: 'Synthetic dollar' };
 function vaultCard(v, inApp) {
-  const r = risk(v), hot = v.util >= S.alerts.threshold;
+  const r = risk(v), hot = v.util >= S.alerts.threshold, fl = riskFlags(v);
+  const col = shownCollat(v), top = col.slice(0, 3), more = col.length - top.length;
+  const stat = (label, value, style = '') => `<div class="vstat"><small>${label}</small><b style="${style}">${value}</b></div>`;
   return `<article class="vcard ${inApp && S.vaultId === v.id ? 'sel' : ''}">
-    <div class="vcard-top"><div style="display:flex;align-items:center;gap:12px;min-width:0">${assetLogo(v, 36)}<div style="min-width:0"><h3>${esc(v.name)}</h3><div class="muted" style="font-size:13px;margin-top:4px">${esc(sym(v))} ${chainChip(v)} · ${esc(v.curator)}</div></div></div>${gradeChip(v)}</div>
-    <div><div class="apy">${fmt(netApy(v))}<span class="gold">%</span></div><div class="muted" style="font-size:13px;margin-top:6px">Net APY · ${fmt(v.gross)}% gross</div><div style="font-size:11px;color:var(--faint);margin-top:4px">7-day average, after ${fmtFee(v.perfFee)} performance fee</div>${estLine(v)}</div>
-    <div class="rows" style="font-size:13px">
-      <div><span>Total deposits</span><span>${fmtUsdShort(v.tvl)}</span></div>
-      <div><span>Utilization</span><span style="${hot ? 'color:var(--warn)' : ''}">${v.util.toFixed(1)}%</span></div>
-      <div><span>Oracle</span><span>${v.oracle}</span></div>
-      <div><span>Running for</span><span title="${v.ageDays != null ? 'Since ' + esc(sinceDate(v)) : ''}">${fmtAge(v.ageDays)}</span></div>
-      <div><span>Lock-up</span><span title="No lock-up. Withdrawals are instant while the vault has free liquidity (${esc(fmtUsdShort(v.liq))} now).">None · withdraw anytime</span></div>
+    <div class="vcard-top"><div class="vcard-id">${assetLogo(v, 36)}<div style="min-width:0"><h3 title="${esc(v.name)}">${esc(v.name)}</h3><div class="vmeta">${esc(sym(v))} ${chainChip(v)} <span>· ${esc(v.curator)}</span></div></div></div>${gradeChip(v)}</div>
+    <div>
+      <div class="apy">${fmt(netApy(v))}<span class="gold">%</span></div>
+      <div class="vsub">Net APY · 7-day avg · ${fmt(v.gross)}% gross, ${fmtFee(v.perfFee)} fee</div>
+      ${estLine(v)}
     </div>
-    ${collatRow(v)}
-    <div class="flags">${flagRows(riskFlags(v))}</div>
-    <a href="#app" class="btn ${r.grade === 'C' || v.paused ? 'btn-glass' : 'btn-gold'}" data-pick="${v.id}" style="width:100%">${v.paused ? 'Deposits paused · view vault' : 'Deposit in ' + esc(shortName(v.name))}</a>
+    <div class="vstats">
+      ${stat('Total deposits', fmtUsdShort(v.tvl))}
+      ${stat('Utilization', v.util.toFixed(1) + '%', hot ? 'color:var(--warn)' : '')}
+      ${stat('Oracle', esc(v.oracle))}
+      ${stat('Running for', `<span title="${v.ageDays != null ? 'Since ' + esc(sinceDate(v)) : ''}">${fmtAge(v.ageDays)}</span>`)}
+    </div>
+    ${col.length ? `<div class="collat">${top.map(c => `<span title="${esc(c.a)} ${c.s}%">${collatLogo(c)}<i>${esc(c.a)}</i> ${c.s}%</span>`).join('')}${more > 0 ? `<span class="more" title="${esc(col.slice(3).map(c => c.a + ' ' + c.s + '%').join(', '))}">+${more} more</span>` : ''}</div>` : ''}
+    ${fl.length ? `<div class="vflags">${fl.map(f => `<span title="${esc(f.text)}">${warnSvg(12)}${esc(FLAG_SHORT[f.k] || 'Risk flag')}</span>`).join('')}</div>` : ''}
+    <a href="#app" class="btn ${r.grade === 'C' || v.paused ? 'btn-glass' : 'btn-gold'} vbtn" data-pick="${v.id}">${v.paused ? 'Deposits paused · view' : 'Deposit ' + esc(sym(v))}</a>
   </article>`;
 }
 function bindPicks(root) { root.querySelectorAll('[data-pick]').forEach(a => a.addEventListener('click', e => { if (txBusy()) { e.preventDefault(); return toast('Finish the transaction in your wallet first', true); } S.vaultId = a.dataset.pick; S.tab = 'deposit'; Object.assign(UI, { amount: '', max: false, stage: 'form' }); })); }
@@ -1900,7 +1923,7 @@ function viewVaults() {
   const filt = `<div class="vpick" role="tablist" aria-label="Filter by stablecoin">${['All', ...syms].map(s0 => { const on = UI.asset === s0, ex = onNet.find(v => sym(v) === s0);
     return `<button type="button" role="tab" aria-selected="${on}" class="${on ? 'on' : ''}" data-asset="${esc(s0)}" style="padding:0 16px">${ex ? assetLogo(ex, 18) : ''}${esc(s0)}</button>`; }).join('')}</div>`;
   const failed = LIVE.failed.length ? `<p class="muted" style="margin:-8px 0 16px;font-size:13px">${warnSvg(14)} Couldn't load ${esc(listNames(LIVE.failed.map(chainNm)))} vaults right now. Showing the other networks.</p>` : '';
-  const sortBar = `<div class="vsort" role="group" aria-label="Sort vaults"><span class="muted">Sort</span>${Object.entries(SORTS).map(([k, l]) => `<button type="button" class="${UI.sort === k ? 'on' : ''}" aria-pressed="${UI.sort === k}" data-sort="${k}">${l}</button>`).join('')}
+  const sortBar = `<p class="vnote">${tickSvg(14)} No lock-ups on any vault: withdraw anytime the vault has free liquidity. Earnings are estimates at today's APY.</p><div class="vsort" role="group" aria-label="Sort vaults"><span class="muted">Sort</span>${Object.entries(SORTS).map(([k, l]) => `<button type="button" class="${UI.sort === k ? 'on' : ''}" aria-pressed="${UI.sort === k}" data-sort="${k}">${l}</button>`).join('')}
     <label class="est-in"><span class="muted">Estimate earnings on</span><input id="estAmt" inputmode="decimal" autocomplete="off" value="${esc(String(UI.est))}" aria-label="Amount to estimate earnings for"></label></div>`;
   $('view').innerHTML = `${head}${failed}${netFilt}${filt}${sortBar}
     <div class="vgrid" style="margin-top:0">${list.map(v => vaultCard(v, true)).join('')}</div>
