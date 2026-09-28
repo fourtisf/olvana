@@ -878,6 +878,8 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
             <div><span class="muted" style="font-size:14px">Estimated earnings</span><div class="calc-big" id="cEarn">—</div></div>
             <div class="rows" style="font-size:14px;min-width:240px">
               <div><span><span>Balance after</span> <span id="cMonthsLbl2">12 months</span></span><span id="cFinal">—</span></div>
+              <div><span>Per day</span><span class="gold" id="cDay">—</span></div>
+              <div><span>Per month</span><span class="gold" id="cMonth">—</span></div>
               <div><span>Net APY</span><span id="cApy">—</span></div>
             </div>
           </div>
@@ -1629,7 +1631,7 @@ function renderForm() {
     </div>
     <div class="rows" style="font-size:14px">
       <div><span title="7-day average, after fees">Net APY <span style="font-size:11px;color:var(--faint)">· 7-day avg, after fees</span></span><span class="gold">${fmt(n)}%</span></div>
-      ${f.isDep ? `<div><span>Est. monthly earnings</span><span id="pvM">+${fmt(earnMonth(f.a, n))} ${u}</span></div>` : ''}
+      ${f.isDep ? `<div><span>Est. daily earnings</span><span id="pvD">+${fmt(earnDay(f.a, n), 4)} ${u}</span></div><div><span>Est. monthly earnings</span><span id="pvM">+${fmt(earnMonth(f.a, n))} ${u}</span></div>` : ''}
       <div><span id="pvL">${f.isDep ? 'Est. yearly earnings' : 'You receive'}</span><span id="pv">${f.isDep ? '+' + fmt(f.a * n / 100) + ' ' + u : fmt(f.a) + ' ' + u}</span></div>
       <div><span>Olvana fee</span><span>0.00 ${u}</span></div>
       <div><span>Risk grade</span><span>${gradeChip(f.v)}</span></div>
@@ -1669,6 +1671,7 @@ function updateForm() {
   const f = formState(), n = netApy(f.v);
   $('pv').textContent = (f.isDep ? '+' + fmt(f.a * n / 100) : fmt(f.a)) + ' ' + sym(f.v);
   if (f.isDep && $('pvM')) $('pvM').textContent = '+' + fmt(earnMonth(f.a, n)) + ' ' + sym(f.v);
+  if (f.isDep && $('pvD')) $('pvD').textContent = '+' + fmt(earnDay(f.a, n), 4) + ' ' + sym(f.v);
   const b = $('primary'); b.textContent = f.label; b.disabled = !f.enabled;
 }
 
@@ -1997,8 +2000,9 @@ const SORTS = { apy: 'Highest APY', tvl: 'Largest', grade: 'Best grade' };
 // monthly share of it. An estimate only: APY changes daily.
 const earnYear = (amt, apy) => amt * apy / 100;
 const earnMonth = (amt, apy) => amt * (Math.pow(1 + apy / 100, 1 / 12) - 1);
+const earnDay = (amt, apy) => amt * (Math.pow(1 + apy / 100, 1 / 365) - 1);
 const fmtEst = n => n >= 1000 ? fmt(n, 0) : fmt(n, 2);
-const estLine = v => `<div class="est" data-apy="${netApy(v)}"><span class="muted">On <b data-est-amt>${fmtEst(UI.est)}</b> ${esc(sym(v))} you earn about</span><span><b class="gold" data-est-m>+${fmtEst(earnMonth(UI.est, netApy(v)))}</b> ${esc(sym(v))} / month</span><span><b class="gold" data-est-y>+${fmtEst(earnYear(UI.est, netApy(v)))}</b> ${esc(sym(v))} / year</span></div>`;
+const estLine = v => `<div class="est" data-apy="${netApy(v)}"><span class="muted">On <b data-est-amt>${fmtEst(UI.est)}</b> ${esc(sym(v))} you earn about</span><span><b class="gold" data-est-d>+${fmtEst(earnDay(UI.est, netApy(v)))}</b> ${esc(sym(v))} / day</span><span><b class="gold" data-est-m>+${fmtEst(earnMonth(UI.est, netApy(v)))}</b> ${esc(sym(v))} / month</span><span><b class="gold" data-est-y>+${fmtEst(earnYear(UI.est, netApy(v)))}</b> ${esc(sym(v))} / year</span></div>`;
 const sortBy = (list, k) => [...list].sort((a, b) => k === 'tvl' ? b.tvl - a.tvl : k === 'grade' ? (risk(b).score - risk(a).score) || (netApy(b) - netApy(a)) : (netApy(b) - netApy(a)) || (b.tvl - a.tvl));
 // Short labels for the card; the full sentence stays in the tooltip, on the Earn page and in the table.
 const FLAG_SHORT = { equity: 'Stock collateral', lltv: 'Thin safety buffer', peg: 'Off $1 peg', synthetic: 'Synthetic dollar' };
@@ -2072,6 +2076,7 @@ function viewVaults() {
     $('view').querySelectorAll('[data-est-amt]').forEach(e => e.textContent = fmtEst(UI.est));
     $('view').querySelectorAll('[data-apy]').forEach(e => {
       const apy = +e.dataset.apy;
+      e.querySelectorAll('[data-est-d]').forEach(x => x.textContent = '+' + fmtEst(earnDay(UI.est, apy)));
       e.querySelectorAll('[data-est-m]').forEach(x => x.textContent = '+' + fmtEst(earnMonth(UI.est, apy)));
       const y = e.hasAttribute('data-est-y') ? e : e.querySelector('[data-est-y]');
       if (y) y.textContent = '+' + fmtEst(earnYear(UI.est, apy)) + (y.dataset.sym ? ' ' + y.dataset.sym : '');
@@ -2450,7 +2455,7 @@ function calc() {
   const ml = t(months === 1 ? 'd.month' : 'd.months', { n: months });
   $('cMonthsLbl').textContent = ml; $('cMonthsLbl2').textContent = ml;
   if (!VAULTS.length) {
-    ['cEarn', 'cFinal', 'cApy'].forEach(id => { $(id).textContent = '—'; });
+    ['cEarn', 'cFinal', 'cApy', 'cDay', 'cMonth'].forEach(id => { $(id).textContent = '—'; });
     $('cUnit').textContent = 'stablecoin';
     $('cChart').innerHTML = ''; $('cChart').style.display = 'none';
     $('cMsg').textContent = liveMsg(); $('cMsg').hidden = false;
@@ -2464,6 +2469,8 @@ function calc() {
   const final = usd * Math.pow(1 + r, days);
   $('cEarn').textContent = '+$' + fmt(final - usd);
   $('cFinal').textContent = '$' + fmt(final);
+  $('cDay').textContent = '+$' + fmt(usd * r);                                   // first day, same daily rate as the projection
+  $('cMonth').textContent = '+$' + fmt(usd * (Math.pow(1 + r, 30.4167) - 1));
   $('cApy').textContent = fmt(netApy(v)) + '% · Grade ' + risk(v).grade;
   const vals = Array.from({ length: months + 1 }, (_, m) => usd * Math.pow(1 + r, m * 30.4167));
   if (vals.length < 2) vals.push(vals[0]);
