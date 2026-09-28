@@ -2,6 +2,9 @@
 // that forwards to a local chain (id 1) running Morpho Blue + MetaMorphoV1_1Factory compiled from Morpho's source,
 // with the factory at its Ethereum address. Run through ./run.sh.
 const { chromium } = require(process.env.PLAYWRIGHT_CORE || 'playwright-core');
+
+// Earn / calculator vault picker (replaced the row of vault buttons): open it, click the vault row
+const pickVaultSel = async (pg, sel, opener = '#earnPick') => { await pg.click(opener); await pg.waitForSelector('#vpList [data-vp]'); await pg.click(sel.replace('[data-v=', '[data-vp=')); await pg.waitForTimeout(200); };
 const { execSync } = require('child_process');
 const fs = require('fs');
 const path = require('path');
@@ -90,7 +93,7 @@ const WALLET = (user) => {
   const word = n => BigInt(n).toString(16).padStart(64, '0');
 
   await page.click('#walletBtn');
-  await page.click(`[data-v="1:${VAULT}"]`);
+  await pickVaultSel(page, `[data-v="1:${VAULT}"]`);
   await until(async () => /Wallet balance 1,000\.00 USDC/.test(await txt('#action')));
   check('V1 vault on Ethereum (chain 1): wallet balance read', /Wallet balance 1,000\.00 USDC/.test(await txt('#action')), await txt('#action'));
   check('labelled Morpho Vault V1', /Morpho Vault V1/.test(await txt('.vault-head')));
@@ -146,7 +149,7 @@ const WALLET = (user) => {
 
   // 5 · lookalike V1 vault (not created by a MetaMorpho factory) → blocked
   await page.click('[data-tab="deposit"]');
-  await page.click(`[data-v="1:${FAKE}"]`);
+  await pickVaultSel(page, `[data-v="1:${FAKE}"]`);
   await setAmount('10'); await review();
   await page.evaluate(() => { window.__sent = []; });
   check('lookalike V1 vault: "Not verified", confirm disabled, nothing sent', /Vault contract on allowlist Not verified/.test(await checksTxt()) && await page.$eval('#confirm', e => e.disabled) && (await sent()).length === 0, await checksTxt());

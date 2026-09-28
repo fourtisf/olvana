@@ -2,6 +2,9 @@
 // running Morpho's real VaultV2 + VaultV2Factory (compiled from morpho-org/vault-v2) at the mainnet factory address.
 // Run through ./run.sh (needs Node 22, python3 and playwright-core; set CHROMIUM to a Chromium binary if not /opt/pw-browsers/chromium).
 const { chromium } = require(process.env.PLAYWRIGHT_CORE || 'playwright-core');
+
+// Earn / calculator vault picker (replaced the row of vault buttons): open it, click the vault row
+const pickVaultSel = async (pg, sel, opener = '#earnPick') => { await pg.click(opener); await pg.waitForSelector('#vpList [data-vp]'); await pg.click(sel.replace('[data-v=', '[data-vp=')); await pg.waitForTimeout(200); };
 const path = require('path');
 const { execSync } = require('child_process');
 const fs = require('fs');
@@ -94,10 +97,12 @@ const WALLET = (user) => {
   await page.click('#walletBtn');
   await until(async () => /Wallet balance 1,000\.00 USDG/.test(await txt('#action')));
   check('connected on chain 4663, real wallet balance', /Wallet balance 1,000\.00 USDG/.test(await txt('#action')), await txt('#action'));
-  check('both listed vaults shown', /Lookalike USDG/.test(await txt('.vpick')) && /Steakhouse USDG/.test(await txt('.vpick')));
+  await page.click('#earnPick'); await page.waitForSelector('#vpList [data-vp]');
+  check('both listed vaults shown', /Lookalike USDG/.test(await txt('#vpList')) && /Steakhouse USDG/.test(await txt('#vpList')));
+  await page.keyboard.press('Escape'); await page.waitForTimeout(150);
 
   // 1 · deposit 100 → approve exact + deposit
-  await page.click(`[data-v="4663:${VAULT}"]`);
+  await pickVaultSel(page, `[data-v="4663:${VAULT}"]`);
   await setAmount('100'); await review();
   let c = await checksTxt();
   check('deposit checks: allowlist, balance passed; simulation after approval; Chainlink', /Vault contract on allowlist Passed/.test(c) && /Enough USDG in wallet Passed/.test(c) && /Transaction simulated After approval/.test(c) && /Oracle source Chainlink/.test(c), c);
@@ -173,7 +178,7 @@ const WALLET = (user) => {
   await page.click('#again');
 
   // 6 · vault listed by the API but not created by the factory → blocked, nothing sent
-  await page.click(`[data-v="4663:${FAKE}"]`);
+  await pickVaultSel(page, `[data-v="4663:${FAKE}"]`);
   await setAmount('10'); await review();
   c = await checksTxt();
   await page.evaluate(() => { window.__sent = []; });
@@ -184,7 +189,7 @@ const WALLET = (user) => {
   await page.click('#back');
 
   // 7 · one more plain deposit after the strict token is switched off
-  await page.click(`[data-v="4663:${VAULT}"]`);
+  await pickVaultSel(page, `[data-v="4663:${VAULT}"]`);
   cast(`send ${USDG} "setStrict(bool)" false --from ${OWNER} --unlocked`);
   await setAmount('25'); await review();
   await page.click('#confirm'); await until(async () => /confirmed/.test(await txt('#action')));

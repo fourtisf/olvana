@@ -382,6 +382,33 @@ body.in-app #appShell{display:block}
 .wallet-btn{display:inline-flex;align-items:center;gap:8px}.wallet-btn img{width:18px;height:18px;border-radius:5px}
 .wdlg{width:min(420px,calc(100vw - 32px));padding:24px;border:1px solid var(--line);border-radius:24px;background:#0A0A12;color:var(--ink)}
 .wdlg::backdrop{background:rgba(5,5,10,.72);backdrop-filter:blur(4px)}
+.wdlg.wide{width:min(620px,calc(100vw - 24px));max-height:min(760px,calc(100vh - 48px));display:flex;flex-direction:column}
+.wdlg.wide[open]{display:flex}
+.wdlg.wide > *:not(.vp-list){flex:none}
+.calc2-in .vsel .grade{display:none}
+.vp-search{width:100%;height:46px;padding:0 16px;border-radius:14px;border:1px solid var(--line);background:#07070D;color:var(--ink);font:inherit;font-size:15px}
+.vp-search:focus{outline:none;border-color:rgba(123,92,255,.6)}
+.vp-nets{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0 8px}
+.vp-nets button{height:32px;padding:0 12px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);font:inherit;font-size:13px;cursor:pointer}
+.vp-nets button.on{border-color:rgba(123,92,255,.5);color:var(--ink);background:rgba(123,92,255,.12)}
+.vp-head{display:flex;justify-content:space-between;padding:8px 6px;font-family:var(--mono);font-size:11px;letter-spacing:.06em;text-transform:uppercase;color:var(--faint);border-bottom:1px solid var(--line2)}
+.vp-list{overflow-y:auto;min-height:120px;margin:0 -6px;padding:4px 6px}
+.vp-row{display:flex;align-items:center;gap:12px;width:100%;padding:10px 6px;border:0;border-bottom:1px solid var(--line2);background:transparent;color:var(--ink);font:inherit;text-align:left;cursor:pointer;border-radius:12px}
+.vp-row:hover,.vp-row.on{background:rgba(123,92,255,.08)}
+.vp-name{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.vp-name b{font-weight:600;font-size:14.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vp-name small,.vp-num small{font-size:12px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vp-num{display:flex;flex-direction:column;align-items:flex-end;gap:3px;flex:none}
+.vp-num b{font-family:var(--mono);font-weight:500;color:var(--gold);font-size:14px}
+.vp-row .grade{flex:none}
+.vsel{display:flex;align-items:center;gap:12px;width:100%;min-height:62px;padding:10px 14px;border-radius:18px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--ink);font:inherit;text-align:left;cursor:pointer}
+.vsel:hover{border-color:rgba(123,92,255,.45)}
+.vsel-name{flex:1;min-width:0;display:flex;flex-direction:column;gap:3px}
+.vsel-name b{font-weight:600;font-size:15px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vsel-name small{font-size:12.5px;color:var(--muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vsel-change{flex:none;font-size:13px;color:var(--gold);white-space:nowrap}
+.vsel .grade{flex:none}
+@media (max-width:520px){.vp-row .grade,.vsel .grade{display:none}.vsel-change{font-size:12px}}
 .wd-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:16px}.wd-head h3{font-size:20px;font-weight:600;letter-spacing:-.02em}
 .wd-x{width:36px;height:36px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:20px;line-height:1}
 .wd-list{display:flex;flex-direction:column;gap:8px}
@@ -687,6 +714,21 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
 .tag.cn{padding:2px 8px;font-size:10px;vertical-align:middle;color:#C4B5FF;border-color:rgba(169,155,255,.3)}
 .bl-short{display:none}
 .vpick.nets{margin-bottom:10px}
+.soon{padding:48px 32px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:14px;margin-bottom:20px}
+.soon h2{margin:0;font-size:28px;letter-spacing:-.02em}
+.soon p{margin:0;max-width:560px;line-height:1.6}
+.soon .two{display:flex;gap:10px;flex-wrap:wrap;justify-content:center;margin-top:8px}
+.soon-ic{width:56px;height:56px;border-radius:50%;display:grid;place-items:center;font-size:22px;color:var(--gold);background:rgba(123,92,255,.12);border:1px solid rgba(123,92,255,.35)}
+.sec-net{margin:22px 0 0}
+.sec-net h3{font-size:16px;margin:0 0 8px}
+.sec-vaults{margin-top:10px;border:1px solid var(--line2);border-radius:14px;padding:0 14px}
+.sec-vaults summary{cursor:pointer;padding:12px 0;font-size:14px;color:var(--gold);list-style-position:inside}
+.sec-vaults[open] summary{border-bottom:1px solid var(--line2)}
+.vmore{display:flex;align-items:center;justify-content:center;gap:16px;flex-wrap:wrap;margin:26px 0 8px;font-size:14px}
+.earn-pick{display:flex;align-items:center;gap:14px;margin-bottom:22px}
+.earn-pick .vsel{max-width:560px}
+.earn-count{font-size:13px;white-space:nowrap}
+@media (max-width:760px){.earn-pick{flex-wrap:wrap;gap:8px}.earn-pick > .muted:first-child{display:none}.earn-count{order:3}}
 .amount-top{flex-wrap:wrap;row-gap:4px}   /* "Switch to … to see your balance" wraps under the label on phones */
 @media (max-width:760px){
   .bl-full{display:none}
@@ -828,7 +870,7 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
           </div>
           <div class="field">
             <label for="cVault">Vault</label>
-            <select id="cVault" class="sel"></select>
+            <div id="cVaultBox"><button type="button" class="vsel" id="cVault" disabled><span class="vsel-name"><small>Loading live vaults…</small></span></button></div>
           </div>
         </div>
         <div class="calc2-out">
@@ -837,7 +879,6 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
             <div class="rows" style="font-size:14px;min-width:240px">
               <div><span><span>Balance after</span> <span id="cMonthsLbl2">12 months</span></span><span id="cFinal">—</span></div>
               <div><span>Net APY</span><span id="cApy">—</span></div>
-              <div><span>Points</span><span class="gold" id="cPts">—</span></div>
             </div>
           </div>
           <svg id="cChart" class="chart" viewBox="0 0 820 190" preserveAspectRatio="none" aria-hidden="true" style="height:170px"></svg>
@@ -850,7 +891,7 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
     <section class="wrap sec2">
       <div class="feats">
         <div class="feat"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 3l7 3v5c0 4.5-3 8.3-7 10-4-1.7-7-5.5-7-10V6l7-3z" stroke="#A99BFF" stroke-width="1.5" stroke-linejoin="round"/><path d="M9 12l2 2 4-4" stroke="#7CC4FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><h3>Checked before you sign</h3><p>Allowlist, simulation, liquidity and oracle checks run on every transaction. <a href="#security" class="gold">How we protect you</a></p></div>
-        <div class="feat"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 4L3 11l6 2.5L11.5 20 21 4z" stroke="#A99BFF" stroke-width="1.5" stroke-linejoin="round"/><path d="M9 13.5l4-3" stroke="#7CC4FF" stroke-width="1.5" stroke-linecap="round"/></svg><h3>Telegram alerts</h3><p>Daily earnings, and a warning when utilization spikes so you can exit early.</p></div>
+        <div class="feat"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M21 4L3 11l6 2.5L11.5 20 21 4z" stroke="#A99BFF" stroke-width="1.5" stroke-linejoin="round"/><path d="M9 13.5l4-3" stroke="#7CC4FF" stroke-width="1.5" stroke-linecap="round"/></svg><h3>Utilization alerts</h3><p>A warning when a vault fills up, so you can exit early. In the app today; Telegram delivery is coming soon.</p></div>
         <div class="feat"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><rect x="3" y="6" width="18" height="13" rx="3" stroke="#A99BFF" stroke-width="1.5"/><path d="M16 12.5h2" stroke="#7CC4FF" stroke-width="1.8" stroke-linecap="round"/><path d="M6 6V5a2 2 0 012-2h9" stroke="#A99BFF" stroke-width="1.5" stroke-linecap="round"/></svg><h3>Your wallet, always</h3><p>Olvana never holds funds. Every deposit and withdrawal is signed by you.</p></div>
         <div class="feat"><svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M4 19V5M4 19h16" stroke="#A99BFF" stroke-width="1.5" stroke-linecap="round"/><path d="M7 15l4-4 3 3 5-6" stroke="#7CC4FF" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg><h3>No hidden fees</h3><p>Olvana charges no fee today. Each vault's own curator fee is shown on the vault and is already included in net APY.</p></div>
       </div>
@@ -860,18 +901,17 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
     <section id="rewards-preview" class="wrap sec2">
       <div class="rband">
         <div class="rband-l">
-          <span class="pill-s">Season 1</span>
-          <h2 class="h2" style="font-size:clamp(36px,4.4vw,60px)">Earn yield. <span class="grad">Stack points.</span></h2>
-          <p>One point per dollar, per day, from your first deposit. Invite friends and get 10% of what they earn. A token boost is coming soon.</p>
-          <a href="#rewards" class="btn btn-gold">View rewards</a>
+          <span class="pill-s">Season 1 · coming soon</span>
+          <h2 class="h2" style="font-size:clamp(36px,4.4vw,60px)">Earn yield. <span class="grad">Points are next.</span></h2>
+          <p>A points season for depositors and the friends they bring is on the way. Rules and the start date will be announced on <a href="https://x.com/Olvanaorg" target="_blank" rel="noopener" class="gold">@Olvanaorg</a>. No points are tracked yet.</p>
+          <a href="https://x.com/Olvanaorg" target="_blank" rel="noopener" class="btn btn-gold">Follow for the launch</a>
         </div>
         <div class="rband-r">
           <div class="ways">
-            <div><span>Deposit in any vault</span><span>1 pt / $ / day</span></div>
-            <div><span>Friend deposits with your link</span><span>+10% of their points</span></div>
-            <div><span>Token holder boost</span><span>Coming soon</span></div>
+            <div><span>Points for deposits, time-weighted</span><span>Planned</span></div>
+            <div><span>Referral share when friends join</span><span>Planned</span></div>
+            <div><span>Token holder boost</span><span>Planned</span></div>
           </div>
-          <div class="copybox"><code>olvana.org/?ref=OLV-7A3F</code><span class="tag">Your link</span></div>
         </div>
       </div>
     </section>
@@ -885,7 +925,7 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
           <details><summary><span>How is the risk grade calculated?</span><span class="pm" aria-hidden="true">+</span></summary><p>Out of 100 points: utilization (25), collateral quality (30), oracle type (25) and curator track record (20). Points come off when one collateral backs more than 80% of lending (−10), when the vault is under 90 days old (−5) and when it holds under $1M in deposits (−5). 80 and above is A, 60 to 79 is B, below 60 is C. A grade is a summary, not a guarantee. We also flag risks the score doesn't capture, like tokenized-stock collateral that can't be repriced when markets are closed.</p></details>
           <details><summary><span>Can I lose money?</span><span class="pm" aria-hidden="true">+</span></summary><p>Yes. Contract bugs, bad collateral, oracle failures or curator mistakes can cause losses or delay withdrawals. Read the <a href="#risk" class="gold">risk disclosure</a> before depositing.</p></details>
           <details><summary><span>Can I always withdraw?</span><span class="pm" aria-hidden="true">+</span></summary><p>Instantly when the vault has idle liquidity. At 100% utilization, exits wait until borrowers repay. Turn on utilization alerts to get warned early.</p></details>
-          <details><summary><span>How do I get stablecoins on the right network?</span><span class="pm" aria-hidden="true">+</span></summary><p>Each vault lives on one network, shown next to its token: Robinhood Chain, Ethereum, Base or Arbitrum. Get USDG, USDC or another listed stablecoin from [where to buy], and if it sits on a different network, bridge it to the vault's network with [bridge link]. Keep a little ETH on that network to pay fees. Olvana never asks you to send funds to anyone.</p></details>
+          <details><summary><span>How do I get stablecoins on the right network?</span><span class="pm" aria-hidden="true">+</span></summary><p>Each vault lives on one network, shown next to its token: Robinhood Chain, Ethereum, Base or Arbitrum. Get USDG, USDC or another listed stablecoin from an exchange or your wallet app, and if it sits on a different network, bridge it to the vault's network first. Keep a little ETH on that network to pay fees. Olvana never asks you to send funds to anyone.</p></details>
           <details><summary><span>How does Olvana make money?</span><span class="pm" aria-hidden="true">+</span></summary><p>Olvana charges no fee today. Each vault's own curator fee is shown on the vault and is already included in net APY.</p></details>
           <details><summary><span>Is there an Olvana token?</span><span class="pm" aria-hidden="true">+</span></summary><p>Coming soon. It will boost the points you earn and let holders vote on which vaults Olvana lists. It will not pay out vault revenue. The contract address will be posted only on this site and on <a href="https://x.com/Olvanaorg" target="_blank" rel="noopener" class="gold">@Olvanaorg</a>; any address shared anywhere before that is not ours.</p></details>
         </div>
@@ -915,10 +955,10 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
         <div><h4>Product</h4><a href="#app">Earn</a><a href="#vaults">Vaults</a><a href="#portfolio">Portfolio</a><a href="#rewards">Rewards</a></div>
         <div><h4>Verify</h4><a href="#security">Contracts &amp; security</a><a href="#grades">Risk grades</a><a href="#alerts">Alerts</a></div>
         <div><h4>Legal</h4><a href="#terms">Terms</a><a href="#privacy">Privacy</a><a href="#risk">Risk disclosure</a></div>
-        <div><h4>Community</h4><a class="xl" href="https://x.com/Olvanaorg" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>@Olvanaorg</a><span class="muted">CA: coming soon</span><span class="muted">[Telegram channel]</span><span class="muted">[Discord]</span></div>
+        <div><h4>Community</h4><a class="xl" href="https://x.com/Olvanaorg" target="_blank" rel="noopener"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg>@Olvanaorg</a><span class="muted">CA: coming soon</span></div>
       </div>
     </div>
-    <div class="foot-bottom"><span>© 2026 Olvana · [Company legal name] · [contact email]</span><span style="display:flex;align-items:center;gap:8px"><span class="dot"></span><span id="footStatus">All systems operational</span></span></div>
+    <div class="foot-bottom"><span>© 2026 Olvana · Non-custodial software</span><span style="display:flex;align-items:center;gap:8px"><span class="dot"></span><span id="footStatus">All systems operational</span></span></div>
   </footer>
 </div>
 
@@ -936,7 +976,6 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
       </nav>
     </div>
     <div style="display:flex;align-items:center;gap:10px">
-      <span class="pts-pill" title="Season 1 points">✦ <span id="topPts">0</span> pts</span>
       <span class="chain" id="chainPill" title="Robinhood Chain, Ethereum, Base, Arbitrum"><span class="dot"></span><span id="chainName">4 networks</span></span>
       <button class="wallet-btn" id="walletBtn" type="button">Connect wallet</button>
     </div>
@@ -981,6 +1020,8 @@ const CONFIG = {
   ],
   morphoApi: 'https://api.morpho.org/graphql',   // fallback when the same-origin /api/morpho proxy is unavailable
   siteUrl: 'https://olvana.org',
+  // legal pages: entity/email stay null until the owner provides them (then shown instead of the fallbacks)
+  legal: { updated: '28 September 2026', entity: null, email: null },
   telegramBot: '[your_bot]',     // e.g. 'OlvanaAlertsBot'. Placeholder = Telegram alerts not live yet.
   refShare: 0.10,                // referrer gets 10% of referee points
   stablecoins: ['USDG','USDC','USDT','USDT0','USDe','PYUSD','DAI','USDS'],   // stablecoins Olvana lists; a vault's asset must match one of these symbols AND trade within 2% of $1
@@ -1205,11 +1246,43 @@ function walletList() {
   return list;
 }
 const dlg = $('walletDlg');
-function openDlg(title, body) {
+function openDlg(title, body, wide = false) {
   dlg.innerHTML = `<div class="wd-head"><h3 id="wdTitle">${title}</h3><button type="button" class="wd-x" aria-label="Close" data-close>×</button></div>${body}`;
+  dlg.classList.toggle('wide', wide);
   dlg.querySelectorAll('[data-close]').forEach(b => b.onclick = () => dlg.close());
   if (!dlg.open) dlg.showModal();
 }
+
+const legalEntity = () => esc(CONFIG.legal.entity || 'Olvana');
+const legalContact = () => CONFIG.legal.email ? `<a class="gold" href="mailto:${esc(CONFIG.legal.email)}">${esc(CONFIG.legal.email)}</a>` : 'a direct message to <a class="gold" href="https://x.com/Olvanaorg" target="_blank" rel="noopener">@Olvanaorg</a> on X';
+
+/* ----- vault picker: one searchable list for every place that chooses a vault (Earn, calculator) ----- */
+function openVaultPicker(current, onPick) {
+  let q = '', net = 'All';
+  const nets = CONFIG.chains.filter(c => VAULTS.some(v => v.chainId === c.id));
+  openDlg('Choose a vault', `
+    <input class="vp-search" id="vpQ" type="search" placeholder="Search vault, token or curator" autocomplete="off" aria-label="Search vaults">
+    <div class="vp-nets" role="group" aria-label="Network">${[{ id: 'All', short: 'All networks' }, ...nets].map(c => `<button type="button" data-vpn="${esc(c.id)}" class="${String(c.id) === net ? 'on' : ''}">${esc(c.short)}</button>`).join('')}</div>
+    <div class="vp-head"><span>Vault</span><span>Net APY · Deposits</span></div>
+    <div class="vp-list" id="vpList" role="listbox" aria-label="Vaults"></div>`, true);
+  const list = () => {
+    const words = q.toLowerCase().split(/\s+/).filter(Boolean);
+    const rows = VAULTS.filter(v => (net === 'All' || String(v.chainId) === net)
+      && words.every(w => [v.name, sym(v), v.curator, chainNm(v.chainId)].join(' ').toLowerCase().includes(w)))
+      .sort((a, b) => (netApy(b) - netApy(a)) || (b.tvl - a.tvl));
+    $('vpList').innerHTML = rows.length ? rows.map(v => `<button type="button" role="option" aria-selected="${v.id === current}" class="vp-row ${v.id === current ? 'on' : ''}" data-vp="${esc(v.id)}">
+        ${assetLogo(v, 30)}<span class="vp-name"><b>${esc(v.name)}</b><small>${esc(sym(v))} ${chainChip(v)} · ${esc(v.curator)}</small></span>
+        <span class="vp-num"><b>${fmt(netApy(v))}%</b><small>${fmtUsdShort(v.tvl)}</small></span>${gradeChip(v, false)}</button>`).join('')
+      : `<p class="muted" style="padding:24px 4px;margin:0;font-size:14px">No vault matches “${esc(q)}”.</p>`;
+    $('vpList').querySelectorAll('[data-vp]').forEach(b => b.onclick = () => { dlg.close(); onPick(b.dataset.vp); });
+  };
+  $('vpQ').addEventListener('input', e => { q = e.target.value; list(); });
+  dlg.querySelectorAll('[data-vpn]').forEach(b => b.onclick = () => { net = b.dataset.vpn; dlg.querySelectorAll('[data-vpn]').forEach(x => x.classList.toggle('on', x === b)); list(); });
+  list();
+  if (!isMobile()) $('vpQ').focus();
+}
+// The button that shows the chosen vault and opens the picker
+const vaultSelBtn = (v, id) => `<button type="button" class="vsel" id="${id}" aria-haspopup="dialog">${assetLogo(v, 28)}<span class="vsel-name"><b>${esc(v.name)}</b><small>${esc(sym(v))} ${chainChip(v)} · ${fmt(netApy(v))}% net APY</small></span>${gradeChip(v, false)}<span class="vsel-change">Change <span aria-hidden="true">▾</span></span></button>`;
 dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });   // click on backdrop
 const wIcon = (w, size = 28) => safeIcon(w.info.icon) ? `<img src="${esc(w.info.icon)}" alt="" width="${size}" height="${size}">` : `<span class="wd-ph" style="width:${size}px;height:${size}px">${esc((w.info.name || '?').slice(0, 1))}</span>`;
 
@@ -1420,7 +1493,6 @@ function render() {
   w.innerHTML = S.connected ? `${W && safeIcon(W.info.icon) ? `<img src="${esc(W.info.icon)}" alt="">` : ''}<span>${esc(short(S.address))}</span>` : 'Connect wallet';
   w.setAttribute('aria-label', S.connected ? `Wallet ${S.address}, open wallet menu` : 'Connect wallet');
   w.classList.toggle('on', S.connected);
-  $('topPts').textContent = fmtInt(S.points + S.refPoints);
   // header pill: the wallet's current network, or how many networks Olvana covers when disconnected
   $('chainName').textContent = !S.connected ? CONFIG.chains.length + ' networks' : UI.chainId == null ? 'Network…' : chainById(UI.chainId) ? chainById(UI.chainId).name : 'Unsupported network';
   $('chainPill').title = S.connected && UI.chainId != null ? 'Wallet network' + (chainById(UI.chainId) ? '' : ' (chain id ' + UI.chainId + ')') : CONFIG.chains.map(c => c.name).join(', ');
@@ -1459,9 +1531,7 @@ function viewEarn() {
   S.vaultId = v.id;
   const hot = v.util >= S.alerts.threshold;
   $('view').innerHTML = `
-    <div class="vpick" role="tablist" aria-label="Choose vault">
-      ${CONFIG.chains.flatMap(c => VAULTS.filter(x => x.chainId === c.id)).map(x => `<button type="button" role="tab" aria-selected="${x.id === v.id}" class="${x.id === v.id ? 'on' : ''}" data-v="${x.id}">${assetLogo(x, 18)}${esc(x.name)} <span class="mono">${esc(sym(x))} · ${fmt(netApy(x))}%</span>${chainChip(x)}${gradeChip(x, false)}</button>`).join('')}
-    </div>
+    <div class="earn-pick"><span class="muted">Vault</span>${vaultSelBtn(v, 'earnPick')}<span class="muted earn-count">${VAULTS.length} vaults · <a href="#vaults" class="gold">compare all</a></span></div>
     ${hot ? `<div class="alert" role="alert">${warnSvg()}<div><b>${esc(v.name)} utilization is ${v.util.toFixed(1)}%.</b> Only ${fmtUsdShort(v.liq)} can leave right now. New deposits still work, but withdrawals may wait until borrowers repay.</div></div>` : ''}
     ${v.paused ? `<div class="alert" role="alert">${warnSvg()}<div><b>Deposits to ${esc(v.name)} are paused by the curator.</b> Withdrawals still work if liquidity is available.</div></div>` : ''}
     <div class="app-grid">
@@ -1480,7 +1550,7 @@ function viewEarn() {
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${gradeChip(v)}${liveBadge()}</div>
         </div>
         <div class="statrow">
-          <div class="panel" title="7-day average, after fees"><small>Net APY (7d)</small><b class="gold">${fmt(n)}%</b><em>7-day average, after fees<br>${fmt(v.gross)}% gross · ${fmtFee(v.perfFee)} performance fee</em></div>
+          <div class="panel" title="7-day average, after fees"><small>Net APY (7d)</small><b class="gold">${fmt(n)}%</b><em>7-day average, after fees</em></div>
           <div class="panel"><small>Total deposits</small><b>${fmtUsdShort(v.tvl)}</b></div>
           <div class="panel"><small>Utilization</small><b style="${hot ? 'color:var(--warn)' : ''}">${v.util.toFixed(1)}%</b><div class="bar ${hot ? 'hot' : ''}"><i style="width:${Math.min(100, v.util)}%"></i></div></div>
           <div class="panel"><small>Withdrawable now</small><b>${fmtUsdShort(v.liq)}</b></div>
@@ -1511,7 +1581,10 @@ function viewEarn() {
         </div>
       </div>
     </div>`;
-  $('view').querySelectorAll('[data-v]').forEach(b => b.onclick = () => { if (txBusy()) return toast('Finish the transaction in your wallet first', true); S.vaultId = b.dataset.v; Object.assign(UI, { amount: '', max: false, stage: 'form' }); render(); });
+  $('earnPick').onclick = () => {
+    if (txBusy()) return toast('Finish the transaction in your wallet first', true);
+    openVaultPicker(v.id, id => { S.vaultId = id; Object.assign(UI, { amount: '', max: false, stage: 'form' }); render(); });
+  };
   ({ form: renderForm, review: renderReview })[UI.stage === 'review' ? 'review' : 'form']();
 }
 
@@ -1557,7 +1630,7 @@ function renderForm() {
       <div><span title="7-day average, after fees">Net APY <span style="font-size:11px;color:var(--faint)">· 7-day avg, after fees</span></span><span class="gold">${fmt(n)}%</span></div>
       ${f.isDep ? `<div><span>Est. monthly earnings</span><span id="pvM">+${fmt(earnMonth(f.a, n))} ${u}</span></div>` : ''}
       <div><span id="pvL">${f.isDep ? 'Est. yearly earnings' : 'You receive'}</span><span id="pv">${f.isDep ? '+' + fmt(f.a * n / 100) + ' ' + u : fmt(f.a) + ' ' + u}</span></div>
-      <div><span>${f.isDep ? 'Points per day' : 'Deposit / withdraw fee'}</span><span id="pv2" class="${f.isDep ? 'gold' : ''}">${f.isDep ? '+' + fmtInt(f.a) : '0.00 ' + u}</span></div>
+      <div><span>Olvana fee</span><span>0.00 ${u}</span></div>
       <div><span>Risk grade</span><span>${gradeChip(f.v)}</span></div>
     </div>
     ${S.connected && f.isDep && f.max === 0 ? `<div class="alert info" style="margin:0">${warnSvg(16)}<div><b>No ${u} in this wallet on ${esc(chainNm(f.v.chainId))}.</b> <a href="#faq" class="gold">How to get stablecoins</a></div></div>` : ''}
@@ -1595,7 +1668,6 @@ function updateForm() {
   const f = formState(), n = netApy(f.v);
   $('pv').textContent = (f.isDep ? '+' + fmt(f.a * n / 100) : fmt(f.a)) + ' ' + sym(f.v);
   if (f.isDep && $('pvM')) $('pvM').textContent = '+' + fmt(earnMonth(f.a, n)) + ' ' + sym(f.v);
-  if (f.isDep) $('pv2').textContent = '+' + fmtInt(f.a);
   const b = $('primary'); b.textContent = f.label; b.disabled = !f.enabled;
 }
 
@@ -1971,21 +2043,26 @@ function viewVaults() {
   const failed = LIVE.failed.length ? `<p class="muted" style="margin:-8px 0 16px;font-size:13px">${warnSvg(14)} Couldn't load ${esc(listNames(LIVE.failed.map(chainNm)))} vaults right now. Showing the other networks.</p>` : '';
   const sortBar = `<p class="vnote">${tickSvg(14)} No lock-ups on any vault: withdraw anytime the vault has free liquidity. Earnings are estimates at today's APY.</p><div class="vsort" role="group" aria-label="Sort vaults"><span class="muted">Sort</span>${Object.entries(SORTS).map(([k, l]) => `<button type="button" class="${UI.sort === k ? 'on' : ''}" aria-pressed="${UI.sort === k}" data-sort="${k}">${l}</button>`).join('')}
     <label class="est-in"><span class="muted">Estimate earnings on</span><input id="estAmt" inputmode="decimal" autocomplete="off" value="${esc(String(UI.est))}" aria-label="Amount to estimate earnings for"></label></div>`;
+  // 12 cards at a time: with ~100 vaults a full grid ran to tens of thousands of pixels
+  const shown = list.slice(0, UI.vShow || 12), left = list.length - shown.length;
   $('view').innerHTML = `${head}${failed}${netFilt}${filt}${sortBar}
-    <div class="vgrid" style="margin-top:0">${list.map(v => vaultCard(v, true)).join('')}</div>
+    <div class="vgrid" style="margin-top:0">${shown.map(v => vaultCard(v, true)).join('')}</div>
+    <div class="vmore"><span class="muted">Showing ${shown.length} of ${list.length} vaults</span>${left > 0 ? `<button type="button" class="btn btn-glass" id="vMore">Show ${Math.min(12, left)} more</button><button type="button" class="linkbtn gold" id="vAll">Show all</button>` : ''}</div>
     <div class="panel" style="margin-top:20px">
       <h3 class="h4" style="margin-bottom:6px">Side by side</h3>
       <p class="muted" style="margin:0 0 18px;font-size:12px">Net APY is a 7-day average, after fees, and changes daily, so earnings shown are estimates at today's rate, not a promise. No vault has a lock-up: you can withdraw anytime the vault has free liquidity. Flags are risks the grade doesn't score.</p>
       <div class="scrollx"><table class="tbl">
         <thead><tr><th>Vault</th><th title="7-day average, after fees">Net APY</th><th>Grade</th><th>Flags</th><th>Utilization</th><th>Withdrawable</th><th>Running for</th><th title="At the current net APY">Per year on ${fmtEst(UI.est)}</th><th>Oracle</th><th>Blue-chip / cash-backed</th></tr></thead>
-        <tbody>${list.map(v => { const blue = Math.round(v.collateral.filter(c => c.q === 'blue').reduce((t, c) => t + c.s, 0) * 10) / 10; const fl = riskFlags(v);
+        <tbody>${shown.map(v => { const blue = Math.round(v.collateral.filter(c => c.q === 'blue').reduce((t, c) => t + c.s, 0) * 10) / 10; const fl = riskFlags(v);
           return `<tr><td><span style="display:inline-flex;align-items:center;gap:8px">${assetLogo(v, 18)}${esc(v.name)} <span class="mono muted" style="font-size:12px">${esc(sym(v))}</span>${chainChip(v)}</span></td><td class="n gold">${fmt(netApy(v))}%</td><td>${gradeChip(v)}</td><td class="n" style="${fl.length ? 'color:var(--warn)' : ''}" title="${esc(fl.map(f => f.text).join(' '))}">${fl.length ? warnSvg(14) + ' ' + fl.length : '—'}</td><td class="n">${v.util.toFixed(1)}%</td><td class="n">${fmtUsdShort(v.liq)}</td><td class="n">${fmtAge(v.ageDays)}</td><td class="n gold" data-apy="${netApy(v)}" data-est-y data-sym="${esc(sym(v))}">+${fmtEst(earnYear(UI.est, netApy(v)))} ${esc(sym(v))}</td><td>${v.oracle}</td><td class="n">${blue}%</td></tr>`; }).join('')}</tbody>
       </table></div>
     </div>`;
   bindPicks($('view'));
-  $('view').querySelectorAll('[data-asset]').forEach(b => b.onclick = () => { UI.asset = b.dataset.asset; viewVaults(); });
-  $('view').querySelectorAll('[data-net]').forEach(b => b.onclick = () => { UI.net = b.dataset.net; viewVaults(); });
-  $('view').querySelectorAll('[data-sort]').forEach(b => b.onclick = () => { UI.sort = b.dataset.sort; viewVaults(); });
+  $('view').querySelectorAll('[data-asset]').forEach(b => b.onclick = () => { UI.asset = b.dataset.asset; UI.vShow = 12; viewVaults(); });
+  $('view').querySelectorAll('[data-net]').forEach(b => b.onclick = () => { UI.net = b.dataset.net; UI.vShow = 12; viewVaults(); });
+  $('view').querySelectorAll('[data-sort]').forEach(b => b.onclick = () => { UI.sort = b.dataset.sort; UI.vShow = 12; viewVaults(); });
+  if ($('vMore')) $('vMore').onclick = () => { UI.vShow = shown.length + 12; viewVaults(); };
+  if ($('vAll')) $('vAll').onclick = () => { UI.vShow = list.length; viewVaults(); };
   const ea = $('estAmt');
   ea.addEventListener('input', () => {
     const clean = ea.value.replace(/[^0-9.]/g, '').replace(/(\..*)\./g, '$1');
@@ -2020,10 +2097,10 @@ function viewPortfolio() {
       <div class="panel kcard"><small>Total balance</small><b>${known ? '$' + fmt(total) : '—'}</b><em>across listed vaults${net ? ' on ' + esc(net.short) : ''}</em></div>
       <div class="panel kcard"><small>Est. per day</small><b class="gold">${known && blended != null ? '+$' + fmt(total * blended / 100 / 365) : '—'}</b><em>at current net APY</em></div>
       <div class="panel kcard"><small>Blended net APY</small><b>${blended != null ? fmt(blended) + '%' : '—'}</b><em>weighted by balance</em></div>
-      <div class="panel kcard"><small>Season 1 points</small><b>${fmtInt(S.points + S.refPoints)}</b><em><a href="#rewards" class="gold">View rewards</a></em></div>
+      <div class="panel kcard"><small>Open positions</small><b>${known ? held.length : '—'}</b><em>${net ? 'on ' + esc(net.short) : 'connect to see'}</em></div>
     </div>
     <div class="two-col">
-      <div class="panel"><div class="chart-head"><h3 class="h4">Balance over time</h3></div><div class="empty">Balance history arrives with the indexer. Current positions are live on the right.</div></div>
+      <div class="panel"><div class="chart-head"><h3 class="h4">Balance over time</h3><span class="tag">Coming soon</span></div><div class="empty">A chart of your balance and earnings is coming soon. Your current positions are live on the right.</div></div>
       <div class="panel">
         <h3 class="h4" style="margin-bottom:12px">Positions</h3>
         ${!c ? `<div class="empty">Connect a wallet to see your positions.<button type="button" class="btn btn-gold btn-sm" id="pfConnect">Connect wallet</button></div>`
@@ -2035,47 +2112,31 @@ function viewPortfolio() {
     </div>
     <div class="panel">
       <h3 class="h4" style="margin-bottom:18px">Transaction history</h3>
-      <div class="empty">${c ? `Your deposits and withdrawals: <a class="gold" href="${esc(explorerFor(UI.chainId))}/address/${esc(S.address)}" target="_blank" rel="noopener">view on ${esc(net ? net.short : HOME.short)} explorer ↗</a>` : 'Deposits and withdrawals show up here.'}</div>
+      <div class="empty">${c ? `Your deposits and withdrawals: <a class="gold" href="${esc(explorerFor(UI.chainId))}/address/${esc(S.address)}" target="_blank" rel="noopener">view on ${esc(net ? net.short : HOME.short)} explorer ↗</a>` : 'Connect a wallet to open your deposit and withdrawal history on the block explorer.'}</div>
     </div>`;
   const pc = $('pfConnect'); if (pc) pc.onclick = connect;
 }
 
 /* ===================== REWARDS ===================== */
 function viewRewards() {
+  // Points and referrals are not tracked yet, so nothing here shows a balance or promises one.
   $('view').innerHTML = `
-    <div class="page-head"><div><h1>Rewards</h1><p>Season 1 · ends [date]. Points are tracked per wallet.</p></div></div>
-    <div class="two-col">
-      <div class="panel" style="padding:32px;display:flex;flex-direction:column;gap:28px">
-        <div class="pts-hero"><span class="muted" style="font-size:14px">Your points</span><span class="n">${fmtInt(S.points + S.refPoints)}</span>
-          <span class="muted" style="font-size:14px">${S.connected ? 'No Olvana positions yet. Points start with your first deposit.' : 'Connect a wallet to see your points.'}</span></div>
-        <div class="ways">
-          <div><span>From deposits</span><span>${fmtInt(S.points)}</span></div>
-          <div><span>From referrals (${S.invites} friend${S.invites === 1 ? '' : 's'})</span><span>${fmtInt(S.refPoints)}</span></div>
-          <div><span>Token holder boost</span><span class="muted" style="color:var(--muted)">Coming soon</span></div>
-        </div>
-      </div>
-      <div class="panel" style="padding:32px;display:flex;flex-direction:column;gap:20px">
-        <h3 class="h4" style="font-size:20px">Invite friends</h3>
-        <p class="muted" style="margin:0;font-size:15px;line-height:1.55">You get 10% of the points your friends earn. They keep 100% of theirs.</p>
-        ${S.connected ? `<div class="copybox"><code id="refLink">${esc(refLink())}</code><button type="button" class="btn btn-gold btn-sm" id="copyRef">Copy</button></div>
-          <div class="rows" style="font-size:14px"><div><span>Your code</span><span class="gold">${refCode()}</span></div><div><span>Friends deposited</span><span>${S.invites}</span></div>${S.referredBy ? `<div><span>Referred by</span><span>${esc(S.referredBy)}</span></div>` : ''}</div>`
-          : `<button type="button" class="btn btn-gold" id="refConnect">Connect wallet to get your link</button>`}
-      </div>
+    <div class="page-head"><div><h1>Rewards</h1><p>Season 1 points and referrals.</p></div><span class="tag">Coming soon</span></div>
+    <div class="panel soon">
+      <div class="soon-ic">✦</div>
+      <h2>Points are coming soon</h2>
+      <p class="muted">Season 1 isn't live yet, and no points are being tracked today. When it launches, the rules, start date and what points can be used for will be posted here and on <a href="https://x.com/Olvanaorg" target="_blank" rel="noopener" class="gold">@Olvanaorg</a>.</p>
+      <div class="two"><a href="#app" class="btn btn-gold">Start earning</a><a href="https://x.com/Olvanaorg" target="_blank" rel="noopener" class="btn btn-glass">Follow on X</a></div>
     </div>
     <div class="panel">
-      <h3 class="h4" style="margin-bottom:12px">How points work</h3>
+      <h3 class="h4" style="margin-bottom:6px">What we're planning</h3>
+      <p class="muted" style="margin:0 0 12px;font-size:13px">Draft rules, subject to change before launch.</p>
       <div class="ways">
-        <div><span>Deposit in any vault</span><span>1 pt per $ per day</span></div>
-        <div><span>Referral bonus</span><span>10% of friends' points</span></div>
-        <div><span>Token holder boost</span><span>Coming soon</span></div>
-        <div><span>Points use your time-weighted balance, so depositing just before a snapshot doesn't earn extra.</span><span>Time-weighted</span></div>
-        <div><span>Referral points count only while your friend holds at least $100 and you hold a deposit yourself. Referrals from wallets funded by the referrer are voided.</span><span>Fair play</span></div>
-        <div><span>What points are for</span><span style="color:var(--muted)">[Season 1 rewards — to be announced]</span></div>
+        <div><span>Points for deposits, based on your time-weighted balance, so depositing just before a snapshot doesn't earn extra</span><span>Deposits</span></div>
+        <div><span>A share of the points friends earn when they join with your link</span><span>Referrals</span></div>
+        <div><span>Referrals count only while your friend holds at least $100 and you hold a deposit yourself; self-funded referral wallets don't count</span><span>Fair play</span></div>
       </div>
     </div>`;
-  const c = $('copyRef');
-  if (c) c.onclick = async () => { try { await navigator.clipboard.writeText(refLink()); toast('Referral link copied'); } catch (e) { toast('Copy failed — select the link manually', true); } };
-  const rc = $('refConnect'); if (rc) rc.onclick = connect;
 }
 
 /* ===================== ALERTS ===================== */
@@ -2087,14 +2148,14 @@ function viewAlerts() {
   const pvName = pv ? esc(pv.name) : 'A vault you hold';
   const sw = (key, title, desc) => `<div class="toggle"><div><div style="font-weight:600;font-size:15px">${title}</div><p>${desc}</p></div><button type="button" class="sw-btn" role="switch" aria-checked="${A[key]}" aria-label="${title}" data-sw="${key}"></button></div>`;
   $('view').innerHTML = `
-    <div class="page-head"><div><h1>Alerts</h1><p>Get warned before liquidity locks up, not after.</p></div></div>
+    <div class="page-head"><div><h1>Alerts</h1><p>Get warned before liquidity locks up, not after. ${botLive ? '' : 'Today alerts show in the app while Olvana is open; Telegram delivery is coming soon.'}</p></div></div>
     <div class="two-col">
       <div class="panel" style="padding:32px">
         <div style="display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap;padding-bottom:22px;border-bottom:1px solid var(--line2)">
-          <div><div style="font-weight:600;font-size:18px">Telegram</div><p class="muted" style="margin:6px 0 0;font-size:14px">${A.tg ? 'Connected. Alerts go to your Telegram.' : 'Link the Olvana bot to receive alerts in Telegram.'}</p></div>
-          <button type="button" class="btn ${A.tg ? 'btn-glass' : 'btn-gold'} btn-sm" id="tgBtn">${A.tg ? 'Disconnect' : 'Connect Telegram'}</button>
+          <div><div style="font-weight:600;font-size:18px">Telegram</div><p class="muted" style="margin:6px 0 0;font-size:14px">${!botLive ? 'Alerts by Telegram message are coming soon.' : A.tg ? 'Connected. Alerts go to your Telegram.' : 'Link the Olvana bot to receive alerts in Telegram.'}</p></div>
+          ${botLive ? `<button type="button" class="btn ${A.tg ? 'btn-glass' : 'btn-gold'} btn-sm" id="tgBtn">${A.tg ? 'Disconnect' : 'Connect Telegram'}</button>` : '<span class="tag">Coming soon</span>'}
         </div>
-        ${sw('daily', 'Daily earnings report', 'One message a day with your balance, earnings and points.')}
+        ${sw('daily', 'Daily earnings report', 'One message a day with your balance and what it earned.')}
         ${sw('util', 'Utilization warning', 'When a vault you hold crosses the threshold below.')}
         ${sw('collateral', 'Collateral change', 'When the curator adds a new collateral type or raises a market cap.')}
         ${sw('liquidity', 'Liquidity back', 'When a vault you hold drops back below the threshold so exits are open again.')}
@@ -2105,17 +2166,17 @@ function viewAlerts() {
       </div>
       <div style="display:flex;flex-direction:column;gap:14px">
         <span class="muted" style="font-size:13px">Preview</span>
-        <div class="tgmsg"><div class="who"><span class="av">O</span>Olvana Alerts</div><div>Daily report<br>Balance <b>$0.00</b> · earned today <b class="gold">+0.00</b><br>Points ${fmtInt(S.points + S.refPoints)}</div></div>
+        <div class="tgmsg"><div class="who"><span class="av">O</span>Olvana Alerts</div><div>Daily report<br>Balance <b>$1,000.00</b> · earned today <b class="gold">+$0.11</b></div></div>
         <div class="tgmsg warn"><div class="who"><span class="av">O</span>Olvana Alerts</div><div>${pvName} utilization is <b style="color:var(--warn)">${pv ? pv.util.toFixed(1) + '%' : 'above ' + A.threshold + '%'}</b> (your threshold ${A.threshold}%). Withdrawable right now: ${pv ? fmtUsdShort(pv.liq) : '—'}.</div></div>
         <div class="tgmsg"><div class="who"><span class="av">O</span>Olvana Alerts</div><div>✅ ${pvName} utilization is back under <b class="gold">${A.threshold}%</b>. Exits are open again.</div></div>
-        ${botLive ? '' : '<p class="muted" style="font-size:12px;line-height:1.5;margin:0">Telegram alerts are not live yet.</p>'}
+        <p class="muted" style="font-size:12px;line-height:1.5;margin:0">Example messages.${botLive ? '' : ' Telegram delivery is not live yet.'}</p>
       </div>
     </div>`;
   $('view').querySelectorAll('[data-sw]').forEach(b => b.onclick = () => { const k = b.dataset.sw; A[k] = !A[k]; b.setAttribute('aria-checked', A[k]); });
   const thr = $('thr');
   thr.oninput = () => { A.threshold = +thr.value; $('thrLbl').textContent = A.threshold + '%'; };
   thr.onchange = () => { S.alerted = {}; checkAlerts(false); render(); };
-  $('tgBtn').onclick = () => {
+  if ($('tgBtn')) $('tgBtn').onclick = () => {
     if (A.tg) { A.tg = false; render(); toast('Telegram disconnected'); return; }
     if (!botLive) return toast('Telegram alerts launch soon');
     if (!S.connected) return connect();
@@ -2127,8 +2188,8 @@ function viewAlerts() {
 /* ===================== LEGAL ===================== */
 function viewRisk() {
   $('view').innerHTML = `<article class="prose">
-    <h1>Risk disclosure</h1><p class="muted">Last updated [date]</p>
-    <div class="note">Draft for review. Have a lawyer familiar with your jurisdiction check this before launch.</div>
+    <h1>Risk disclosure</h1><p class="muted">Last updated ${esc(CONFIG.legal.updated)}</p>
+    ${/* owner: have a lawyer familiar with your jurisdiction review these terms before launch */''}
     <p>Olvana is software that helps you supply stablecoins such as USDG and USDC to third-party lending vaults on ${esc(NETS)}. Olvana never takes custody of your funds. Using it carries real risk of loss.</p>
     <h2>Smart contract risk</h2><p>The vaults, markets and token contracts are code. Bugs or exploits in Morpho, the vault, the stablecoin you deposit or any collateral token can result in partial or total loss.</p>
     <h2>Collateral and liquidation risk</h2><p>Borrowers post collateral. If collateral falls in value faster than it can be liquidated, the vault can take bad debt, which reduces what depositors can withdraw.</p>
@@ -2145,22 +2206,22 @@ function viewRisk() {
 }
 function viewTerms() {
   $('view').innerHTML = `<article class="prose">
-    <h1>Terms of use</h1><p class="muted">Last updated [date] · [Company legal name]</p>
+    <h1>Terms of use</h1><p class="muted">Last updated ${esc(CONFIG.legal.updated)} · ${legalEntity()}</p>
     <div class="note">Template placeholder. Replace with terms drafted by counsel.</div>
     <h2>1. The service</h2><p>Olvana provides a non-custodial interface to third-party smart contracts. We do not hold, control or transfer your assets.</p>
-    <h2>2. Eligibility</h2><p>You must be of legal age and not located in, or a resident of, [restricted jurisdictions].</p>
+    <h2>2. Eligibility</h2><p>You must be of legal age and not located in, or a resident of, a country or region where using Olvana is prohibited by law or that is subject to comprehensive sanctions.</p>
     <h2>3. Your responsibilities</h2><p>You control your wallet and keys. Every transaction is signed by you, and blockchain transactions cannot be reversed.</p>
     <h2>4. No advice</h2><p>Nothing on Olvana is financial, investment, legal or tax advice.</p>
     <h2>5. Fees</h2><p>Olvana charges no fee today. Each vault's own curator fee is shown on the vault and is already included in net APY. Network fees are paid to the blockchain, not to Olvana.</p>
     <h2>6. Limitation of liability</h2><p>[To be drafted by counsel.]</p>
     <h2>7. Changes</h2><p>We may update these terms. Continued use after changes means you accept them.</p>
-    <h2>8. Contact</h2><p>[contact email]</p>
+    <h2>8. Contact</h2><p>${legalContact()}</p>
   </article>`;
 }
 function viewPrivacy() {
   $('view').innerHTML = `<article class="prose">
-    <h1>Privacy policy</h1><p class="muted">Last updated [date] · draft, to be reviewed by counsel · [Company legal name]</p>
-    <div class="note">Draft for review. Have counsel check this against the privacy laws where you operate before launch.</div>
+    <h1>Privacy policy</h1><p class="muted">Last updated ${esc(CONFIG.legal.updated)} · ${legalEntity()}</p>
+    ${/* owner: have counsel check this against the privacy laws where you operate before launch */''}
     <p>Olvana is a non-custodial interface. We collect as little as we can to run it. This page explains what we collect, why, and what you can do about it.</p>
     <h2>1. What we collect</h2><ul>
       <li>Your public wallet address, when you connect a wallet.</li>
@@ -2179,17 +2240,17 @@ function viewPrivacy() {
       <li>To prevent abuse, fraud and attacks on the service.</li>
     </ul>
     <h2>4. Onchain data is public</h2><p>Transactions on ${esc(NETS)} are public and permanent. Anyone can see deposits and withdrawals made from your address. Olvana cannot hide, change or delete them.</p>
-    <h2>5. How long we keep it</h2><p>We keep offchain data (referral link, alert settings, Telegram link) while you use Olvana, or until you ask us to delete it. Server logs are kept for [log retention period], then deleted.</p>
-    <h2>6. Who we share it with</h2><p>We don't sell your data. We share only what's needed with infrastructure providers that run the service, such as our hosting provider, our RPC provider (which sees the requests your browser makes for your address) and Telegram (to deliver alerts you asked for). [List of providers.] We may disclose data if the law requires it.</p>
+    <h2>5. How long we keep it</h2><p>We keep offchain data (referral link, alert settings, Telegram link) while you use Olvana, or until you ask us to delete it. Server logs are kept only as long as needed for security and abuse prevention, then deleted.</p>
+    <h2>6. Who we share it with</h2><p>We don't sell your data. We share only what's needed with infrastructure providers that run the service, such as our hosting provider, our RPC provider (which sees the requests your browser makes for your address) and Telegram (to deliver alerts you asked for). We may disclose data if the law requires it.</p>
     <h2>7. Your controls</h2><ul>
       <li>Unlink Telegram at any time by sending <span class="mono">/stop</span> to the bot, or with Disconnect on the <a href="#alerts" class="gold">Alerts</a> page.</li>
       <li>Turn any alert off on the Alerts page.</li>
-      <li>Ask us to delete your offchain data by writing to [contact email]. We may ask you to sign a message with your wallet to prove the address is yours.</li>
+      <li>Ask us to delete your offchain data through ${legalContact()}. We may ask you to sign a message with your wallet to prove the address is yours.</li>
       <li>Clear the <span class="mono">ref</span> cookie in your browser settings.</li>
     </ul>
     <h2>8. Children</h2><p>Olvana is not meant for anyone under the legal age where they live. We don't knowingly collect data from children.</p>
     <h2>9. Changes</h2><p>We may update this policy. We'll change the date above, and post a notice in the app for material changes.</p>
-    <h2>10. Contact</h2><p>[contact email] · [Company legal name]</p>
+    <h2>10. Contact</h2><p>${legalContact()} · ${legalEntity()}</p>
   </article>`;
 }
 function viewSecurity() {
@@ -2203,40 +2264,39 @@ function viewSecurity() {
     ['Vault accepting deposits', 'Blocks if paused or full'],
     ['Oracle source', 'Warns if not Chainlink']
   ];
-  // contracts grouped per network: listed vaults, then the pinned stablecoins and Morpho core contracts on that network
-  const vaultRows = (VAULTS.length ? '' : `<tr><td colspan="3" class="muted" style="white-space:normal">${esc(liveMsg())}</td></tr>`) + CONFIG.chains.map(ch => `
-        <tr><th colspan="3" style="padding-top:22px;color:var(--ink)">${esc(ch.name)} <span class="muted">· chain ${ch.id}</span></th></tr>
-        ${VAULTS.filter(v => v.chainId === ch.id).map(v => `<tr><td>${esc(vLabel(v))} ${vVer(v)} ${chainChip(v)}</td><td>${esc(v.curator)}</td><td class="n">${addr(v.address, ch.id)}</td></tr>`).join('')}
-        ${Object.entries(ch.pins || {}).map(([sy, a]) => `<tr><td>${esc(sy)} token</td><td class="muted">—</td><td class="n">${addr(a, ch.id)}</td></tr>`).join('')}
-        <tr><td>Morpho Blue core</td><td class="muted">—</td><td class="n">${addr(ch.morphoBlue, ch.id)}</td></tr>
-        <tr><td>Morpho Vault V2 factory</td><td class="muted">—</td><td class="n">${addr(ch.vaultV2Factory, ch.id)}</td></tr>
-        ${(ch.metaMorphoFactories || []).map(f => `<tr><td>Morpho Vault V1 factory</td><td class="muted">—</td><td class="n">${addr(f, ch.id)}</td></tr>`).join('')}`).join('');
-  const feeRows = VAULTS.length
-    ? VAULTS.map(v => `<div><span>${esc(v.name)} performance fee</span><span>${fmtFee(v.perfFee)} of yield${v.mgmtFee ? ' · ' + fmtFee(v.mgmtFee) + ' a year management' : ''}</span></div>`).join('')
-    : `<div><span>${esc(liveMsg())}</span><span></span></div>`;
+  // Per network: the core contracts always visible, the listed vaults folded (there can be dozens per network)
+  const row = (name, who, a, id) => `<tr><td>${name}</td><td class="${who ? '' : 'muted'}">${who ? esc(who) : '—'}</td><td class="n">${addr(a, id)}</td></tr>`;
+  const netBlocks = CONFIG.chains.map(ch => {
+    const vs = VAULTS.filter(v => v.chainId === ch.id).sort((a, b) => b.tvl - a.tvl);
+    return `<div class="sec-net">
+      <h3>${esc(ch.name)} <span class="muted">· chain ${ch.id}</span></h3>
+      <div class="scrollx"><table class="tbl"><tbody>
+        ${Object.entries(ch.pins || {}).map(([sy, a]) => row(esc(sy) + ' token', '', a, ch.id)).join('')}
+        ${row('Morpho Blue core', '', ch.morphoBlue, ch.id)}
+        ${row('Morpho Vault V2 factory', '', ch.vaultV2Factory, ch.id)}
+        ${(ch.metaMorphoFactories || []).map(f => row('Morpho Vault V1 factory', '', f, ch.id)).join('')}
+      </tbody></table></div>
+      ${vs.length ? `<details class="sec-vaults"><summary>${vs.length} listed vault${vs.length === 1 ? '' : 's'} on ${esc(ch.short)}</summary>
+        <div class="scrollx"><table class="tbl"><thead><tr><th>Vault</th><th>Curator</th><th>Address</th></tr></thead><tbody>
+          ${vs.map(v => row(`${esc(vLabel(v))} <span class="muted">${vVer(v)}</span>`, v.curator, v.address, ch.id)).join('')}
+        </tbody></table></div></details>` : `<p class="muted" style="font-size:13px;margin:10px 0 0">${VAULTS.length ? 'No listed vaults on this network right now.' : esc(liveMsg())}</p>`}
+    </div>`;
+  }).join('');
+  const fees = VAULTS.map(v => v.perfFee).sort((a, b) => a - b);
+  const feeLine = fees.length ? `Across the ${fees.length} listed vaults, curator performance fees range from ${fmtFee(fees[0])} to ${fmtFee(fees[fees.length - 1])} of yield; ${fees.filter(f => !f).length} charge none.` : esc(liveMsg());
   $('view').innerHTML = `<article class="prose">
-    <h1>Security &amp; transparency</h1><p class="muted">Last updated [date]</p>
-    <div class="note">Anything marked [pending] is not live yet. Only send funds to a contract address listed on this page.</div>
+    <h1>Security &amp; transparency</h1>
+    <div class="note">Only send funds to a contract address listed on this page, from olvana.org.</div>
     <p>Olvana is a non-custodial interface. Your funds move only when you sign a transaction in your own wallet. Here is every contract the app talks to, what it charges, and how each transaction is checked.</p>
     <h2>Contracts</h2>
-    <p style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 12px">${liveBadge()}<span class="muted" style="font-size:14px">Vaults are Morpho Vault V2s and Vault V1s (MetaMorpho) that Morpho lists, created by an official factory of their own network, shown below. The app checks the factory onchain again before every transaction.</span></p>
-    <div class="scrollx"><table class="tbl">
-      <thead><tr><th>Contract</th><th>Curator</th><th>Address</th></tr></thead>
-      <tbody>
-        <tr><td>Olvana token</td><td class="muted">—</td><td class="n"><span class="muted">Coming soon</span></td></tr>
-        ${vaultRows}
-      </tbody>
-    </table></div>
+    <p style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 6px">${liveBadge()}<span class="muted" style="font-size:14px">Vaults are Morpho Vault V2s and Vault V1s (MetaMorpho) that Morpho lists, created by an official factory of their own network. The app checks the factory onchain again before every transaction.</span></p>
+    <div class="scrollx"><table class="tbl"><tbody><tr><td>Olvana token</td><td class="muted">—</td><td class="n"><span class="muted">Coming soon</span></td></tr></tbody></table></div>
+    ${netBlocks}
     <h2>Fees</h2>
     <p>Olvana charges no fee today. Each vault's own curator fee is shown on the vault and is already included in net APY. Nothing is charged on deposits, withdrawals or principal.</p>
-    <div class="rows" style="font-size:14px">
-      ${feeRows}
-    </div>
+    <p class="muted" style="font-size:14px">${feeLine}</p>
     <h2>Audits</h2>
-    <div class="rows" style="font-size:14px">
-      <div><span>Morpho protocol audits</span><span>[audit report links]</span></div>
-      <div><span>Olvana vaults</span><span>[audit report]</span></div>
-    </div>
+    <p>Olvana doesn't deploy or manage vaults. Every vault listed here is a Morpho Vault V1 or V2 contract created by Morpho's own factory; Morpho publishes the audits of these contracts in its documentation. Olvana's own interface has not been audited yet.</p>
     <h2>How your transaction is protected</h2>
     <p>Before your wallet asks you to sign, the app runs these checks. If a blocking check fails, you can't continue.</p>
     <div class="pf">${checks.map(c => `<div class="pf-item ok"><span class="ic">${tickSvg()}${c[0]}</span><span class="st">${c[1]}</span></div>`).join('')}</div>
@@ -2254,7 +2314,7 @@ function viewSecurity() {
       <li>Before you sign, check that the contract address in your wallet prompt matches the address on this page, and that your wallet is on the vault's network.</li>
     </ul>
     <h2>Report a vulnerability</h2>
-    <p>Found a security issue? Email [security email] with the details and steps to reproduce. Please don't disclose it publicly until we've had time to fix it. Bug bounty: [details TBD].</p>
+    <p>Found a security issue? Send the details and steps to reproduce in a direct message to <a href="https://x.com/Olvanaorg" target="_blank" rel="noopener" class="gold">@Olvanaorg</a>. Please don't disclose it publicly until we've had time to fix it.</p>
   </article>`;
 }
 
@@ -2339,15 +2399,7 @@ function renderLanding() {
   // grades
   renderGrades();
   // calculator
-  const sel = $('cVault');
-  if (vs.length) {
-    sel.disabled = false;
-    sel.innerHTML = vs.map(v => `<option value="${esc(v.id)}">${esc(vLabel(v))} · ${esc(chainShort(v.chainId))} · ${fmt(netApy(v))}% · Grade ${risk(v).grade}</option>`).join('');
-    if (calcVault && vs.some(v => v.id === calcVault)) sel.value = calcVault;
-  } else {
-    sel.disabled = true;
-    sel.innerHTML = `<option value="">${esc(liveMsg())}</option>`;
-  }
+  renderCalcPick();
   calc();
   if (reduceMotion) document.querySelectorAll('#flowSvg animateMotion').forEach(a => a.parentNode.remove());
 }
@@ -2382,12 +2434,20 @@ function renderGrades() {
   cta.onclick = () => { S.vaultId = v.id; S.tab = 'deposit'; };
 }
 let calcVault = null;
+const calcId = () => VAULTS.some(v => v.id === calcVault) ? calcVault : VAULTS[0].id;
+// Calculator vault: the same picker as Earn (a 100-option <select> was unusable)
+function renderCalcPick() {
+  if (!VAULTS.length) { $('cVaultBox').innerHTML = `<button type="button" class="vsel" id="cVault" disabled><span class="vsel-name"><small>${esc(liveMsg())}</small></span></button>`; return; }
+  // calcVault is only set by the user; until then the default follows the current list order (networks load one by one)
+  $('cVaultBox').innerHTML = vaultSelBtn(vault(calcId()), 'cVault');
+  $('cVault').onclick = () => openVaultPicker(calcId(), id => { calcVault = id; renderCalcPick(); calc(); });
+}
 function calc() {
   const months = +$('cMonths').value;
   const ml = t(months === 1 ? 'd.month' : 'd.months', { n: months });
   $('cMonthsLbl').textContent = ml; $('cMonthsLbl2').textContent = ml;
   if (!VAULTS.length) {
-    ['cEarn', 'cFinal', 'cApy', 'cPts'].forEach(id => { $(id).textContent = '—'; });
+    ['cEarn', 'cFinal', 'cApy'].forEach(id => { $(id).textContent = '—'; });
     $('cUnit').textContent = 'stablecoin';
     $('cChart').innerHTML = ''; $('cChart').style.display = 'none';
     $('cMsg').textContent = liveMsg(); $('cMsg').hidden = false;
@@ -2395,15 +2455,13 @@ function calc() {
   }
   $('cChart').style.display = ''; $('cMsg').hidden = true;
   const usd = parseFloat(($('cAmt').value || '').replace(/[^0-9.]/g, '')) || 0;
-  calcVault = $('cVault').value || VAULTS[0].id;
-  const v = vault(calcVault), r = netApy(v) / 100 / 365;
+  const v = vault(calcId()), r = netApy(v) / 100 / 365;
   $('cUnit').textContent = sym(v);
   const days = months * 30.4167;
   const final = usd * Math.pow(1 + r, days);
   $('cEarn').textContent = '+$' + fmt(final - usd);
   $('cFinal').textContent = '$' + fmt(final);
   $('cApy').textContent = fmt(netApy(v)) + '% · Grade ' + risk(v).grade;
-  $('cPts').textContent = fmtInt(usd * days);
   const vals = Array.from({ length: months + 1 }, (_, m) => usd * Math.pow(1 + r, m * 30.4167));
   if (vals.length < 2) vals.push(vals[0]);
   const c = chartPaths(vals.map(x => x || 0));
@@ -2419,7 +2477,6 @@ $('cAmt').addEventListener('input', e => {
   calc();
 });
 $('cMonths').addEventListener('input', calc);
-$('cVault').addEventListener('change', calc);
 
 /* ===================== live data (Morpho Vault V2 API) ===================== */
 // Two light queries (list → detail): one query with nested adapters for every vault is rejected as "too complex".
