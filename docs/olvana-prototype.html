@@ -1421,31 +1421,55 @@ async function switchNet(targetChainId) {
 }
 
 /* ----- balances, read through the wallet (current network only) ----- */
-function resetBal() { Object.assign(BAL, { chainId: null, eth: null, tok: {}, pos: {}, sh: {}, err: null, at: 0 }); }
+function resetBal() { Object.assign(BAL, { chainId: null, who: null, eth: null, tok: {}, pos: {}, sh: {}, err: null, at: 0, first: null, want: null }); }
 const pad32 = h => h.replace(/^0x/, '').padStart(64, '0');
 const hexBig = h => (h && h !== '0x') ? BigInt(h) : 0n;
-const ethCall = (to, data) => W.provider.request({ method: 'eth_call', params: [{ to, data }, 'latest'] });
+// every read has a deadline: one call a wallet never answers must not leave the form on "Reading your balance…"
+const withTimeout = (p, ms = 8000) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error('timeout')), ms))]);
+const ethCall = (to, data) => withTimeout(W.provider.request({ method: 'eth_call', params: [{ to, data }, 'latest'] }));
 const toUnits = (v, d) => v == null ? null : Number(v) / 10 ** d;
+async function eachLimit(items, n, fn) { let i = 0; await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (i < items.length) await fn(items[i++]); })); }
+// Reads write straight into BAL (for the account + network they started on), so the open vault's read and the full pass never overwrite each other.
+const balStill = (me, cid) => S.address === me && UI.chainId === cid && BAL.who === me && BAL.chainId === cid;
+async function readTok(me, cid, a) { const b = hexBig(await ethCall(a, '0x70a08231' + pad32(me))); if (balStill(me, cid)) BAL.tok[bk(cid, a)] = b; }
+async function readPos(me, cid, v) {
+  const shares = hexBig(await ethCall(v.address, '0x70a08231' + pad32(me)));
+  const assets = shares > 0n ? hexBig(await ethCall(v.address, '0x07a2d13a' + pad32(shares.toString(16)))) : 0n;
+  if (balStill(me, cid)) { BAL.sh[bk(cid, v.address)] = shares; BAL.pos[bk(cid, v.address)] = assets; }
+}
+// The vault open on Earn is read right away, even while a full pass is still running, so its balance shows in about a second.
+async function readOpenVault(v) {
+  const me = S.address, cid = UI.chainId, key = bk(cid, v.address);
+  if (BAL.first === key) return;                               // already on its way
+  BAL.first = key;
+  try {
+    await Promise.all([readTok(me, cid, lcA(v.asset.address)), readPos(me, cid, v)]);
+    if (balStill(me, cid)) BAL.err = null;
+  } catch (e) {
+    if (balStill(me, cid)) BAL.err = 'Could not read your balance from the wallet';
+  } finally {
+    if (BAL.first === key) BAL.first = null;
+  }
+  if (document.body.classList.contains('in-app')) render();
+}
 async function refreshBalances() {
   if (!S.connected || !W || !chainById(UI.chainId)) return;   // unsupported network: nothing to read
-  if (BAL.busy) { BAL.again = true; return; }                  // re-run once the current read ends (e.g. network changed)
-  BAL.busy = true; BAL.again = false;
   const me = S.address, cid = UI.chainId;
+  if (BAL.who !== me || BAL.chainId !== cid) Object.assign(BAL, { chainId: cid, who: me, eth: null, tok: {}, pos: {}, sh: {}, err: null, at: 0 });
+  const sel = VAULTS.find(v => v.id === S.vaultId && v.chainId === cid);
+  if (sel) readOpenVault(sel);
+  if (BAL.busy) { BAL.again = true; return; }                  // re-run once the current pass ends (e.g. network changed)
+  BAL.busy = true; BAL.again = false;
   const here = VAULTS.filter(v => v.chainId === cid);
   try {
-    const eth = await W.provider.request({ method: 'eth_getBalance', params: [me, 'latest'] });
-    const tok = {}, pos = {}, sh = {};
+    const eth = await withTimeout(W.provider.request({ method: 'eth_getBalance', params: [me, 'latest'] })).catch(() => null);
+    if (eth != null && balStill(me, cid)) BAL.eth = hexBig(eth);
+    // everything else on this network (Portfolio, other vaults), a few at a time; a read that fails is retried next round
+    let ok = 0;
     const assets = [...new Set(here.map(v => lcA(v.asset.address)).filter(Boolean))];
-    await Promise.all(assets.map(async a => { tok[bk(cid, a)] = hexBig(await ethCall(a, '0x70a08231' + pad32(me))); }));
-    await Promise.all(here.map(async v => {
-      const shares = hexBig(await ethCall(v.address, '0x70a08231' + pad32(me)));
-      sh[bk(cid, v.address)] = shares;
-      pos[bk(cid, v.address)] = shares > 0n ? hexBig(await ethCall(v.address, '0x07a2d13a' + pad32(shares.toString(16)))) : 0n;
-    }));
-    if (S.address === me && UI.chainId === cid)                // skip if the account or network changed meanwhile
-      Object.assign(BAL, { chainId: cid, eth: hexBig(eth), tok, pos, sh, err: null, at: Date.now() });
-  } catch (e) {
-    if (S.address === me && UI.chainId === cid) BAL.err = 'Could not read balances from your wallet';
+    await eachLimit(assets, 6, a => readTok(me, cid, a).then(() => ok++, () => {}));
+    await eachLimit(here.filter(v => v !== sel), 6, v => readPos(me, cid, v).then(() => ok++, () => {}));
+    if (balStill(me, cid)) { BAL.at = Date.now(); if (!ok && !sel) BAL.err = 'Could not read balances from your wallet'; }
   } finally {
     BAL.busy = false;
   }
@@ -1553,6 +1577,8 @@ function viewEarn() {
   if (txBusy()) S.vaultId = TX.vid;                      // a transaction in flight keeps its vault on screen
   const v = vault(S.vaultId), r = risk(v), n = netApy(v);
   S.vaultId = v.id;
+  // a vault picked after the last read: fetch its balance now (once per vault) instead of waiting for the 30 s refresh
+  if (S.connected && v.chainId === UI.chainId && BAL.pos[bk(v.chainId, v.address)] == null && BAL.want !== v.id) { BAL.want = v.id; refreshBalances(); }
   const hot = v.util >= S.alerts.threshold;
   $('view').innerHTML = `
     <div class="earn-pick"><span class="muted">Vault</span>${vaultSelBtn(v, 'earnPick')}<span class="muted earn-count">${VAULTS.length} vaults · <a href="#vaults" class="gold">compare all</a></span></div>
