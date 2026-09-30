@@ -416,6 +416,12 @@ body.in-app #appShell{display:block}
 .wd-x{width:36px;height:36px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:20px;line-height:1}
 .wd-list{display:flex;flex-direction:column;gap:8px}
 .wd-item{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:10px 14px;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--ink);font:inherit;font-size:15px;font-weight:500;text-align:left;text-decoration:none;cursor:pointer}
+.pf-pos{display:flex;flex-direction:column;gap:14px}
+.pf-row{padding:16px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.02)}
+.pf-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
+.pf-amt{font-family:var(--mono);font-size:17px;color:var(--ink);white-space:nowrap}
+.pf-sub{display:flex;justify-content:space-between;gap:12px;margin-top:8px;font-size:12.5px;color:var(--muted);font-family:var(--mono)}
+.pf-act{display:flex;gap:10px;margin-top:14px}.pf-act .btn{flex:1;justify-content:center}
 .wd-item:hover{border-color:rgba(169,155,255,.45);background:rgba(169,155,255,.06)}.wd-item img{border-radius:8px}
 .wd-ph{display:inline-flex;align-items:center;justify-content:center;width:28px;height:28px;border-radius:8px;background:rgba(169,155,255,.16);color:var(--gold);font-weight:600;flex:none}
 .wd-go{margin-left:auto;color:var(--faint);font-size:14px}
@@ -2123,6 +2129,8 @@ const SORTS = { apy: 'Highest APY', tvl: 'Largest', grade: 'Best grade' };
 const earnYear = (amt, apy) => amt * apy / 100;
 const earnMonth = (amt, apy) => amt * (Math.pow(1 + apy / 100, 1 / 12) - 1);
 const earnDay = (amt, apy) => amt * (Math.pow(1 + apy / 100, 1 / 365) - 1);
+// money that can be tiny (a day's interest on a few dollars): 4 decimals under 1, else 2
+const fmtTiny = x => fmt(x, x > 0 && x < 1 ? 4 : 2);
 const fmtEst = n => n >= 1000 ? fmt(n, 0) : fmt(n, 2);
 const estLine = v => `<div class="est" data-apy="${netApy(v)}"><span class="muted">On <b data-est-amt>${fmtEst(UI.est)}</b> ${esc(sym(v))} you earn about</span><span><b class="gold" data-est-d>+${fmtEst(earnDay(UI.est, netApy(v)))}</b> ${esc(sym(v))} / day</span><span><b class="gold" data-est-m>+${fmtEst(earnMonth(UI.est, netApy(v)))}</b> ${esc(sym(v))} / month</span><span><b class="gold" data-est-y>+${fmtEst(earnYear(UI.est, netApy(v)))}</b> ${esc(sym(v))} / year</span></div>`;
 const sortBy = (list, k) => [...list].sort((a, b) => k === 'tvl' ? b.tvl - a.tvl : k === 'grade' ? (risk(b).score - risk(a).score) || (netApy(b) - netApy(a)) : (netApy(b) - netApy(a)) || (b.tvl - a.tvl));
@@ -2223,7 +2231,7 @@ function viewPortfolio() {
     <div class="page-head"><div><h1>Portfolio</h1><p>${c ? 'Wallet ' + esc(short(S.address)) + (W ? ' · ' + esc(W.info.name) : '') + (net ? ' · ' + esc(net.name) : '') : 'Connect a wallet to start'}</p></div></div>
     <div class="kgrid">
       <div class="panel kcard"><small>Total balance</small><b>${known ? '$' + fmt(total) : '—'}</b><em>across listed vaults${net ? ' on ' + esc(net.short) : ''}</em></div>
-      <div class="panel kcard"><small>Est. per day</small><b class="gold">${known && blended != null ? '+$' + fmt(earnDay(total, blended)) : '—'}</b><em>at current net APY</em></div>
+      <div class="panel kcard"><small>Est. per day</small><b class="gold">${known && blended != null ? '+$' + fmtTiny(earnDay(total, blended)) : '—'}</b><em>at current net APY</em></div>
       <div class="panel kcard"><small>Blended net APY</small><b>${blended != null ? fmt(blended) + '%' : '—'}</b><em>weighted by balance</em></div>
       <div class="panel kcard"><small>Open positions</small><b>${known ? held.length : '—'}</b><em>${net ? 'on ' + esc(net.short) : 'connect to see'}</em></div>
     </div>
@@ -2233,7 +2241,12 @@ function viewPortfolio() {
         <h3 class="h4" style="margin-bottom:12px">Positions</h3>
         ${!c ? `<div class="empty">Connect a wallet to see your positions.<button type="button" class="btn btn-gold btn-sm" id="pfConnect">Connect wallet</button></div>`
           : status ? `<div class="empty">${status}</div>`
-          : held.length ? `<div class="rows" style="font-size:14px">${held.map(x => `<div><span style="color:var(--ink);display:flex;align-items:center;gap:10px;flex-wrap:wrap">${assetLogo(x.v, 18)}${esc(x.v.name)} ${chainChip(x.v)}${gradeChip(x.v, false)}</span><span>${fmt(x.amt)} ${esc(sym(x.v))}<br><small class="muted" style="font-size:11px">${fmt(netApy(x.v))}% net APY</small></span></div>`).join('')}</div>`
+          : held.length ? `<div class="pf-pos">${held.map(x => `<div class="pf-row">
+              <div class="pf-top"><span style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;color:var(--ink)">${assetLogo(x.v, 20)}<b title="${esc(x.v.full || x.v.name)}">${esc(x.v.name)}</b> ${chainChip(x.v)}${gradeChip(x.v, false)}</span>
+                <span class="pf-amt">${fmt(x.amt)} ${esc(sym(x.v))}</span></div>
+              <div class="pf-sub"><span>${fmt(netApy(x.v))}% net APY</span><span class="gold">≈ +${fmtTiny(earnDay(x.amt, netApy(x.v)))} ${esc(sym(x.v))} / day</span></div>
+              <div class="pf-act"><a href="#app" class="btn btn-gold btn-sm" data-pos-withdraw="${esc(x.v.id)}">Withdraw</a><a href="#app" class="btn btn-glass btn-sm" data-pick="${esc(x.v.id)}">Deposit more</a></div>
+            </div>`).join('')}</div>`
           : `<div class="empty">No positions in listed vaults on ${esc(net.name)} yet.<a href="#app" class="btn btn-gold btn-sm">Make a deposit</a></div>`}
         ${netNote}
       </div>
@@ -2243,6 +2256,12 @@ function viewPortfolio() {
       <div class="empty">${c ? `Your deposits and withdrawals: <a class="gold" href="${esc(explorerFor(UI.chainId))}/address/${esc(S.address)}" target="_blank" rel="noopener">view on ${esc(net ? net.short : HOME.short)} explorer ↗</a>` : 'Connect a wallet to open your deposit and withdrawal history on the block explorer.'}</div>
     </div>`;
   const pc = $('pfConnect'); if (pc) pc.onclick = connect;
+  bindPicks($('view'));
+  // Withdraw from a position: open Earn on that vault, Withdraw tab, balance already known
+  $('view').querySelectorAll('[data-pos-withdraw]').forEach(a => a.addEventListener('click', e => {
+    if (txBusy()) { e.preventDefault(); return toast('Finish the transaction in your wallet first', true); }
+    S.vaultId = a.dataset.posWithdraw; S.tab = 'withdraw'; Object.assign(UI, { amount: '', max: false, stage: 'form' });
+  }));
 }
 
 /* ===================== REWARDS ===================== */

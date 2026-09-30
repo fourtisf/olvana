@@ -115,7 +115,7 @@ the site still shows every V2 vault (V1 is loaded separately and failures are sk
 Net APY for V1 = `weeklyApy × (1 − fee)`: the vault's own yield after the curator fee, **without** reward tokens.
 
 Tested end to end on a local chain (id 1) running Morpho Blue + MetaMorpho v1.1 compiled from source, factory at
-its Ethereum address: `e2e/vault-v1/run.sh` (16 checks).
+its Ethereum address: `e2e/vault-v1/run.sh` (18 checks).
 
 ## Multicall3 (balance reads) — checked 2026-09-30
 

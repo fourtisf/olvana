@@ -116,7 +116,10 @@ const WALLET = (user) => {
     JSON.stringify(reads.map(r => r.to + ' ' + r.data.slice(0, 10))));
   await page.goto(ORIGIN + '/#portfolio'); await until(async () => /Steakhouse USDC[\s\S]*100\.00/.test(await txt('#view')));
   check('Portfolio: the 100 USDC position, no read error', /Steakhouse USDC[\s\S]*100\.00/.test(await txt('#view')) && !/Could not read/.test(await txt('#view')), (await txt('#view')).slice(0, 400));
-  await page.goto(ORIGIN + '/#app'); await page.waitForTimeout(300);
+  check('Portfolio: position shows its per-day estimate', /\+0\.[0-9]{4} USDC \/ day|\+[0-9.,]+ USDC \/ day/.test(await txt('#view')), (await txt('#view')).slice(0, 400));
+  await page.click('[data-pos-withdraw]'); await until(async () => /Wallet balance|Your position|70|100/.test(await txt('#action')) && !!(await page.$('[data-tab="withdraw"].on')));
+  check('Portfolio Withdraw opens Earn on that vault with the Withdraw tab', !!(await page.$('[data-tab="withdraw"].on')) && /Steakhouse USDC/.test(await txt('.vault-head')), await txt('.vault-head'));
+  await page.click('[data-tab="deposit"]'); await page.waitForTimeout(300);
 
   // 2 · over the cap (150 − 100 = 50 left): blocked before any approval
   await setAmount('80'); await review();
