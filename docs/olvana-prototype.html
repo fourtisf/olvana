@@ -2282,9 +2282,30 @@ async function apiHistory(cid, me, here) {
   if (r.length && r.every(x => x.status === 'rejected')) throw r[0].reason;
   return { ev: out, complete: r.every(x => x.status === 'fulfilled') };
 }
+// Decode Deposit/Withdraw logs; block times from the log when the node includes them, else one lookup per block.
+async function decodeLogs(logs) {
+  logs = logs.filter(l => l && !l.removed && String(l.data).length >= 130);
+  const times = {};
+  for (const l of logs) if (l.blockTimestamp) times[l.blockNumber] = hexN(l.blockTimestamp);
+  await eachLimit([...new Set(logs.map(l => l.blockNumber))].filter(b => times[b] == null), 4, async b => { times[b] = await blockTime(hexN(b)); });
+  return logs.map(l => { const x = String(l.data).slice(2);
+    return { addr: l.address, dep: String(l.topics[0]).toLowerCase() === EV_DEPOSIT, assets: BigInt('0x' + x.slice(0, 64)), shares: BigInt('0x' + x.slice(64, 128)),
+      t: times[l.blockNumber], block: hexN(l.blockNumber), i: hexN(l.logIndex), hash: l.transactionHash }; });
+}
+const histFilters = (here, me) => {
+  const addrs = here.map(v => v.address.toLowerCase()), me32 = '0x' + me.slice(2).toLowerCase().padStart(64, '0');
+  return [{ address: addrs, topics: [EV_DEPOSIT, null, me32] }, { address: addrs, topics: [EV_WITHDRAW, null, null, me32] }];
+};
+// The last few thousand blocks only: one quick call per event type. Covers what the API has not indexed yet.
+async function chainRecent(cid, me, here) {
+  if (!here.length) return [];
+  const latest = hexN(await rpc('eth_blockNumber', [], 8000)), from = toHex(Math.max(0, latest - 3000));
+  const got = await Promise.all(histFilters(here, me).map(f => rpc('eth_getLogs', [{ ...f, fromBlock: from, toBlock: toHex(latest) }], 10000).catch(() => [])));
+  return decodeLogs(got.flat());
+}
+// Full scan from the oldest listed vault: only when the API cannot answer (slow on nodes that cap eth_getLogs).
 async function chainHistory(cid, me, here) {
   const latest = hexN(await rpc('eth_blockNumber', []));
-  // start at the oldest listed vault's creation (block time measured on this chain), else block 0
   let from = 0;
   if (latest > 20000 && here.length && here.every(v => v.ageDays > 0)) {
     try {
@@ -2292,45 +2313,36 @@ async function chainHistory(cid, me, here) {
       if (bt > 0) from = Math.max(0, latest - Math.ceil(Math.max(...here.map(v => v.ageDays)) * 86400 * 1.1 / bt));
     } catch (e) {}
   }
-  const addrs = here.map(v => v.address.toLowerCase()), me32 = '0x' + me.slice(2).toLowerCase().padStart(64, '0');
-  const [d, w] = addrs.length ? await Promise.all([
-    logsBack({ address: addrs, topics: [EV_DEPOSIT, null, me32] }, from, latest),
-    logsBack({ address: addrs, topics: [EV_WITHDRAW, null, null, me32] }, from, latest),
-  ]) : [{ logs: [], reached: from }, { logs: [], reached: from }];
-  const logs = [...d.logs, ...w.logs].filter(l => l && !l.removed && String(l.data).length >= 130), times = {};
-  for (const l of logs) if (l.blockTimestamp) times[l.blockNumber] = hexN(l.blockTimestamp);
-  await eachLimit([...new Set(logs.map(l => l.blockNumber))].filter(b => times[b] == null), 4, async b => { times[b] = await blockTime(hexN(b)); });
-  const ev = logs.map(l => { const x = String(l.data).slice(2);
-    return { addr: l.address, dep: String(l.topics[0]).toLowerCase() === EV_DEPOSIT, assets: BigInt('0x' + x.slice(0, 64)), shares: BigInt('0x' + x.slice(64, 128)),
-      t: times[l.blockNumber], block: hexN(l.blockNumber), i: hexN(l.logIndex), hash: l.transactionHash }; });
+  const [d, w] = here.length ? await Promise.all(histFilters(here, me).map(f => logsBack(f, from, latest))) : [{ logs: [], reached: from }, { logs: [], reached: from }];
   const reached = Math.max(d.reached, w.reached);
-  return { ev, partial: reached > from, since: reached > from ? await blockTime(reached).catch(() => null) : null };
+  return { ev: await decodeLogs([...d.logs, ...w.logs]), partial: reached > from, since: reached > from ? await blockTime(reached).catch(() => null) : null };
 }
+// Shows the first answer that arrives (the API, usually within a second), then merges the rest in.
 async function loadHistory() {
   const cid = UI.chainId, me = S.address, key = cid + ':' + me;
   if (HIST.key === key) return;
   Object.assign(HIST, { key, busy: true, ev: null, err: null, since: null, partial: false });
-  const still = () => HIST.key === key;
-  try {
-    const here = VAULTS.filter(v => v.chainId === cid);
-    const [oc, api] = await Promise.allSettled([chainHistory(cid, me, here), apiHistory(cid, me.toLowerCase(), here)]);
-    HIST.dbg = { chain: oc.status === 'fulfilled' ? { found: oc.value.ev.length, partial: oc.value.partial } : String(oc.reason && oc.reason.message),
-      api: api.status === 'fulfilled' ? { found: api.value.ev.length, complete: api.value.complete } : String(api.reason && api.reason.message) };
-    if (oc.status === 'rejected' && api.status === 'rejected') throw oc.reason;
+  const still = () => HIST.key === key, here = VAULTS.filter(v => v.chainId === cid), got = [];
+  const show = (partial, since) => {
+    if (!still()) return;
     const seen = new Map();
-    for (const e of [...(oc.value ? oc.value.ev : []), ...(api.value ? api.value.ev : [])]) {
+    for (const e of got) {
       const v = here.find(x => x.address.toLowerCase() === String(e.addr).toLowerCase());
       const k = String(e.hash).toLowerCase() + ':' + (e.dep ? 'd' : 'w') + ':' + e.assets;
       if (v && e.t && !seen.has(k)) seen.set(k, { ...e, v });
     }
-    const ev = [...seen.values()].sort((a, b) => a.block - b.block || a.i - b.i);
-    // complete when the API answered fully, or the chain scan reached the start
-    const apiOk = api.status === 'fulfilled' && api.value.complete, ocOk = oc.status === 'fulfilled' && !oc.value.partial;
-    if (still()) Object.assign(HIST, { ev, partial: !apiOk && !ocOk, since: !apiOk && !ocOk && oc.value ? oc.value.since : null });
+    Object.assign(HIST, { ev: [...seen.values()].sort((a, b) => a.block - b.block || a.i - b.i), partial, since, busy: false });
+    if (location.hash === '#portfolio') viewPortfolio();
+  };
+  chainRecent(cid, me, here).then(r => { got.push(...r); if (HIST.ev) show(HIST.partial, HIST.since); }).catch(() => {});
+  let api = null;
+  try { api = await withTimeout(apiHistory(cid, me.toLowerCase(), here), 10000); } catch (e) {}
+  if (api) { got.push(...api.ev); show(!api.complete, null); if (api.complete) return; }
+  try {
+    const oc = await chainHistory(cid, me, here);
+    got.push(...oc.ev); show(oc.partial, oc.partial ? oc.since : null);
   } catch (e) {
-    if (still()) HIST.err = 'Could not read your history from the network';
-  } finally {
-    if (still()) { HIST.busy = false; if (location.hash === '#portfolio') viewPortfolio(); }
+    if (still() && !HIST.ev) { Object.assign(HIST, { err: 'Could not read your history from the network', busy: false }); if (location.hash === '#portfolio') viewPortfolio(); }
   }
 }
 const dUTC = t => new Date(t * 1000).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) + ' UTC';
@@ -2404,24 +2416,25 @@ function viewPortfolio() {
   const status = !c ? '' : UI.chainId == null ? 'Reading your wallet network…' : !net ? `Your wallet is on an unsupported network. Switch to ${esc(listNames(others, 'or'))} to see your positions there.` : BAL.passErr ? esc(BAL.passErr) + '.' : !known ? 'Reading your positions…' : '';
   const netNote = c && net ? `<p class="muted" id="pfNets" style="margin:14px 0 0;font-size:12px;line-height:1.5">Showing ${esc(net.name)}. Switch network in your wallet to see positions on ${esc(listNames(others))}.</p>` : '';
   // history: read once per wallet + network from the vault events (see loadHistory), then drawn here
-  if (known) loadHistory();
-  const hk = known && HIST.key === UI.chainId + ':' + S.address;
+  if (c && net) loadHistory();
+  const hk = c && !!net && HIST.key === UI.chainId + ':' + S.address;
   const ev = hk && !HIST.busy && !HIST.err ? HIST.ev : null;
   const exLink = c ? `<a class="gold" href="${esc(explorerFor(UI.chainId))}/address/${esc(S.address)}" target="_blank" rel="noopener">view on ${esc(net ? net.short : HOME.short)} explorer ↗</a>` : '';
-  const hWait = !c ? null : !known ? (status || 'Reading your positions…') : hk && HIST.err ? null : !ev ? `Reading your deposits and withdrawals on ${esc(net.name)}…` : null;
+  const txWait = !c ? null : !net ? status : hk && HIST.err ? null : !ev ? `Reading your deposits and withdrawals on ${esc(net.name)}…` : null;
+  const hWait = !c ? null : !known ? (status || 'Reading your positions…') : txWait;
   const hErr = hk && HIST.err ? `<div class="empty">${esc(HIST.err)}.<button type="button" class="btn btn-glass btn-sm" id="histRetry">Try again</button></div>` : '';
   const evUsd = e => Number(e.assets) / Math.pow(10, e.v.asset.decimals) * (e.v.asset.price || 1);
   const netIn = ev ? ev.reduce((t, e) => t + (e.dep ? 1 : -1) * evUsd(e), 0) : null;
-  const earned = ev && ev.length && !HIST.partial && held.every(x => ev.some(e => e.v === x.v)) ? total - netIn : null;
+  const earned = known && ev && ev.length && !HIST.partial && held.every(x => ev.some(e => e.v === x.v)) ? total - netIn : null;
   const sinceNote = ev && HIST.partial ? `<p class="muted" style="margin:12px 0 0;font-size:12px">${HIST.since ? `Your wallet's network only let Olvana look back to ${esc(dUTC(HIST.since))}.` : 'Older activity may be missing: your wallet\'s network limits how far back Olvana can look.'} Full history: ${exLink}</p>` : '';
-  const hStats = ev && (ev.length || total > 0) ? `<span class="hc-stats"><span>Now <b>$${fmt(total)}</b></span>${earned != null ? `<span>Earned <b class="gold">${earned >= 0 ? '+' : '−'}$${fmtTiny(Math.abs(earned))}</b></span>` : ''}</span>` : '';
+  const hStats = known && ev && (ev.length || total > 0) ? `<span class="hc-stats"><span>Now <b>$${fmt(total)}</b></span>${earned != null ? `<span>Earned <b class="gold">${earned >= 0 ? '+' : '−'}$${fmtTiny(Math.abs(earned))}</b></span>` : ''}</span>` : '';
   const balBody = !c ? '<div class="empty">Connect a wallet to see your balance over time.</div>'
     : hWait ? `<div class="empty">${hWait}</div>` : hErr ? hErr
     : !ev.length && total > 0 ? `<div class="empty">Your deposit history could not be found yet, so there is no chart. Your balance is $${fmt(total)}.</div>${sinceNote}`
     : !ev.length && total <= 0 ? `<div class="empty">Your chart starts with your first deposit.<a href="#app" class="btn btn-gold btn-sm">Make a deposit</a></div>`
     : histChart(histSeries(ev, net.id)) + `<p class="muted" style="margin:10px 0 0;font-size:11.5px">From your deposits and withdrawals onchain. Values between them are estimated from the vault's share price.</p>`;
   const txBody = !c ? '<div class="empty">Connect a wallet to see your deposits and withdrawals.</div>'
-    : hWait ? `<div class="empty">${hWait}</div>` : hErr ? hErr + `<p class="muted" style="margin:10px 0 0;font-size:12px">Or ${exLink}</p>`
+    : txWait ? `<div class="empty">${txWait}</div>` : hErr ? hErr + `<p class="muted" style="margin:10px 0 0;font-size:12px">Or ${exLink}</p>`
     : !ev.length ? `<div class="empty">No deposits or withdrawals in listed vaults on ${esc(net.name)} yet.</div>${sinceNote}`
     : `<div class="txl">${ev.slice().reverse().slice(0, 50).map(e => { const u = Number(e.assets) / Math.pow(10, e.v.asset.decimals); return `<div class="txr">
         <span class="txk ${e.dep ? 'in' : 'out'}">${e.dep ? 'Deposit' : 'Withdraw'}</span>
