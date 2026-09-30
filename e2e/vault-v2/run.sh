@@ -12,5 +12,8 @@ if [ ! -f $B/out/VaultV2Factory.sol/VaultV2Factory.json ]; then
   printf '[profile.default]\nsrc="src"\nout="out"\nvia_ir=true\noptimizer=true\noptimizer_runs=200\nbytecode_hash="none"\nevm_version="cancun"\n' > $B/foundry.toml
   (cd $B && ../$T/foundry/forge build --offline --use ../$T/solc-0.8.28 >/dev/null)
 fi
+if [ ! -f $B/out/MockGate.sol/MockGate.json ]; then
+  cp ../MockGate.sol $B/src/ && (cd $B && ../$T/foundry/forge build --offline --use ../$T/solc-0.8.28 >/dev/null 2>&1)
+fi
 export FOUNDRY_DIR="$(cd $T/foundry && pwd)" BUILD_DIR="$PWD/$B"
 node deposit-withdraw.test.cjs

@@ -1,6 +1,8 @@
 #!/usr/bin/env bash
 # Starts anvil (chain id 4663) with the real VaultV2Factory and a USDG stand-in at their mainnet addresses,
 # creates a vault through the factory, mints 1,000 test USDG to anvil account #1, and prints the vault address.
+# Also a second, gated vault (MockGate as receiveSharesGate + sendAssetsGate, user not allowed yet): prints
+# "VAULT GATED_VAULT GATE".
 set -e
 F=${FOUNDRY_DIR:?}; OUT=${BUILD_DIR:?}/out; RPC=http://127.0.0.1:8547
 pkill -f "[a]nvil --chain-id 4663 --port 8547 --silent" 2>/dev/null || true; sleep 0.5
@@ -13,5 +15,16 @@ $F/cast rpc anvil_setCode $FACTORY "$(code $OUT/VaultV2Factory.sol/VaultV2Factor
 $F/cast rpc anvil_setCode $USDG "$(code $OUT/MockToken.sol/MockToken.json)" --rpc-url $RPC >/dev/null
 SALT=0x0000000000000000000000000000000000000000000000000000000000000001
 $F/cast send $FACTORY "createVaultV2(address,address,bytes32)" $OWNER $USDG $SALT --from $OWNER --unlocked --rpc-url $RPC >/dev/null
-$F/cast call $FACTORY "vaultV2(address,address,bytes32)(address)" $OWNER $USDG $SALT --rpc-url $RPC
+VAULT=$($F/cast call $FACTORY "vaultV2(address,address,bytes32)(address)" $OWNER $USDG $SALT --rpc-url $RPC)
+SALT2=0x0000000000000000000000000000000000000000000000000000000000000002
+$F/cast send $FACTORY "createVaultV2(address,address,bytes32)" $OWNER $USDG $SALT2 --from $OWNER --unlocked --rpc-url $RPC >/dev/null
+GATED=$($F/cast call $FACTORY "vaultV2(address,address,bytes32)(address)" $OWNER $USDG $SALT2 --rpc-url $RPC)
+GATE=$($F/cast send --from $OWNER --unlocked --rpc-url $RPC --json --create "$(python3 -c "import json,sys;print(json.load(open(sys.argv[1]))['bytecode']['object'])" $OUT/MockGate.sol/MockGate.json)" | python3 -c "import json,sys;print(json.load(sys.stdin)['contractAddress'])")
+$F/cast send $GATED "setCurator(address)" $OWNER --from $OWNER --unlocked --rpc-url $RPC >/dev/null
+for fn in setSendAssetsGate setReceiveSharesGate; do            # curator submits, timelock 0: executable at once
+  D=$($F/cast calldata "$fn(address)" $GATE)
+  $F/cast send $GATED "submit(bytes)" $D --from $OWNER --unlocked --rpc-url $RPC >/dev/null
+  $F/cast send $GATED "$fn(address)" $GATE --from $OWNER --unlocked --rpc-url $RPC >/dev/null
+done
 $F/cast send $USDG "mint(address,uint256)" $USER 1000000000 --from $OWNER --unlocked --rpc-url $RPC >/dev/null
+echo "$VAULT $GATED $GATE"

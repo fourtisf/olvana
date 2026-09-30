@@ -20,7 +20,7 @@ const ORIGIN = 'https://olvana.test';
 const sh = c => execSync(c, { encoding: 'utf8' }).trim();
 const cast = a => sh(`${CAST} ${a} --rpc-url ${RPC}`).split(' ')[0];
 
-const VAULT = sh(path.join(__dirname, 'chain.sh')).toLowerCase();
+const [VAULT, GATED, GATE] = sh(path.join(__dirname, 'chain.sh')).toLowerCase().split(' ');   // GATED: Vault V2 with a curator allowlist (MockGate)
 const now = Math.floor(Date.now() / 1000);
 const item = o => Object.assign({
   address: VAULT, name: 'Steakhouse USDG', symbol: 'steakUSDG', listed: true, creationTimestamp: String(now - 200 * 86400),
@@ -30,7 +30,7 @@ const item = o => Object.assign({
   adapters: { items: [{ address: '0x' + '2'.repeat(40), type: 'MorphoMarketV1', positions: { items: [
     { state: { supplyAssetsUsd: 500e6 }, market: { lltv: '860000000000000000', collateralAsset: { symbol: 'WETH', address: '0x' + '1'.repeat(40), logoURI: null }, oracle: { type: 'ChainlinkOracleV2' }, state: { utilization: 0.9 } } }] } }] },
 }, o);
-const ITEMS = [item(), item({ address: FAKE, name: 'Lookalike USDG', totalAssetsUsd: 20e6 })];
+const ITEMS = [item(), item({ address: FAKE, name: 'Lookalike USDG', totalAssetsUsd: 20e6 }), item({ address: GATED, name: 'Confidential USDG', totalAssetsUsd: 30e6 })];
 function api(postData) {
   let q; try { q = JSON.parse(postData || '{}'); } catch (e) { q = {}; }
   const c = q.variables && q.variables.c, chain = Array.isArray(c) ? c[0] : c;
@@ -194,6 +194,26 @@ const WALLET = (user) => {
   await setAmount('25'); await review();
   await page.click('#confirm'); await until(async () => /confirmed/.test(await txt('#action')));
   check('plain deposit after strict mode', /Deposit confirmed/.test(await txt('#action')));
+
+  // 8 · gated vault (curator allowlist, like "Confidential" vaults): refused before any approval, with a plain reason
+  await page.click('#again');
+  await pickVaultSel(page, `[data-v="4663:${GATED}"]`);
+  await setAmount('10'); await review();
+  c = await checksTxt();
+  await page.evaluate(() => { window.__sent = []; });
+  check('gated vault: blocked at review, before any approval ("Approved addresses only")', /Vault accepting deposits Approved addresses only/.test(c)
+    && /only accepts deposits from addresses its curator has approved/.test(await txt('#action')) && await page.$eval('#confirm', e => e.disabled), c + ' | ' + await txt('#action'));
+  await page.click('#confirm', { force: true }).catch(() => {}); await page.waitForTimeout(300);
+  check('gated vault: nothing sent, no approval left behind', (await sent()).length === 0
+    && BigInt(cast(`call ${USDG} "allowance(address,address)(uint256)" ${USER} ${GATED}`)) === 0n);
+  await page.click('#back');
+  // the curator approves the user → the same deposit goes through
+  cast(`send ${GATE} "set(address,bool)" ${USER} true --from ${OWNER} --unlocked`);
+  await review();
+  c = await checksTxt();
+  check('gated vault, user approved by the curator: no gate block', !/Approved addresses only/.test(c) && !(await page.$eval('#confirm', e => e.disabled)), c);
+  await page.click('#confirm'); await until(async () => /confirmed/.test(await txt('#action')));
+  check('gated vault: deposit confirmed onchain once allowed', /Deposit confirmed/.test(await txt('#action')) && BigInt(cast(`call ${GATED} "balanceOf(address)(uint256)" ${USER}`)) > 0n, await txt('#action'));
 
   check('no page errors', errs.length === 0, errs.join(' | '));
   console.log(`\n${pass} passed, ${fail} failed`);

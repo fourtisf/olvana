@@ -1773,7 +1773,25 @@ function updateForm() {
    Its maxDeposit / maxWithdraw always return 0, so limits come from simulating the exact call (eth_call) instead.
    Every call goes through the connected wallet: nothing is signed or sent by Olvana. */
 const SEL = { deposit: '0x6e553f65', withdraw: '0xb460af94', redeem: '0xba087652', approve: '0x095ea7b3', allowance: '0xdd62ed3e',
-  balanceOf: '0x70a08231', asset: '0x38d52e0f', isVaultV2: '0x5edec50d', isMetaMorpho: '0x29b5352c', maxDeposit: '0x402d267d' };
+  balanceOf: '0x70a08231', asset: '0x38d52e0f', isVaultV2: '0x5edec50d', isMetaMorpho: '0x29b5352c', maxDeposit: '0x402d267d',
+  // Vault V2 gates (VaultV2.sol / IGate.sol): 0 = open to everyone, otherwise a contract that allows or refuses an address
+  receiveSharesGate: '0x7e729ac4', canReceiveShares: '0x98c9b49c', sendAssetsGate: '0x8eede801', canSendAssets: '0x20fe8d58',
+  sendSharesGate: '0x93ab2ab7', canSendShares: '0x8e511e4d', receiveAssetsGate: '0x54cde13e', canReceiveAssets: '0x0d326b18' };
+// true when a Vault V2 gate refuses this address. Read directly because some wallets drop the revert reason
+// (CannotSendAssets / CannotReceiveShares), which left a gated vault as "would fail, no reason" after the approval.
+async function v2GateRefuses(v, me, dep) {
+  const pairs = dep ? [[SEL.receiveSharesGate, SEL.canReceiveShares], [SEL.sendAssetsGate, SEL.canSendAssets]]
+    : [[SEL.sendSharesGate, SEL.canSendShares], [SEL.receiveAssetsGate, SEL.canReceiveAssets]];
+  for (const [g, can] of pairs) {
+    let gate;
+    try { gate = lcA('0x' + String(await ethCall(v.address, g)).replace(/^0x/, '').slice(-40)); } catch (e) { continue; }   // unreadable: the simulation decides
+    if (!/^0x[0-9a-f]{40}$/.test(gate) || /^0x0{40}$/.test(gate)) continue;                                            // no gate
+    let ok = false;
+    try { ok = hexBig(await ethCall(gate, can + encA(me))) === 1n; } catch (e) { /* the vault's own check would revert too */ }
+    if (!ok) return true;
+  }
+  return false;
+}
 const encA = a => pad32(lcA(a));
 const encU = n => pad32(BigInt(n).toString(16));
 // exact decimal string → token units (bigint); null when it has more decimals than the token
@@ -1847,8 +1865,9 @@ function explainRevert(e) {
   const m = /reverted(?: with reason string)?:?\s*['"]?([^'"\n]+)/i.exec((e && e.message) || '');
   if (m && reasonText(m[1])) return reasonText(m[1]);
   if (/insufficient funds/i.test((e && e.message) || '')) return 'Not enough ETH to pay the network fee.';
-  return 'The transaction would fail, and the contract gave no reason. Nothing was sent.';
+  return NO_REASON;
 }
+const NO_REASON = 'The transaction would fail, and the contract gave no reason. Nothing was sent.';
 
 const simCall = (to, data) => W.provider.request({ method: 'eth_call', params: [{ from: S.address, to, data }, 'latest'] });
 async function simOk(to, data) { try { await simCall(to, data); return { ok: true }; } catch (e) { return { ok: false, why: explainRevert(e) }; } }
@@ -1913,6 +1932,10 @@ async function preflight(tx) {
           set(2, 'bad', 'Would fail'); set(3, 'bad', room > 0n ? 'Only ' + fmt(toUnits(room, v.asset.decimals)) + ' left' : 'Vault full');
         }
       }
+      if (v.kind !== 'v1' && !tx.block && await v2GateRefuses(v, me, true)) {
+        tx.block = 'This vault only accepts deposits from addresses its curator has approved, and yours is not one of them. Nothing was sent. Pick another vault.';
+        set(2, 'bad', 'Would fail'); set(3, 'bad', 'Approved addresses only');
+      }
       if (tx.block) [2, 3].forEach(k => { if (tx.checks[k].s === 'run') set(k, 'wait', '—'); });   // blocked above
       else if (tx.needApprove) {
         // tokens like USDT refuse to change a non-zero allowance straight to another non-zero one
@@ -1934,6 +1957,7 @@ async function preflight(tx) {
       tx.units = tx.redeemAll ? pos : want;
       tx.data = tx.redeemAll ? SEL.redeem + encU(shares) + encA(me) + encA(me) : SEL.withdraw + encU(want) + encA(me) + encA(me);
       const r = shares != null && want > 0n ? await simOk(v.address, tx.data) : { ok: false, why: 'Your vault balance is still loading. Go back and try again.' };
+      if (!r.ok && v.kind !== 'v1' && r.why === NO_REASON && await v2GateRefuses(v, me, false)) r.why = 'This vault\'s rules block withdrawals for this address right now.';
       set(1, r.ok ? 'ok' : 'bad', r.ok ? 'Passed' : 'Would fail');
       const liq = r.ok || !/liquidity/i.test(r.why);
       set(2, liq ? (r.ok ? 'ok' : 'wait') : 'bad', liq ? (r.ok ? 'Passed' : '—') : 'About ' + fmtUsdShort(v.liq) + ' free');
@@ -1974,6 +1998,7 @@ async function execute(tx) {
       const dd = SEL.deposit + encU(tx.units) + encA(me);
       const r = await simOk(v.address, dd);
       set2(tx, r.ok ? 'ok' : 'bad');
+      if (!r.ok && r.why === NO_REASON && v.kind !== 'v1' && await v2GateRefuses(v, S.address, true)) r.why = 'This vault only accepts deposits from addresses its curator has approved, and yours is not one of them. Nothing was sent.';
       if (!r.ok) { throw userErr(r.why + (tx.needApprove ? ' Your approval stays set for this amount only.' : '')); }
       step(i, 'sign');
       const h = await sendTx(v, v.address, dd);

@@ -81,11 +81,12 @@ Selectors computed with viem and pinned by `packages/core/test/tx.test.ts`.
 | `VaultV2Factory.isVaultV2(address)` | `0x5edec50d` | onchain allowlist check before any transaction |
 | `asset()` | `0x38d52e0f` | must equal the pinned stablecoin address |
 | `maxDeposit` / `maxWithdraw` / `maxRedeem` | — | **always return 0 in Vault V2** ("gross underestimation"), so HANDOFF §4.2's `maxWithdraw` cap cannot be used; the exact call is simulated with `eth_call` instead |
+| gates: `receiveSharesGate()` / `sendAssetsGate()` / `sendSharesGate()` / `receiveAssetsGate()` | `0x7e729ac4` / `0x8eede801` / `0x93ab2ab7` / `0x54cde13e` | 0 = open. Otherwise the gate's `canReceiveShares` `0x98c9b49c` / `canSendAssets` `0x20fe8d58` (deposit) and `canSendShares` `0x8e511e4d` / `canReceiveAssets` `0x0d326b18` (withdraw) are read before any approval (`src/interfaces/IGate.sol`, same commit): some wallets drop the `CannotSendAssets` / `CannotReceiveShares` revert data |
 
 Tested end to end on a local chain (id 4663) running this exact source at the
-mainnet factory address: `e2e/vault-v2/run.sh` (25 checks: exact approval,
+mainnet factory address: `e2e/vault-v2/run.sh` (29 checks: exact approval,
 deposit, rejection + retry, partial withdraw, MAX redeem, USDT-style token,
-lookalike vault blocked). **Not yet tested on mainnet**: do one deposit and one
+lookalike vault blocked, gated vault refused before approval then allowed). **Not yet tested on mainnet**: do one deposit and one
 withdrawal of ~$1 from the owner's wallet before announcing.
 
 ## Morpho Vault V1 (MetaMorpho) — checked 2026-09-28
