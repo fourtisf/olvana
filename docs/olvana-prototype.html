@@ -2246,7 +2246,7 @@ function viewVaults() {
 //   Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)
 const EV_DEPOSIT = '0xdcbc1c05240f31ff3ad067ef1ee35ce4997762752e3a095284754544f4c709d7';
 const EV_WITHDRAW = '0xfbde797d201c681b91056529119e0b02407c7bb96a4a2c75c01fc9667232c8db';
-const HIST = { key: null, busy: false, ev: null, err: null, since: null };   // since: how far back the scan got when the wallet's node refused the full range
+const HIST = { key: null, busy: false, ev: null, err: null, since: null, partial: false };   // partial: older activity may be missing (since: how far back the chain scan got)
 const rpc = (method, params, ms = 20000) => withTimeout(W.provider.request({ method, params }), ms);
 const hexN = h => parseInt(h, 16), toHex = n => '0x' + n.toString(16);
 const blockTime = async n => hexN((await rpc('eth_getBlockByNumber', [toHex(n), false])).timestamp);
@@ -2262,37 +2262,71 @@ async function logsBack(filter, from, to) {
   }
   return { logs, reached: hi + 1 };
 }
+// Second source, same events indexed by Morpho's public API (types: morpho-org/sdks liquidity-sdk-viem src/api/types.ts).
+// Used together with the chain read: many wallet nodes cap or time out long eth_getLogs scans, the API does not;
+// the chain read covers the few minutes the API may lag. Duplicates are merged by transaction + event.
+const big = x => typeof x === 'number' ? BigInt(Math.round(x)) : BigInt(String(x));
+async function apiHistory(cid, me, here) {
+  const list = a => '[' + a.map(x => JSON.stringify(x)).join(',') + ']', out = [];
+  const v1 = here.filter(v => v.kind === 'v1').map(v => v.address.toLowerCase()), v2 = here.filter(v => v.kind !== 'v1').map(v => v.address.toLowerCase());
+  const jobs = [];
+  if (v1.length) jobs.push(gql(`{ transactions(first: 200, orderBy: Timestamp, orderDirection: Desc, where: { userAddress_in: ${list([me])}, chainId_in: [${cid}], vaultAddress_in: ${list(v1)}, type_in: [MetaMorphoDeposit, MetaMorphoWithdraw] }) {
+      items { hash blockNumber logIndex timestamp type data { ... on VaultTransactionData { assets shares vault { address } } } } } }`)
+    .then(d => (d.transactions.items || []).forEach(x => x.data && x.data.vault && out.push({ addr: x.data.vault.address, dep: x.type === 'MetaMorphoDeposit', assets: big(x.data.assets), shares: big(x.data.shares),
+      t: Number(x.timestamp), block: Number(x.blockNumber), i: Number(x.logIndex), hash: x.hash }))));
+  if (v2.length) jobs.push(gql(`{ vaultV2transactions(first: 200, orderBy: Time, orderDirection: Desc, where: { userAddress_in: ${list([me])}, chainId_in: [${cid}], vaultAddress_in: ${list(v2)}, type_in: [Deposit, Withdraw] }) {
+      items { txHash blockNumber logIndex timestamp type shares vault { address } data { ... on VaultV2DepositData { assets } ... on VaultV2WithdrawData { assets } } } } }`)
+    .then(d => (d.vaultV2transactions.items || []).forEach(x => x.vault && x.data && x.data.assets != null && out.push({ addr: x.vault.address, dep: x.type === 'Deposit', assets: big(x.data.assets), shares: big(x.shares),
+      t: Number(x.timestamp), block: Number(x.blockNumber), i: Number(x.logIndex), hash: x.txHash }))));
+  const r = await Promise.allSettled(jobs);
+  if (r.length && r.every(x => x.status === 'rejected')) throw r[0].reason;
+  return { ev: out, complete: r.every(x => x.status === 'fulfilled') };
+}
+async function chainHistory(cid, me, here) {
+  const latest = hexN(await rpc('eth_blockNumber', []));
+  // start at the oldest listed vault's creation (block time measured on this chain), else block 0
+  let from = 0;
+  if (latest > 20000 && here.length && here.every(v => v.ageDays > 0)) {
+    try {
+      const [a, b] = await Promise.all([blockTime(latest), blockTime(latest - 10000)]), bt = (a - b) / 10000;
+      if (bt > 0) from = Math.max(0, latest - Math.ceil(Math.max(...here.map(v => v.ageDays)) * 86400 * 1.1 / bt));
+    } catch (e) {}
+  }
+  const addrs = here.map(v => v.address.toLowerCase()), me32 = '0x' + me.slice(2).toLowerCase().padStart(64, '0');
+  const [d, w] = addrs.length ? await Promise.all([
+    logsBack({ address: addrs, topics: [EV_DEPOSIT, null, me32] }, from, latest),
+    logsBack({ address: addrs, topics: [EV_WITHDRAW, null, null, me32] }, from, latest),
+  ]) : [{ logs: [], reached: from }, { logs: [], reached: from }];
+  const logs = [...d.logs, ...w.logs].filter(l => l && !l.removed && String(l.data).length >= 130), times = {};
+  for (const l of logs) if (l.blockTimestamp) times[l.blockNumber] = hexN(l.blockTimestamp);
+  await eachLimit([...new Set(logs.map(l => l.blockNumber))].filter(b => times[b] == null), 4, async b => { times[b] = await blockTime(hexN(b)); });
+  const ev = logs.map(l => { const x = String(l.data).slice(2);
+    return { addr: l.address, dep: String(l.topics[0]).toLowerCase() === EV_DEPOSIT, assets: BigInt('0x' + x.slice(0, 64)), shares: BigInt('0x' + x.slice(64, 128)),
+      t: times[l.blockNumber], block: hexN(l.blockNumber), i: hexN(l.logIndex), hash: l.transactionHash }; });
+  const reached = Math.max(d.reached, w.reached);
+  return { ev, partial: reached > from, since: reached > from ? await blockTime(reached).catch(() => null) : null };
+}
 async function loadHistory() {
   const cid = UI.chainId, me = S.address, key = cid + ':' + me;
   if (HIST.key === key) return;
-  Object.assign(HIST, { key, busy: true, ev: null, err: null, since: null });
+  Object.assign(HIST, { key, busy: true, ev: null, err: null, since: null, partial: false });
   const still = () => HIST.key === key;
   try {
     const here = VAULTS.filter(v => v.chainId === cid);
-    const latest = hexN(await rpc('eth_blockNumber', []));
-    // start at the oldest listed vault's creation (block time measured on this chain), else block 0
-    let from = 0;
-    if (latest > 20000 && here.length && here.every(v => v.ageDays > 0)) {
-      try {
-        const [a, b] = await Promise.all([blockTime(latest), blockTime(latest - 10000)]), bt = (a - b) / 10000;
-        if (bt > 0) from = Math.max(0, latest - Math.ceil(Math.max(...here.map(v => v.ageDays)) * 86400 * 1.1 / bt));
-      } catch (e) {}
+    const [oc, api] = await Promise.allSettled([chainHistory(cid, me, here), apiHistory(cid, me.toLowerCase(), here)]);
+    HIST.dbg = { chain: oc.status === 'fulfilled' ? { found: oc.value.ev.length, partial: oc.value.partial } : String(oc.reason && oc.reason.message),
+      api: api.status === 'fulfilled' ? { found: api.value.ev.length, complete: api.value.complete } : String(api.reason && api.reason.message) };
+    if (oc.status === 'rejected' && api.status === 'rejected') throw oc.reason;
+    const seen = new Map();
+    for (const e of [...(oc.value ? oc.value.ev : []), ...(api.value ? api.value.ev : [])]) {
+      const v = here.find(x => x.address.toLowerCase() === String(e.addr).toLowerCase());
+      const k = String(e.hash).toLowerCase() + ':' + (e.dep ? 'd' : 'w') + ':' + e.assets;
+      if (v && e.t && !seen.has(k)) seen.set(k, { ...e, v });
     }
-    const addrs = here.map(v => v.address.toLowerCase()), me32 = '0x' + me.slice(2).toLowerCase().padStart(64, '0');
-    const [d, w] = addrs.length ? await Promise.all([
-      logsBack({ address: addrs, topics: [EV_DEPOSIT, null, me32] }, from, latest),
-      logsBack({ address: addrs, topics: [EV_WITHDRAW, null, null, me32] }, from, latest),
-    ]) : [{ logs: [], reached: from }, { logs: [], reached: from }];
-    const logs = [...d.logs, ...w.logs].filter(l => l && !l.removed), times = {};
-    for (const l of logs) if (l.blockTimestamp) times[l.blockNumber] = hexN(l.blockTimestamp);
-    await eachLimit([...new Set(logs.map(l => l.blockNumber))].filter(b => times[b] == null), 4, async b => { times[b] = await blockTime(hexN(b)); });
-    const ev = logs.map(l => {
-      const v = here.find(x => x.address.toLowerCase() === String(l.address).toLowerCase()), x = String(l.data).slice(2);
-      return v && x.length >= 128 ? { v, dep: String(l.topics[0]).toLowerCase() === EV_DEPOSIT, assets: BigInt('0x' + x.slice(0, 64)), shares: BigInt('0x' + x.slice(64, 128)),
-        t: times[l.blockNumber], block: hexN(l.blockNumber), i: hexN(l.logIndex), hash: l.transactionHash } : null;
-    }).filter(Boolean).sort((a, b) => a.block - b.block || a.i - b.i);
-    const reached = Math.max(d.reached, w.reached), since = reached > from ? await blockTime(reached).catch(() => null) : null;
-    if (still()) Object.assign(HIST, { ev, since });
+    const ev = [...seen.values()].sort((a, b) => a.block - b.block || a.i - b.i);
+    // complete when the API answered fully, or the chain scan reached the start
+    const apiOk = api.status === 'fulfilled' && api.value.complete, ocOk = oc.status === 'fulfilled' && !oc.value.partial;
+    if (still()) Object.assign(HIST, { ev, partial: !apiOk && !ocOk, since: !apiOk && !ocOk && oc.value ? oc.value.since : null });
   } catch (e) {
     if (still()) HIST.err = 'Could not read your history from the network';
   } finally {
@@ -2378,11 +2412,12 @@ function viewPortfolio() {
   const hErr = hk && HIST.err ? `<div class="empty">${esc(HIST.err)}.<button type="button" class="btn btn-glass btn-sm" id="histRetry">Try again</button></div>` : '';
   const evUsd = e => Number(e.assets) / Math.pow(10, e.v.asset.decimals) * (e.v.asset.price || 1);
   const netIn = ev ? ev.reduce((t, e) => t + (e.dep ? 1 : -1) * evUsd(e), 0) : null;
-  const earned = ev && ev.length && !HIST.since && held.every(x => ev.some(e => e.v === x.v)) ? total - netIn : null;
-  const sinceNote = ev && HIST.since ? `<p class="muted" style="margin:12px 0 0;font-size:12px">Your wallet's network only let Olvana look back to ${esc(dUTC(HIST.since))}. Older activity: ${exLink}</p>` : '';
+  const earned = ev && ev.length && !HIST.partial && held.every(x => ev.some(e => e.v === x.v)) ? total - netIn : null;
+  const sinceNote = ev && HIST.partial ? `<p class="muted" style="margin:12px 0 0;font-size:12px">${HIST.since ? `Your wallet's network only let Olvana look back to ${esc(dUTC(HIST.since))}.` : 'Older activity may be missing: your wallet\'s network limits how far back Olvana can look.'} Full history: ${exLink}</p>` : '';
   const hStats = ev && (ev.length || total > 0) ? `<span class="hc-stats"><span>Now <b>$${fmt(total)}</b></span>${earned != null ? `<span>Earned <b class="gold">${earned >= 0 ? '+' : '−'}$${fmtTiny(Math.abs(earned))}</b></span>` : ''}</span>` : '';
   const balBody = !c ? '<div class="empty">Connect a wallet to see your balance over time.</div>'
     : hWait ? `<div class="empty">${hWait}</div>` : hErr ? hErr
+    : !ev.length && total > 0 ? `<div class="empty">Your deposit history could not be found yet, so there is no chart. Your balance is $${fmt(total)}.</div>${sinceNote}`
     : !ev.length && total <= 0 ? `<div class="empty">Your chart starts with your first deposit.<a href="#app" class="btn btn-gold btn-sm">Make a deposit</a></div>`
     : histChart(histSeries(ev, net.id)) + `<p class="muted" style="margin:10px 0 0;font-size:11.5px">From your deposits and withdrawals onchain. Values between them are estimated from the vault's share price.</p>`;
   const txBody = !c ? '<div class="empty">Connect a wallet to see your deposits and withdrawals.</div>'
@@ -2419,12 +2454,12 @@ function viewPortfolio() {
       </div>
     </div>
     <div class="panel">
-      <h3 class="h4" style="margin-bottom:18px">Transaction history</h3>
+      <div class="chart-head"><h3 class="h4">Transaction history</h3>${ev ? '<button type="button" class="btn btn-glass btn-sm" id="histRefresh">Refresh</button>' : ''}</div>
       ${txBody}
     </div>`;
   const pc = $('pfConnect'); if (pc) pc.onclick = connect;
   bindHistChart();
-  const hr = $('histRetry'); if (hr) hr.onclick = () => { HIST.key = null; viewPortfolio(); };
+  ['histRetry', 'histRefresh'].forEach(id => { const b = $(id); if (b) b.onclick = () => { HIST.key = null; viewPortfolio(); }; });
   bindPicks($('view'));
   // Withdraw from a position: open Earn on that vault, Withdraw tab, balance already known
   $('view').querySelectorAll('[data-pos-withdraw]').forEach(a => a.addEventListener('click', e => {

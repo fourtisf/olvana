@@ -32,6 +32,7 @@ const v1 = o => Object.assign({
     allocation: [{ supplyAssetsUsd: 400e6, market: { lltv: '860000000000000000', collateralAsset: { symbol: 'wstETH', address: '0x' + '1'.repeat(40), logoURI: null }, oracle: { type: 'ChainlinkOracleV2' }, state: { utilization: 0.9 } } }] },
 }, o);
 const V1 = [v1(), v1({ address: FAKE, name: 'Lookalike USDC' })];
+let API_TX = [];   // filled by the test to stand in for Morpho's indexer
 function api(postData) {
   let q; try { q = JSON.parse(postData || '{}'); } catch (e) { q = {}; }
   const Q = q.query || '', c = q.variables && q.variables.c, chain = Array.isArray(c) ? c[0] : c;
@@ -39,6 +40,9 @@ function api(postData) {
   const items = chain === 1 ? V1 : [];
   if (/vaultByAddress\(/.test(Q)) return ok({ vaultByAddress: items.find(x => x.address === String(q.variables.a).toLowerCase()) || null });
   if (/\bvaults\(/.test(Q)) return ok({ vaults: { items: items.map(x => ({ ...x, state: { totalAssets: x.state.totalAssets, totalAssetsUsd: x.state.totalAssetsUsd } })) } });
+  // Morpho API vault transactions (history fallback): answered only for this user, chain 1, deposits + withdrawals
+  if (/\btransactions\(/.test(Q)) return ok({ transactions: { items: API_TX.filter(x => Q.includes(`userAddress_in: ["${x.user}"]`) && /chainId_in: \[1\]/.test(Q)
+    && /type_in: \[MetaMorphoDeposit, MetaMorphoWithdraw\]/.test(Q) && Q.includes(x.data.vault.address)).map(({ user, ...x }) => x) } });
   if (/vaultV2ByAddress/.test(Q)) return ok({ vaultV2ByAddress: null });
   return ok({ vaultV2s: { items: [] } });
 }
@@ -51,6 +55,7 @@ const WALLET = (user) => {
       if (method === 'eth_requestAccounts') { window.__authed = true; return [user]; }
       if (method === 'eth_accounts') return window.__authed ? [user] : [];
       if (method === 'wallet_revokePermissions') return null;
+      if (method === 'eth_getLogs' && window.__noLogs) return [];
       // a node that caps eth_getLogs block ranges, like many public RPCs
       if (method === 'eth_getLogs' && window.__maxLogRange && parseInt(params[0].toBlock, 16) - parseInt(params[0].fromBlock, 16) >= window.__maxLogRange) throw Object.assign(new Error('block range too large'), { code: -32005 });
       if (method === 'eth_call') window.__reads.push({ to: String(params[0].to).toLowerCase(), data: params[0].data });
@@ -167,9 +172,27 @@ const WALLET = (user) => {
   // 4b · history on a node that refuses long eth_getLogs ranges: walked back in windows, all three events still found
   cast('rpc anvil_mine 0xbb8');
   await page.evaluate(() => { window.__maxLogRange = 1000; });
-  await page.goto(ORIGIN + '/#portfolio'); await until(async () => /Withdraw[\s\S]*Withdraw[\s\S]*Deposit/.test(await txt('.txl')), 60000);
+  await page.goto(ORIGIN + '/#portfolio'); await until(async () => !!(await page.$('#histRefresh'))); await page.click('#histRefresh'); await until(async () => /Withdraw[\s\S]*Withdraw[\s\S]*Deposit/.test(await txt('.txl')), 60000);
   check('capped eth_getLogs range: deposit + 2 withdrawals found by walking back', /Withdraw[\s\S]*Withdraw[\s\S]*−30\.00 USDC[\s\S]*Deposit[\s\S]*\+100\.00 USDC/.test(await txt('.txl')), await txt('.txl'));
   await page.evaluate(() => { window.__maxLogRange = 0; });
+  await page.goto(ORIGIN + '/#app'); await page.waitForTimeout(300);
+
+  // 4c · a wallet node that returns no logs at all: the same history comes from Morpho's API
+  const rpcJ = async (method, params) => (await (await fetch(RPC, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ jsonrpc: '2.0', id: 1, method, params }) })).json()).result;
+  const DEP = '0xdcbc1c05240f31ff3ad067ef1ee35ce4997762752e3a095284754544f4c709d7', WD = '0xfbde797d201c681b91056529119e0b02407c7bb96a4a2c75c01fc9667232c8db';
+  const raw = await rpcJ('eth_getLogs', [{ address: VAULT, fromBlock: '0x0', toBlock: 'latest', topics: [[DEP, WD]] }]);
+  API_TX = [];
+  for (const l of raw) {
+    const blk = await rpcJ('eth_getBlockByNumber', [l.blockNumber, false]), x = l.data.slice(2);
+    API_TX.push({ user: USER.toLowerCase(), hash: l.transactionHash, blockNumber: parseInt(l.blockNumber, 16), logIndex: parseInt(l.logIndex, 16), timestamp: parseInt(blk.timestamp, 16),
+      type: l.topics[0] === DEP ? 'MetaMorphoDeposit' : 'MetaMorphoWithdraw', data: { assets: String(BigInt('0x' + x.slice(0, 64))), shares: Number(BigInt('0x' + x.slice(64, 128))), vault: { address: VAULT } } });
+  }
+  await page.evaluate(() => { window.__noLogs = true; });
+  await page.goto(ORIGIN + '/#portfolio'); await until(async () => !!(await page.$('#histRefresh'))); await page.click('#histRefresh'); await until(async () => /Deposit/.test(await txt('.txl')), 30000);
+  check('wallet node returns no logs: history (1 deposit, 2 withdrawals) from the Morpho API', API_TX.length === 3 && /Withdraw[\s\S]*Withdraw[\s\S]*−30\.00 USDC[\s\S]*Deposit[\s\S]*\+100\.00 USDC/.test(await txt('.txl'))
+    && !/Older activity may be missing|only let Olvana look back/.test(await txt('#view')), await txt('#view').then(t => t.slice(-600)));
+  await page.evaluate(() => { window.__noLogs = false; });
+  API_TX = [];
   await page.goto(ORIGIN + '/#app'); await page.waitForTimeout(300);
 
   // 5 · lookalike V1 vault (not created by a MetaMorpho factory) → blocked

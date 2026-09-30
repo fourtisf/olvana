@@ -115,7 +115,7 @@ the site still shows every V2 vault (V1 is loaded separately and failures are sk
 Net APY for V1 = `weeklyApy × (1 − fee)`: the vault's own yield after the curator fee, **without** reward tokens.
 
 Tested end to end on a local chain (id 1) running Morpho Blue + MetaMorpho v1.1 compiled from source, factory at
-its Ethereum address: `e2e/vault-v1/run.sh` (21 checks).
+its Ethereum address: `e2e/vault-v1/run.sh` (22 checks).
 
 ## Multicall3 (balance reads) — checked 2026-09-30
 
@@ -153,3 +153,11 @@ connected wallet (no server, no indexer). Same signatures on both vault versions
 Nodes that cap `eth_getLogs` block ranges are handled by walking back in shrinking windows (bounded request budget);
 when the walk stops early the page says how far back it looked and links the explorer. Tested in
 `e2e/vault-v1/run.sh` with a test wallet that refuses ranges of 1,000+ blocks.
+
+Second source, merged by transaction + event: Morpho's public API, `transactions` (types `MetaMorphoDeposit`,
+`MetaMorphoWithdraw`, `VaultTransactionData { assets shares vault }`, order `Timestamp`) for Vault V1 and
+`vaultV2transactions` (types `Deposit`/`Withdraw`, `VaultV2DepositData`/`VaultV2WithdrawData { assets }`, order `Time`)
+for Vault V2, both filtered by `userAddress_in`, `chainId_in`, `vaultAddress_in`. Field names from morpho-org/sdks
+`packages/liquidity-sdk-viem/src/api/types.ts` @ `61a904b`. Added after a real wallet's node returned no logs for an
+existing Ethereum deposit. **Not yet run against the live API** from the build environment (unreachable). The e2e
+test covers a node that returns no logs, with the API answering from the chain's own events.
