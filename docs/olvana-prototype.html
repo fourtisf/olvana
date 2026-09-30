@@ -2005,12 +2005,10 @@ function renderReview() {
   if (!txBusy() && !(TX && TX.phase === 'done') && (!S.connected || wrongNet())) { UI.stage = 'form'; return renderForm(); }   // checks need the vault's network
   if (!(TX && (TX.busy || TX.key === key || (TX.phase === 'done' && TX.vid === v.id)))) {
     const isDep = S.tab === 'deposit';
-    const oracleOk = v.oracle === 'Chainlink';
     const checks = isDep
       ? [{ l: 'Vault contract on allowlist' }, { l: 'Enough ' + sym(v) + ' in wallet' }, { l: 'Transaction simulated' }, { l: 'Vault accepting deposits' }]
       : [{ l: 'Vault contract on allowlist' }, { l: 'Transaction simulated' }, { l: 'Liquidity available to exit' }];
     checks.forEach(c => Object.assign(c, { s: 'run', st: 'Checking' }));
-    checks.push({ l: 'Oracle source', s: oracleOk ? 'ok' : 'bad', st: oracleOk ? 'Chainlink' : 'Non-Chainlink oracle', soft: true });
     TX = { key, vid: v.id, isDep, a: amt(), max: UI.max, checks, phase: 'checking', block: null, busy: false, steps: [] };
     paintReview();
     preflight(TX);
@@ -2354,8 +2352,7 @@ function viewSecurity() {
     ['Enough balance in your wallet', 'Blocks if short'],
     ['Transaction simulated', 'Blocks on revert'],
     ['Liquidity available to exit', 'Blocks if short'],
-    ['Vault accepting deposits', 'Blocks if paused or full'],
-    ['Oracle source', 'Warns if not Chainlink']
+    ['Vault accepting deposits', 'Blocks if paused or full']
   ];
   // Per network: the core contracts always visible, the listed vaults folded (there can be dozens per network)
   const row = (name, who, a, id) => `<tr><td>${name}</td><td class="${who ? '' : 'muted'}">${who ? esc(who) : '—'}</td><td class="n">${addr(a, id)}</td></tr>`;

@@ -98,7 +98,7 @@ Robinhood Chain only has **Morpho Vault V2**. Use `vaultV2Abi` from `packages/co
 | Transaction simulated | `publicClient.simulateContract` succeeds | block, show revert reason |
 | Liquidity available (withdraw) | simulation of the exact `withdraw`/`redeem` succeeds (Vault V2 `maxWithdraw` is always 0) | block, show available amount |
 | Vault accepting deposits | simulate succeeds / not paused / cap not hit | block |
-| Oracle in range | collateral oracle price vs reference DEX price, deviation ≤ X% (config) | **warn**, don't block (v1 may treat non-Chainlink oracles as warn, like the prototype) |
+| Oracle in range | collateral oracle price vs reference DEX price, deviation ≤ X% (config) | **warn**, don't block. The site no longer shows an oracle row in the review (removed 2026-09-30); the oracle still counts in the grade (Oracle, 25 pts) and shows in the vault's Risk breakdown |
 
 Grade C vault → show the extra warning box before confirm (copy in prototype).
 

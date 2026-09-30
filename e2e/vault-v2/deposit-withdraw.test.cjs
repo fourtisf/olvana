@@ -105,7 +105,7 @@ const WALLET = (user) => {
   await pickVaultSel(page, `[data-v="4663:${VAULT}"]`);
   await setAmount('100'); await review();
   let c = await checksTxt();
-  check('deposit checks: allowlist, balance passed; simulation after approval; Chainlink', /Vault contract on allowlist Passed/.test(c) && /Enough USDG in wallet Passed/.test(c) && /Transaction simulated After approval/.test(c) && /Oracle source Chainlink/.test(c), c);
+  check('deposit checks: allowlist, balance passed; simulation after approval; no oracle row', /Vault contract on allowlist Passed/.test(c) && /Enough USDG in wallet Passed/.test(c) && /Transaction simulated After approval/.test(c) && !/Oracle source/.test(c), c);
   check('steps: approve exact then deposit', /Approve exactly 100\.00 USDG/.test(c) && /Deposit 100\.00 USDG/.test(c), c);
   check('confirm button reads "Approve & deposit"', (await txt('#confirm')) === 'Approve & deposit', await txt('#confirm'));
   check('nothing sent before confirm', (await sent()).length === 0);
