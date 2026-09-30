@@ -1205,7 +1205,7 @@ function liveState() {
   if (LIVE.loaded) return 'empty';
   return 'loading';
 }
-const hhmm = ts => new Date(ts).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+const hhmm = ts => new Date(ts).toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit', timeZone:'UTC' }) + ' UTC';   // one clock for everyone
 function liveBadge() {
   const s = liveState();
   if (s === 'live' || s === 'empty') return `<span class="tag live">● Live · updated ${hhmm(LIVE.at)}</span>`;
