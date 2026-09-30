@@ -1431,8 +1431,10 @@ function resetBal() { Object.assign(BAL, { chainId: null, who: null, eth: null, 
 const pad32 = h => h.replace(/^0x/, '').padStart(64, '0');
 const hexBig = h => (h && h !== '0x') ? BigInt(h) : 0n;
 // every read has a deadline: one call a wallet never answers must not leave the form on "Reading your balance…"
-const withTimeout = (p, ms = 8000) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(new Error('timeout')), ms))]);
-const ethCall = (to, data) => withTimeout(W.provider.request({ method: 'eth_call', params: [{ to, data }, 'latest'] }));
+const withTimeout = (p, ms = 8000) => Promise.race([p, new Promise((_, no) => setTimeout(() => no(Object.assign(new Error('timeout'), { walletTimeout: true })), ms))]);
+// balance reads: short deadline (they are retried every 30 s). Transaction checks use txCall: a longer wait, then a plain message.
+const ethCall = (to, data, ms = 8000) => withTimeout(W.provider.request({ method: 'eth_call', params: [{ to, data }, 'latest'] }), ms);
+const txCall = (to, data) => ethCall(to, data, 30000);
 const toUnits = (v, d) => v == null ? null : Number(v) / 10 ** d;
 async function eachLimit(items, n, fn) { let i = 0; await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (i < items.length) await fn(items[i++]); })); }
 // Multicall3.aggregate3((address target, bool allowFailure, bytes callData)[]): many reads in one eth_call. Results come back
@@ -1478,6 +1480,9 @@ async function readOpenVault(v) {
   }
   if (document.body.classList.contains('in-app')) render();
 }
+// A review whose checks or transaction are still running: background balance reads wait, because wallets that answer
+// one call at a time (Bitget) would queue them ahead of the checks. After it ends (done / failed) reads resume.
+const walletBusy = () => !!(TX && UI.stage === 'review' && !['done', 'failed', 'blocked'].includes(TX.phase));
 async function refreshBalances() {
   if (!S.connected || !W || !chainById(UI.chainId)) return;   // unsupported network: nothing to read
   const me = S.address, cid = UI.chainId;
@@ -1490,6 +1495,7 @@ async function refreshBalances() {
   try {
     const eth = await withTimeout(W.provider.request({ method: 'eth_getBalance', params: [me, 'latest'] })).catch(() => null);
     if (eth != null && balStill(me, cid)) BAL.eth = hexBig(eth);
+    if (walletBusy()) return;                                      // checks / transaction running: leave the wallet to them
     // everything else on this network (Portfolio, other vaults): one multicall where the network has Multicall3,
     // otherwise a few reads at a time; a read that fails is retried next round
     const assets = [...new Set(here.map(v => lcA(v.asset.address)).filter(Boolean))], rest = here.filter(v => v !== sel);
@@ -1510,8 +1516,8 @@ async function refreshBalances() {
         if (balStill(me, cid)) { BAL.sh[bk(cid, v.address)] = sh; BAL.pos[bk(cid, v.address)] = sh > 0n ? hexBig(conv.get(v)) : 0n; ok++; }
       }
     } catch (e) {
-      await eachLimit(assets, 4, a => readTok(me, cid, a).then(() => ok++, () => {}));
-      await eachLimit(rest, 4, v => readPos(me, cid, v).then(() => ok++, () => {}));
+      await eachLimit(assets, 4, a => walletBusy() ? null : readTok(me, cid, a).then(() => ok++, () => {}));
+      await eachLimit(rest, 4, v => walletBusy() ? null : readPos(me, cid, v).then(() => ok++, () => {}));
     }
     if (sel && balStill(me, cid) && BAL.pos[bk(cid, sel.address)] != null && BAL.tok[bk(cid, lcA(sel.asset.address))] != null) BAL.err = null;   // known now: drop a stale timeout error
     if (balStill(me, cid)) { BAL.at = Date.now(); BAL.passErr = ok || !(assets.length + rest.length) ? null : 'Could not read your positions from the wallet'; }
@@ -1784,10 +1790,10 @@ async function v2GateRefuses(v, me, dep) {
     : [[SEL.sendSharesGate, SEL.canSendShares], [SEL.receiveAssetsGate, SEL.canReceiveAssets]];
   for (const [g, can] of pairs) {
     let gate;
-    try { gate = lcA('0x' + String(await ethCall(v.address, g)).replace(/^0x/, '').slice(-40)); } catch (e) { continue; }   // unreadable: the simulation decides
+    try { gate = lcA('0x' + String(await txCall(v.address, g)).replace(/^0x/, '').slice(-40)); } catch (e) { continue; }   // unreadable: the simulation decides
     if (!/^0x[0-9a-f]{40}$/.test(gate) || /^0x0{40}$/.test(gate)) continue;                                            // no gate
     let ok = false;
-    try { ok = hexBig(await ethCall(gate, can + encA(me))) === 1n; } catch (e) { /* the vault's own check would revert too */ }
+    try { ok = hexBig(await txCall(gate, can + encA(me))) === 1n; } catch (e) { /* the vault's own check would revert too */ }
     if (!ok) return true;
   }
   return false;
@@ -1847,6 +1853,7 @@ function reasonText(r) {
 }
 function explainRevert(e) {
   if (e && e.user) return e.message;
+  if (e && e.walletTimeout) return 'Your wallet did not answer in time. Nothing was sent. Try again in a moment.';
   if (e && (e.code === 4001 || e.code === 'ACTION_REJECTED')) return 'You rejected the request in your wallet.';
   const d = revertData(e);
   if (d) {
@@ -1869,7 +1876,7 @@ function explainRevert(e) {
 }
 const NO_REASON = 'The transaction would fail, and the contract gave no reason. Nothing was sent.';
 
-const simCall = (to, data) => W.provider.request({ method: 'eth_call', params: [{ from: S.address, to, data }, 'latest'] });
+const simCall = (to, data) => withTimeout(W.provider.request({ method: 'eth_call', params: [{ from: S.address, to, data }, 'latest'] }), 30000);
 async function simOk(to, data) { try { await simCall(to, data); return { ok: true }; } catch (e) { return { ok: false, why: explainRevert(e) }; } }
 // right before every wallet prompt: same account, vault's network, vault still allowlisted
 async function guard(v) {
@@ -1903,7 +1910,7 @@ const txKey = v => [v.id, S.tab, UI.amount, UI.max, S.address, UI.chainId].join(
 async function preflight(tx) {
   const v = vault(tx.vid), set = (i, s, st) => { Object.assign(tx.checks[i], { s, st }); paintReview(); };
   const me = S.address, dep = tx.isDep;
-  const call = (to, data) => ethCall(to, data);
+  const call = (to, data) => txCall(to, data);
   try {
     // 0 · allowlist: listed here, created by an official Morpho factory for this network (Vault V2 factory, or a
     //     MetaMorpho factory for V1), holding the expected token
@@ -1919,7 +1926,8 @@ async function preflight(tx) {
       const [bal, allow] = await Promise.all([call(v.asset.address, SEL.balanceOf + encA(me)), call(v.asset.address, SEL.allowance + encA(me) + encA(v.address))]);
       tx.units = UI.max ? hexBig(bal) : amtUnits(v, UI.amount);
       const enough = tx.units > 0n && hexBig(bal) >= tx.units;
-      set(1, enough ? 'ok' : 'bad', enough ? 'Passed' : 'Not enough ' + sym(v));
+      const have = fmt(toUnits(hexBig(bal), v.asset.decimals)) + ' ' + sym(v);   // show the balance itself, not just pass / fail
+      set(1, enough ? 'ok' : 'bad', enough ? have : 'Only ' + have);
       if (!enough) tx.block = tx.block || 'Your wallet holds less ' + sym(v) + ' than this amount.';
       tx.allowance = hexBig(allow);
       tx.needApprove = tx.allowance < tx.units;
