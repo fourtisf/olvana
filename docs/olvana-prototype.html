@@ -1662,10 +1662,9 @@ function viewEarn() {
             <div class="flags" style="margin-top:18px">${flagRows(riskFlags(v))}</div>
           </div>
           <div class="panel">
-            <h3 class="h4">Collateral exposure</h3>
+            <h3 class="h4">Backed by</h3>
             ${shownCollat(v).length ? `<div class="comp">${shownCollat(v).map((c, i) => `<div style="width:${c.s}%;background:${SW_COLORS[i % SW_COLORS.length]}"></div>`).join('')}</div>` : v.collateral.length ? '' : '<p class="muted" style="font-size:13px;margin:14px 0">No lending markets with collateral right now.</p>'}
-            <div class="rows" style="font-size:14px">${shownCollat(v).map((c, i) => `<div><span style="color:var(--ink);display:flex;align-items:center;gap:8px"><i class="sw" style="background:${SW_COLORS[i % SW_COLORS.length]};margin-right:2px"></i>${collatLogo(c, 16)}<span style="display:flex;flex-direction:column;line-height:1.25">${esc(c.a)}<small class="muted" style="font-size:11px">${CAT[collatCat(c)]}</small></span></span><span class="muted">${c.s}% · LLTV ${c.l}%</span></div>`).join('')}
-              <div><span>Oracle</span><span>${v.oracle}</span></div>
+            <div class="rows" style="font-size:14px">${shownCollat(v).map((c, i) => `<div><span style="color:var(--ink);display:flex;align-items:center;gap:10px;min-width:0"><i class="sw" style="background:${SW_COLORS[i % SW_COLORS.length]};flex:none"></i>${collatLogo(c, 18)}<span style="display:flex;flex-direction:column;line-height:1.3;min-width:0"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis" title="${esc(c.a)}">${esc(c.a)}</span><small class="muted" style="font-size:11px">${CAT[collatCat(c)]}</small></span></span><span style="color:var(--ink);font-weight:600;flex:none">${Math.round(c.s)}%</span></div>`).join('')}
             </div>
           </div>
         </div>
