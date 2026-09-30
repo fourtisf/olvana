@@ -51,6 +51,8 @@ const WALLET = (user) => {
       if (method === 'eth_requestAccounts') { window.__authed = true; return [user]; }
       if (method === 'eth_accounts') return window.__authed ? [user] : [];
       if (method === 'wallet_revokePermissions') return null;
+      // a node that caps eth_getLogs block ranges, like many public RPCs
+      if (method === 'eth_getLogs' && window.__maxLogRange && parseInt(params[0].toBlock, 16) - parseInt(params[0].fromBlock, 16) >= window.__maxLogRange) throw Object.assign(new Error('block range too large'), { code: -32005 });
       if (method === 'eth_call') window.__reads.push({ to: String(params[0].to).toLowerCase(), data: params[0].data });
       if (method === 'eth_sendTransaction') {
         if (window.__reject) throw Object.assign(new Error('User rejected the request.'), { code: 4001 });
@@ -117,6 +119,10 @@ const WALLET = (user) => {
   await page.goto(ORIGIN + '/#portfolio'); await until(async () => /Steakhouse USDC[\s\S]*100\.00/.test(await txt('#view')));
   check('Portfolio: the 100 USDC position, no read error', /Steakhouse USDC[\s\S]*100\.00/.test(await txt('#view')) && !/Could not read/.test(await txt('#view')), (await txt('#view')).slice(0, 400));
   check('Portfolio: position shows its per-day estimate', /\+0\.[0-9]{4} USDC \/ day|\+[0-9.,]+ USDC \/ day/.test(await txt('#view')), (await txt('#view')).slice(0, 400));
+  await until(async () => /Deposit/.test(await txt('.txl')));
+  check('Portfolio history: the deposit read from the vault events, with its tx link', /Deposit[\s\S]*Steakhouse USDC[\s\S]*\+100\.00 USDC/.test(await txt('.txl'))
+    && (await page.$$eval('.txl a.txh', as => as.map(a => a.href))).some(h => /\/tx\/0x[0-9a-f]{64}$/.test(h)), await txt('.txl'));
+  check('Portfolio: balance chart drawn, ending at the current balance', !!(await page.$('#hc svg path.hc-line')) && /Now \$100\.00/.test(await txt('.hc-stats')), await txt('#view').then(t => t.slice(0, 300)));
   await page.click('[data-pos-withdraw]'); await until(async () => /Wallet balance|Your position|70|100/.test(await txt('#action')) && !!(await page.$('[data-tab="withdraw"].on')));
   check('Portfolio Withdraw opens Earn on that vault with the Withdraw tab', !!(await page.$('[data-tab="withdraw"].on')) && /Steakhouse USDC/.test(await txt('.vault-head')), await txt('.vault-head'));
   await page.click('[data-tab="deposit"]'); await page.waitForTimeout(300);
@@ -157,6 +163,14 @@ const WALLET = (user) => {
   check('MAX → redeem(allShares, user, user)', s.length === 1 && s[0].data === '0xba087652' + word(shares) + word(USER) + word(USER), JSON.stringify(s));
   check('onchain: no shares left, all 1,000 USDC back', bal(VAULT, USER) === 0n && bal(USDC, USER) === 1000000000n, `${bal(VAULT, USER)} ${bal(USDC, USER)}`);
   await page.click('#again');
+
+  // 4b · history on a node that refuses long eth_getLogs ranges: walked back in windows, all three events still found
+  cast('rpc anvil_mine 0xbb8');
+  await page.evaluate(() => { window.__maxLogRange = 1000; });
+  await page.goto(ORIGIN + '/#portfolio'); await until(async () => /Withdraw[\s\S]*Withdraw[\s\S]*Deposit/.test(await txt('.txl')), 60000);
+  check('capped eth_getLogs range: deposit + 2 withdrawals found by walking back', /Withdraw[\s\S]*Withdraw[\s\S]*−30\.00 USDC[\s\S]*Deposit[\s\S]*\+100\.00 USDC/.test(await txt('.txl')), await txt('.txl'));
+  await page.evaluate(() => { window.__maxLogRange = 0; });
+  await page.goto(ORIGIN + '/#app'); await page.waitForTimeout(300);
 
   // 5 · lookalike V1 vault (not created by a MetaMorpho factory) → blocked
   await page.click('[data-tab="deposit"]');

@@ -115,7 +115,7 @@ the site still shows every V2 vault (V1 is loaded separately and failures are sk
 Net APY for V1 = `weeklyApy × (1 − fee)`: the vault's own yield after the curator fee, **without** reward tokens.
 
 Tested end to end on a local chain (id 1) running Morpho Blue + MetaMorpho v1.1 compiled from source, factory at
-its Ethereum address: `e2e/vault-v1/run.sh` (18 checks).
+its Ethereum address: `e2e/vault-v1/run.sh` (21 checks).
 
 ## Multicall3 (balance reads) — checked 2026-09-30
 
@@ -139,3 +139,17 @@ over `ethereum-rpc.publicnode.com`: `receiveSharesGate()` = 0, `sendAssetsGate()
 (`CannotSendAssets`); the owner's real $8.04 USDT attempt failed this way after the approval, with the reason
 dropped by the wallet. Since then the snapshot drops every Vault V2 with any of the four gates set
 (`packages/core/src/gates.ts`, getters in the table above), and the review blocks a gated deposit before approving.
+
+## Portfolio history (vault events) — checked 2026-09-30
+
+Transaction history and "Balance over time" are read from the vaults' ERC-4626 events with `eth_getLogs` through the
+connected wallet (no server, no indexer). Same signatures on both vault versions:
+
+| Event | Topic 0 (`cast sig-event`) | Owner topic | Source |
+|---|---|---|---|
+| `Deposit(address,address,uint256,uint256)` | `0xdcbc1c05…c709d7` | topic 2 | V1: OpenZeppelin `IERC4626.sol` (MetaMorpho v1.1 lib); V2: vault-v2 `src/libraries/EventsLib.sol` |
+| `Withdraw(address,address,address,uint256,uint256)` | `0xfbde797d…c8db` | topic 3 | same files |
+
+Nodes that cap `eth_getLogs` block ranges are handled by walking back in shrinking windows (bounded request budget);
+when the walk stops early the page says how far back it looked and links the explorer. Tested in
+`e2e/vault-v1/run.sh` with a test wallet that refuses ranges of 1,000+ blocks.

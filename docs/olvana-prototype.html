@@ -416,6 +416,28 @@ body.in-app #appShell{display:block}
 .wd-x{width:36px;height:36px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--muted);font-size:20px;line-height:1}
 .wd-list{display:flex;flex-direction:column;gap:8px}
 .wd-item{display:flex;align-items:center;gap:12px;width:100%;min-height:52px;padding:10px 14px;border-radius:16px;border:1px solid var(--line);background:rgba(255,255,255,.03);color:var(--ink);font:inherit;font-size:15px;font-weight:500;text-align:left;text-decoration:none;cursor:pointer}
+.hc-stats{display:flex;gap:16px;font-size:12.5px;color:var(--muted);font-family:var(--mono)}.hc-stats b{color:var(--ink);font-weight:500}.hc-stats b.gold{color:var(--gold)}
+.hc{display:grid;grid-template-columns:auto 1fr;grid-template-rows:auto auto;gap:6px 10px}
+.hc-y{display:flex;flex-direction:column;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--muted);text-align:right;padding:2px 0}
+.hc-plot{position:relative;height:200px;touch-action:none;cursor:crosshair}
+.hc-plot svg{position:absolute;inset:0;width:100%;height:100%;overflow:visible}
+.hc-line{fill:none;stroke:var(--gold);stroke-width:2;stroke-linejoin:round;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.hc-base{stroke:var(--line);stroke-width:1;vector-effect:non-scaling-stroke}
+.hc-x{stroke:rgba(255,255,255,.25);stroke-width:1;vector-effect:non-scaling-stroke}
+.hc-dot{position:absolute;width:10px;height:10px;margin:-5px 0 0 -5px;border-radius:50%;background:var(--gold);box-shadow:0 0 0 2px var(--bg);pointer-events:none}
+.hc-tip{position:absolute;top:-6px;width:176px;padding:8px 10px;border-radius:10px;background:#15172a;border:1px solid var(--line);font-size:11.5px;display:flex;flex-direction:column;gap:2px;pointer-events:none;z-index:2}
+.hc-tip b{font-family:var(--mono);font-size:13px;color:var(--ink);font-weight:500}.hc-tip span{color:var(--muted)}
+.hc-x-l{grid-column:2;display:flex;justify-content:space-between;font-family:var(--mono);font-size:10.5px;color:var(--muted)}
+.txl{display:flex;flex-direction:column}
+.txr{display:grid;grid-template-columns:84px 1fr auto 28px;align-items:center;gap:14px;padding:12px 0;border-top:1px solid var(--line);font-size:13.5px}
+.txr:first-child{border-top:0;padding-top:0}
+.txk{font-family:var(--mono);font-size:11px;padding:4px 8px;border-radius:999px;text-align:center;border:1px solid var(--line);color:var(--muted)}
+.txk.in{color:var(--gA);border-color:rgba(126,224,184,.35)}
+.txv{display:flex;align-items:center;gap:10px;min-width:0}.txv>span{display:flex;flex-direction:column;min-width:0}
+.txv b{font-weight:500;color:var(--ink);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}.txv small{color:var(--muted);font-size:11.5px;font-family:var(--mono)}
+.txa{font-family:var(--mono);white-space:nowrap;color:var(--ink)}
+.txh{color:var(--gold);text-align:center}
+@media(max-width:560px){.txr{grid-template-columns:1fr auto 20px;gap:8px 10px}.txk{grid-column:1/-1;justify-self:start}}
 .pf-pos{display:flex;flex-direction:column;gap:14px}
 .pf-row{padding:16px;border:1px solid var(--line);border-radius:16px;background:rgba(255,255,255,.02)}
 .pf-top{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap}
@@ -499,7 +521,7 @@ body.in-app #appShell{display:block}
 .statrow small{font-size:12px;color:var(--muted)}
 .statrow b{font-family:var(--mono);font-size:22px;font-weight:400}
 .statrow em{font-style:normal;font-family:var(--mono);font-size:11px;color:var(--faint)}
-.chart-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:18px}
+.chart-head{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:18px}
 .ranges{display:flex;gap:4px}
 .ranges button{height:30px;padding:0 12px;border:0;border-radius:999px;background:transparent;color:var(--muted);font-family:var(--mono);font-size:12px}
 .ranges button.on{background:rgba(255,255,255,.09);color:var(--ink)}
@@ -2029,6 +2051,7 @@ async function execute(tx) {
       step(0, 'done'); tx.hash = h;
     }
     tx.phase = 'done';
+    HIST.key = null;
     toast(tx.isDep ? 'Deposit confirmed' : 'Withdrawal confirmed');
   } catch (e) {
     tx.err = explainRevert(e);
@@ -2216,6 +2239,125 @@ function viewVaults() {
 }
 
 /* ===================== PORTFOLIO ===================== */
+/* ===================== PORTFOLIO: history, read from the chain ===================== */
+// Deposits and withdrawals come straight from the vaults' ERC-4626 events through the connected wallet: no Olvana server,
+// no indexer. Same signatures on Vault V1 (MetaMorpho, OpenZeppelin IERC4626) and Vault V2 (vault-v2 EventsLib):
+//   Deposit(address indexed sender, address indexed owner, uint256 assets, uint256 shares)
+//   Withdraw(address indexed sender, address indexed receiver, address indexed owner, uint256 assets, uint256 shares)
+const EV_DEPOSIT = '0xdcbc1c05240f31ff3ad067ef1ee35ce4997762752e3a095284754544f4c709d7';
+const EV_WITHDRAW = '0xfbde797d201c681b91056529119e0b02407c7bb96a4a2c75c01fc9667232c8db';
+const HIST = { key: null, busy: false, ev: null, err: null, since: null };   // since: how far back the scan got when the wallet's node refused the full range
+const rpc = (method, params, ms = 20000) => withTimeout(W.provider.request({ method, params }), ms);
+const hexN = h => parseInt(h, 16), toHex = n => '0x' + n.toString(16);
+const blockTime = async n => hexN((await rpc('eth_getBlockByNumber', [toHex(n), false])).timestamp);
+// Whole range in one call first. Many nodes cap eth_getLogs ranges: then walk back from the newest block in windows,
+// shrinking the window when refused, within a request budget. Returns the logs and the oldest block covered.
+async function logsBack(filter, from, to) {
+  try { return { logs: await rpc('eth_getLogs', [{ ...filter, fromBlock: toHex(from), toBlock: toHex(to) }]), reached: from }; } catch (e) {}
+  const logs = [], until = Date.now() + 30000; let hi = to, step = 50000, n = 24;
+  while (hi >= from && n-- > 0 && Date.now() < until) {
+    const lo = Math.max(from, hi - step + 1);
+    try { logs.push(...await rpc('eth_getLogs', [{ ...filter, fromBlock: toHex(lo), toBlock: toHex(hi) }])); hi = lo - 1; }
+    catch (e) { if (step <= 1000) break; step = Math.max(1000, Math.floor(step / 4)); }
+  }
+  return { logs, reached: hi + 1 };
+}
+async function loadHistory() {
+  const cid = UI.chainId, me = S.address, key = cid + ':' + me;
+  if (HIST.key === key) return;
+  Object.assign(HIST, { key, busy: true, ev: null, err: null, since: null });
+  const still = () => HIST.key === key;
+  try {
+    const here = VAULTS.filter(v => v.chainId === cid);
+    const latest = hexN(await rpc('eth_blockNumber', []));
+    // start at the oldest listed vault's creation (block time measured on this chain), else block 0
+    let from = 0;
+    if (latest > 20000 && here.length && here.every(v => v.ageDays > 0)) {
+      try {
+        const [a, b] = await Promise.all([blockTime(latest), blockTime(latest - 10000)]), bt = (a - b) / 10000;
+        if (bt > 0) from = Math.max(0, latest - Math.ceil(Math.max(...here.map(v => v.ageDays)) * 86400 * 1.1 / bt));
+      } catch (e) {}
+    }
+    const addrs = here.map(v => v.address.toLowerCase()), me32 = '0x' + me.slice(2).toLowerCase().padStart(64, '0');
+    const [d, w] = addrs.length ? await Promise.all([
+      logsBack({ address: addrs, topics: [EV_DEPOSIT, null, me32] }, from, latest),
+      logsBack({ address: addrs, topics: [EV_WITHDRAW, null, null, me32] }, from, latest),
+    ]) : [{ logs: [], reached: from }, { logs: [], reached: from }];
+    const logs = [...d.logs, ...w.logs].filter(l => l && !l.removed), times = {};
+    for (const l of logs) if (l.blockTimestamp) times[l.blockNumber] = hexN(l.blockTimestamp);
+    await eachLimit([...new Set(logs.map(l => l.blockNumber))].filter(b => times[b] == null), 4, async b => { times[b] = await blockTime(hexN(b)); });
+    const ev = logs.map(l => {
+      const v = here.find(x => x.address.toLowerCase() === String(l.address).toLowerCase()), x = String(l.data).slice(2);
+      return v && x.length >= 128 ? { v, dep: String(l.topics[0]).toLowerCase() === EV_DEPOSIT, assets: BigInt('0x' + x.slice(0, 64)), shares: BigInt('0x' + x.slice(64, 128)),
+        t: times[l.blockNumber], block: hexN(l.blockNumber), i: hexN(l.logIndex), hash: l.transactionHash } : null;
+    }).filter(Boolean).sort((a, b) => a.block - b.block || a.i - b.i);
+    const reached = Math.max(d.reached, w.reached), since = reached > from ? await blockTime(reached).catch(() => null) : null;
+    if (still()) Object.assign(HIST, { ev, since });
+  } catch (e) {
+    if (still()) HIST.err = 'Could not read your history from the network';
+  } finally {
+    if (still()) { HIST.busy = false; if (location.hash === '#portfolio') viewPortfolio(); }
+  }
+}
+const dUTC = t => new Date(t * 1000).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'UTC' }) + ' UTC';
+const dDay = t => new Date(t * 1000).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', timeZone: 'UTC' });
+// Balance over time in USD. Per vault: shares follow the events; the share price is known at every event (assets ÷ shares)
+// and now (current position ÷ current shares), and is interpolated in between, so the line ends exactly at today's balance.
+function histSeries(ev, cid) {
+  const now = Date.now() / 1000, vs = VAULTS.filter(v => v.chainId === cid && (ev.some(e => e.v === v) || (BAL.sh[bk(cid, v.address)] || 0n) > 0n));
+  const lines = vs.map(v => {
+    const es = ev.filter(e => e.v === v), sNow = Number(BAL.sh[bk(cid, v.address)] || 0n), pNow = Number(BAL.pos[bk(cid, v.address)] || 0n);
+    const s0 = Math.max(0, sNow - es.reduce((t, e) => t + (e.dep ? 1 : -1) * Number(e.shares), 0));   // shares held before the first event seen
+    const px = es.filter(e => e.shares > 0n).map(e => [e.t, Number(e.assets) / Number(e.shares)]);
+    if (sNow > 0) px.push([now, pNow / sNow]);
+    return { v, es, s0, px, k: (v.asset.price || 1) / Math.pow(10, v.asset.decimals) };
+  });
+  const priceAt = (px, t) => {
+    if (!px.length) return 0;
+    if (t <= px[0][0]) return px[0][1];
+    for (let j = 1; j < px.length; j++) if (t <= px[j][0]) { const [t0, p0] = px[j - 1], [t1, p1] = px[j]; return t1 > t0 ? p0 + (p1 - p0) * (t - t0) / (t1 - t0) : p1; }
+    return px[px.length - 1][1];
+  };
+  const at = t => lines.reduce((sum, L) => sum + (L.s0 + L.es.filter(e => e.t <= t).reduce((s, e) => s + (e.dep ? 1 : -1) * Number(e.shares), 0)) * priceAt(L.px, t) * L.k, 0);
+  const t0 = Math.min(...ev.map(e => e.t), HIST.since || Infinity, now);
+  const ts = new Set(Array.from({ length: 90 }, (_, j) => t0 + (now - t0) * j / 89));
+  ev.forEach(e => { if (e.t - 1 >= t0) ts.add(e.t - 1); ts.add(e.t); });
+  return [...ts].sort((a, b) => a - b).map(t => [t, Math.max(0, at(t))]);
+}
+function histChart(pts) {
+  const W_ = 600, H_ = 200, P = 8, xs = pts.map(p => p[0]), ys = pts.map(p => p[1]);
+  let lo = Math.min(...ys), hi = Math.max(...ys);
+  const pad = Math.max((hi - lo) * 0.12, hi * 1e-5, 1e-6); lo = Math.max(0, lo - pad); hi += pad;
+  const X = t => P + (W_ - 2 * P) * (t - xs[0]) / Math.max(1, xs[xs.length - 1] - xs[0]), Y = y => P + (H_ - 2 * P) * (1 - (y - lo) / (hi - lo));
+  const d = pts.map((p, j) => (j ? 'L' : 'M') + X(p[0]).toFixed(1) + ' ' + Y(p[1]).toFixed(1)).join('');
+  const last = pts[pts.length - 1], money = y => '$' + fmt(y, hi - lo < 1 ? 4 : 2);
+  return `<div class="hc" id="hc" data-pts='${esc(JSON.stringify(pts.map(p => [Math.round(p[0]), +p[1].toPrecision(10)])))}' data-lo="${lo}" data-hi="${hi}">
+    <div class="hc-y"><span>${money(hi)}</span><span>${money(lo)}</span></div>
+    <div class="hc-plot"><svg viewBox="0 0 ${W_} ${H_}" preserveAspectRatio="none" role="img" aria-label="Balance over time, from ${esc(money(pts[0][1]))} to ${esc(money(last[1]))}">
+      <line x1="0" x2="${W_}" y1="${H_ - P}" y2="${H_ - P}" class="hc-base"/>
+      <path d="${d}" class="hc-line"/>
+      <line id="hcX" class="hc-x" x1="0" x2="0" y1="0" y2="${H_}" style="display:none"/>
+    </svg><i class="hc-dot" style="left:${(X(last[0]) / W_ * 100).toFixed(2)}%;top:${(Y(last[1]) / H_ * 100).toFixed(2)}%"></i><i class="hc-dot hc-hov" id="hcDot" style="display:none"></i><div class="hc-tip" id="hcTip" style="display:none"></div></div>
+    <div class="hc-x-l"><span>${esc(dDay(xs[0]))}</span><span>Now</span></div>
+  </div>`;
+}
+function bindHistChart() {
+  const hc = $('hc'); if (!hc) return;
+  const pts = JSON.parse(hc.dataset.pts), lo = +hc.dataset.lo, hi = +hc.dataset.hi, plot = hc.querySelector('.hc-plot');
+  const tip = $('hcTip'), dot = $('hcDot'), xl = $('hcX'), t0 = pts[0][0], t1 = pts[pts.length - 1][0];
+  const show = e => {
+    const r = plot.getBoundingClientRect(), f = Math.min(1, Math.max(0, (e.clientX - r.left) / r.width)), t = t0 + f * (t1 - t0);
+    const p = pts.reduce((b, q) => Math.abs(q[0] - t) < Math.abs(b[0] - t) ? q : b, pts[0]);
+    const fx = (p[0] - t0) / Math.max(1, t1 - t0), fy = 1 - (p[1] - lo) / (hi - lo);
+    const px = 8 + (600 - 16) * fx;
+    xl.setAttribute('x1', px); xl.setAttribute('x2', px); xl.style.display = '';
+    Object.assign(dot.style, { display: '', left: (px / 600 * 100) + '%', top: ((8 + 184 * fy) / 200 * 100) + '%' });
+    tip.innerHTML = `<b>$${fmt(p[1], hi - lo < 1 ? 4 : 2)}</b><span>${esc(dUTC(p[0]))}</span>`;
+    Object.assign(tip.style, { display: '', left: Math.min(r.width - 176, Math.max(0, px / 600 * r.width - 88)) + 'px' });
+  };
+  const hide = () => { tip.style.display = dot.style.display = xl.style.display = 'none'; };
+  plot.addEventListener('pointermove', show); plot.addEventListener('pointerdown', show); plot.addEventListener('pointerleave', hide);
+}
 function viewPortfolio() {
   const c = S.connected;
   const net = c ? chainById(UI.chainId) : null;               // positions are read on the wallet's current network only
@@ -2227,6 +2369,31 @@ function viewPortfolio() {
   const others = CONFIG.chains.filter(ch => !net || ch.id !== net.id).map(ch => ch.name);
   const status = !c ? '' : UI.chainId == null ? 'Reading your wallet network…' : !net ? `Your wallet is on an unsupported network. Switch to ${esc(listNames(others, 'or'))} to see your positions there.` : BAL.passErr ? esc(BAL.passErr) + '.' : !known ? 'Reading your positions…' : '';
   const netNote = c && net ? `<p class="muted" id="pfNets" style="margin:14px 0 0;font-size:12px;line-height:1.5">Showing ${esc(net.name)}. Switch network in your wallet to see positions on ${esc(listNames(others))}.</p>` : '';
+  // history: read once per wallet + network from the vault events (see loadHistory), then drawn here
+  if (known) loadHistory();
+  const hk = known && HIST.key === UI.chainId + ':' + S.address;
+  const ev = hk && !HIST.busy && !HIST.err ? HIST.ev : null;
+  const exLink = c ? `<a class="gold" href="${esc(explorerFor(UI.chainId))}/address/${esc(S.address)}" target="_blank" rel="noopener">view on ${esc(net ? net.short : HOME.short)} explorer ↗</a>` : '';
+  const hWait = !c ? null : !known ? (status || 'Reading your positions…') : hk && HIST.err ? null : !ev ? `Reading your deposits and withdrawals on ${esc(net.name)}…` : null;
+  const hErr = hk && HIST.err ? `<div class="empty">${esc(HIST.err)}.<button type="button" class="btn btn-glass btn-sm" id="histRetry">Try again</button></div>` : '';
+  const evUsd = e => Number(e.assets) / Math.pow(10, e.v.asset.decimals) * (e.v.asset.price || 1);
+  const netIn = ev ? ev.reduce((t, e) => t + (e.dep ? 1 : -1) * evUsd(e), 0) : null;
+  const earned = ev && ev.length && !HIST.since && held.every(x => ev.some(e => e.v === x.v)) ? total - netIn : null;
+  const sinceNote = ev && HIST.since ? `<p class="muted" style="margin:12px 0 0;font-size:12px">Your wallet's network only let Olvana look back to ${esc(dUTC(HIST.since))}. Older activity: ${exLink}</p>` : '';
+  const hStats = ev && (ev.length || total > 0) ? `<span class="hc-stats"><span>Now <b>$${fmt(total)}</b></span>${earned != null ? `<span>Earned <b class="gold">${earned >= 0 ? '+' : '−'}$${fmtTiny(Math.abs(earned))}</b></span>` : ''}</span>` : '';
+  const balBody = !c ? '<div class="empty">Connect a wallet to see your balance over time.</div>'
+    : hWait ? `<div class="empty">${hWait}</div>` : hErr ? hErr
+    : !ev.length && total <= 0 ? `<div class="empty">Your chart starts with your first deposit.<a href="#app" class="btn btn-gold btn-sm">Make a deposit</a></div>`
+    : histChart(histSeries(ev, net.id)) + `<p class="muted" style="margin:10px 0 0;font-size:11.5px">From your deposits and withdrawals onchain. Values between them are estimated from the vault's share price.</p>`;
+  const txBody = !c ? '<div class="empty">Connect a wallet to see your deposits and withdrawals.</div>'
+    : hWait ? `<div class="empty">${hWait}</div>` : hErr ? hErr + `<p class="muted" style="margin:10px 0 0;font-size:12px">Or ${exLink}</p>`
+    : !ev.length ? `<div class="empty">No deposits or withdrawals in listed vaults on ${esc(net.name)} yet.</div>${sinceNote}`
+    : `<div class="txl">${ev.slice().reverse().slice(0, 50).map(e => { const u = Number(e.assets) / Math.pow(10, e.v.asset.decimals); return `<div class="txr">
+        <span class="txk ${e.dep ? 'in' : 'out'}">${e.dep ? 'Deposit' : 'Withdraw'}</span>
+        <span class="txv">${assetLogo(e.v, 18)}<span><b title="${esc(e.v.full || e.v.name)}">${esc(e.v.name)}</b><small>${esc(dUTC(e.t))}</small></span></span>
+        <span class="txa ${e.dep ? '' : 'gold'}">${e.dep ? '+' : '−'}${fmtTiny(u)} ${esc(sym(e.v))}</span>
+        <a class="txh" href="${esc(explorerFor(net.id))}/tx/${esc(e.hash)}" target="_blank" rel="noopener" title="View transaction">↗</a>
+      </div>`; }).join('')}</div>${sinceNote || `<p class="muted" style="margin:14px 0 0;font-size:12px">All activity for this wallet: ${exLink}</p>`}`;
   $('view').innerHTML = `
     <div class="page-head"><div><h1>Portfolio</h1><p>${c ? 'Wallet ' + esc(short(S.address)) + (W ? ' · ' + esc(W.info.name) : '') + (net ? ' · ' + esc(net.name) : '') : 'Connect a wallet to start'}</p></div></div>
     <div class="kgrid">
@@ -2236,7 +2403,7 @@ function viewPortfolio() {
       <div class="panel kcard"><small>Open positions</small><b>${known ? held.length : '—'}</b><em>${net ? 'on ' + esc(net.short) : 'connect to see'}</em></div>
     </div>
     <div class="two-col">
-      <div class="panel"><div class="chart-head"><h3 class="h4">Balance over time</h3><span class="tag">Coming soon</span></div><div class="empty">A chart of your balance and earnings is coming soon. Your current positions are live on the right.</div></div>
+      <div class="panel"><div class="chart-head"><h3 class="h4">Balance over time</h3>${hStats}</div>${balBody}</div>
       <div class="panel">
         <h3 class="h4" style="margin-bottom:12px">Positions</h3>
         ${!c ? `<div class="empty">Connect a wallet to see your positions.<button type="button" class="btn btn-gold btn-sm" id="pfConnect">Connect wallet</button></div>`
@@ -2253,9 +2420,11 @@ function viewPortfolio() {
     </div>
     <div class="panel">
       <h3 class="h4" style="margin-bottom:18px">Transaction history</h3>
-      <div class="empty">${c ? `Your deposits and withdrawals: <a class="gold" href="${esc(explorerFor(UI.chainId))}/address/${esc(S.address)}" target="_blank" rel="noopener">view on ${esc(net ? net.short : HOME.short)} explorer ↗</a>` : 'Connect a wallet to open your deposit and withdrawal history on the block explorer.'}</div>
+      ${txBody}
     </div>`;
   const pc = $('pfConnect'); if (pc) pc.onclick = connect;
+  bindHistChart();
+  const hr = $('histRetry'); if (hr) hr.onclick = () => { HIST.key = null; viewPortfolio(); };
   bindPicks($('view'));
   // Withdraw from a position: open Earn on that vault, Withdraw tab, balance already known
   $('view').querySelectorAll('[data-pos-withdraw]').forEach(a => a.addEventListener('click', e => {
