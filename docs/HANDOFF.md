@@ -305,7 +305,8 @@ Three bands in one circle (a nod to the A/B/C grades, in brand violets). Wordmar
 | `olvana-mark-small.svg` | ≤ 32 px (nav, tab bar): wider gaps so bands don't blur |
 | `olvana-lockup-dark.svg` / `-light.svg` | mark + outlined wordmark |
 | `favicon.svg` | favicon, follows the browser's light/dark theme |
-| `app-icon-512.png` | PWA / social avatar (derive 180 px apple-touch-icon in step 7) |
+| `app-icon-512.png` | PWA / social avatar |
+| `icon-32.png` / `icon-192.png` / `apple-touch-icon.png` / `favicon.ico` | page icons as real files, linked first in `<head>`: wallets (Bitget, MetaMask…) fetch these for the connect prompt and show a blank "HTTP" badge for the inline SVG |
 | `og-image.png` | 1200×630 Open Graph / Twitter card |
 Band colours: dark bg `#C4B5FF · #8B7BFF · #4D6BFF`; light bg `#A99BFF · #7B5CFF · #3A6BFF`. Keep clear space ≥ half the mark's height; don't recolour the bands to grade colours.
 
