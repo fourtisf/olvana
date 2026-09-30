@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { describe, expect, it } from 'vitest';
-import { CHAINS, STABLECOINS } from '../src/config';
+import { CHAINS, OLVANA_TOKEN, STABLECOINS } from '../src/config';
 
 // docs/olvana-prototype.html carries its own copy of the network config (it is a single static file).
 // Every address in packages/core must appear, in the same network block, in the site.
@@ -24,5 +24,8 @@ describe('site CONFIG matches packages/core CHAINS', () => {
   }
   it('same stablecoin list', () => {
     expect(html).toContain(`stablecoins: [${STABLECOINS.map((x) => `'${x}'`).join(',')}]`);
+  });
+  it('same Olvana token contract', () => {
+    expect(html).toContain(OLVANA_TOKEN ? `token: { chainId: ${OLVANA_TOKEN.chainId}, address: '${OLVANA_TOKEN.address}' },` : 'token: null,');
   });
 });

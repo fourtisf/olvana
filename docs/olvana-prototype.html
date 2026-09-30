@@ -68,6 +68,11 @@ button{cursor:pointer}
 .nav-right{display:flex;align-items:center;gap:6px}
 .nav-right .btn{height:46px;padding:0 20px;font-size:14px}
 .ticker{padding:0 14px;font-size:14px;color:#B3B5D0;display:flex;align-items:center;gap:8px;white-space:nowrap}
+.ca-short{font-size:12.5px;color:var(--ink)}
+.ca-card{display:flex;align-items:center;justify-content:space-between;gap:16px;flex-wrap:wrap;margin:14px 0 6px;padding:16px 18px;border:1px solid rgba(123,92,255,.35);border-radius:16px;background:rgba(123,92,255,.06)}
+.ca-card small{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+.ca-addr{font-size:14px;color:var(--ink);word-break:break-all}
+.ca-act{display:flex;gap:8px;flex:none}
 .ca-soon{height:22px;padding:0 9px;display:inline-flex;align-items:center;border:1px solid rgba(123,92,255,.35);border-radius:999px;font-family:var(--mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--gold);white-space:nowrap}
 .xlink{width:40px;height:40px;display:grid;place-items:center;border-radius:50%;color:#B3B5D0;border:1px solid var(--line)}
 .xlink:hover{color:var(--ink);border-color:rgba(255,255,255,.2)}
@@ -791,7 +796,7 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
         <a href="#faq">FAQ</a>
       </nav>
       <div class="nav-right">
-        <a class="ticker" href="#faq"><span class="ca-soon">CA coming soon</span></a>
+        <a class="ticker" href="#faq" data-ca><span class="ca-soon">CA coming soon</span></a>
         <a class="xlink" href="https://x.com/Olvanaorg" target="_blank" rel="noopener" aria-label="Olvana on X (@Olvanaorg)" title="@Olvanaorg on X"><svg width="15" height="15" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="M18.244 2.25h3.308l-7.227 8.26 8.502 11.24H16.17l-5.214-6.817L4.99 21.75H1.68l7.73-8.835L1.254 2.25H8.08l4.713 6.231zm-1.161 17.52h1.833L7.084 4.126H5.117z"/></svg></a>
         <a class="btn btn-gold" href="#app">Launch app</a>
         <button type="button" class="menu-btn" id="menuBtn" aria-expanded="false" aria-controls="mMenu" aria-label="Open menu"><span></span><span></span></button>
@@ -799,7 +804,7 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
     </div>
     <nav class="m-menu" id="mMenu" aria-label="Mobile">
       <a href="#app" id="mConnect" class="m-connect">Connect wallet</a>
-      <a href="#yield">How it works</a><a href="#grades">Risk grades</a><a href="#calculator">Calculator</a><a href="#rewards-preview">Rewards</a><a href="#faq">FAQ</a><a href="#faq">CA coming soon</a><a href="https://x.com/Olvanaorg" target="_blank" rel="noopener">X · @Olvanaorg</a>
+      <a href="#yield">How it works</a><a href="#grades">Risk grades</a><a href="#calculator">Calculator</a><a href="#rewards-preview">Rewards</a><a href="#faq">FAQ</a><a href="#faq" data-ca-m>CA coming soon</a><a href="https://x.com/Olvanaorg" target="_blank" rel="noopener">X · @Olvanaorg</a>
     </nav>
   </header>
 
@@ -960,7 +965,7 @@ body:not(.in-app) .toast{bottom:calc(28px + env(safe-area-inset-bottom))}
           <details><summary><span>Can I always withdraw?</span><span class="pm" aria-hidden="true">+</span></summary><p>Instantly when the vault has idle liquidity. At 100% utilization, exits wait until borrowers repay. Turn on utilization alerts to get warned early.</p></details>
           <details><summary><span>How do I get stablecoins on the right network?</span><span class="pm" aria-hidden="true">+</span></summary><p>Each vault lives on one network, shown next to its token: Robinhood Chain, Ethereum, Base or Arbitrum. Get USDG, USDC or another listed stablecoin from an exchange or your wallet app, and if it sits on a different network, bridge it to the vault's network first. Keep a little ETH on that network to pay fees. Olvana never asks you to send funds to anyone.</p></details>
           <details><summary><span>How does Olvana make money?</span><span class="pm" aria-hidden="true">+</span></summary><p>Olvana charges no fee today. Each vault's own curator fee is shown on the vault and is already included in net APY.</p></details>
-          <details><summary><span>Is there an Olvana token?</span><span class="pm" aria-hidden="true">+</span></summary><p>Coming soon. It will boost the points you earn and let holders vote on which vaults Olvana lists. It will not pay out vault revenue. The contract address will be posted only on this site and on <a href="https://x.com/Olvanaorg" target="_blank" rel="noopener" class="gold">@Olvanaorg</a>; any address shared anywhere before that is not ours.</p></details>
+          <details><summary><span>Is there an Olvana token?</span><span class="pm" aria-hidden="true">+</span></summary><p data-faq-token>Coming soon. It will boost the points you earn and let holders vote on which vaults Olvana lists. It will not pay out vault revenue. The contract address will be posted only on this site and on <a href="https://x.com/Olvanaorg" target="_blank" rel="noopener" class="gold">@Olvanaorg</a>; any address shared anywhere before that is not ours.</p></details>
         </div>
       </div>
     </section>
@@ -1054,6 +1059,8 @@ const CONFIG = {
   ],
   morphoApi: 'https://api.morpho.org/graphql',   // fallback when the same-origin /api/morpho proxy is unavailable
   siteUrl: 'https://olvana.org',
+  // official Olvana token (packages/core OLVANA_TOKEN). null = not live: the site then says "CA coming soon"
+  token: { chainId: 4663, address: '0x9a058bdd1b95ec643cfa6b0b657612fab66584ba' },
   // legal pages: entity/email stay null until the owner provides them (then shown instead of the fallbacks)
   legal: { updated: '28 September 2026', entity: null, email: null },
   telegramBot: '[your_bot]',     // e.g. 'OlvanaAlertsBot'. Placeholder = Telegram alerts not live yet.
@@ -1563,6 +1570,20 @@ const posBal = v => { if (!onWalletNet(v)) return null; const b = BAL.pos[bk(v.c
 // the wallet is connected on a known network but the vault sits on another one
 const otherNet = v => !!(S.connected && v && UI.chainId != null && v.chainId !== UI.chainId);
 const switchToSee = v => 'Switch to ' + chainNm(v.chainId) + ' to see your balance';
+
+// Official token contract: full address, explorer link and a copy button (Security page); header + menu + FAQ on the landing page.
+const caFull = () => `<div class="ca-card"><div style="min-width:0"><small>Olvana token · ${esc(chainNm(CONFIG.token.chainId))} · official contract</small><div class="mono ca-addr">${esc(CONFIG.token.address)}</div></div>
+  <div class="ca-act"><button type="button" class="btn btn-glass btn-sm" data-copy-ca>Copy</button><a class="btn btn-glass btn-sm" href="${esc(explorerFor(CONFIG.token.chainId))}/token/${esc(CONFIG.token.address)}" target="_blank" rel="noopener">Explorer ↗</a></div></div>`;
+async function copyCA(e) { if (e) e.preventDefault(); try { await navigator.clipboard.writeText(CONFIG.token.address); toast('Contract address copied'); } catch (err) { toast('Copy failed — select the address manually', true); } }
+function paintCA() {
+  const T = CONFIG.token; if (!T) return;
+  const ab = T.address.slice(0, 6) + '…' + T.address.slice(-4);
+  document.querySelectorAll('[data-ca]').forEach(a => { a.href = '#security'; a.title = 'Official Olvana token contract on ' + chainNm(T.chainId) + ' · click to copy'; a.innerHTML = `<span class="ca-soon">CA</span><span class="mono ca-short">${esc(ab)}</span>`; a.onclick = copyCA; });
+  document.querySelectorAll('[data-ca-m]').forEach(a => { a.href = '#security'; a.textContent = 'CA: ' + ab + ' · copy'; a.onclick = copyCA; });
+  document.querySelectorAll('[data-faq-token]').forEach(p => { p.innerHTML = `Yes. The Olvana token is live on ${esc(chainNm(T.chainId))}. The only official contract is:<span class="mono" style="display:block;margin:8px 0;color:var(--ink);word-break:break-all">${esc(T.address)}</span><a href="${esc(explorerFor(T.chainId))}/token/${esc(T.address)}" target="_blank" rel="noopener" class="gold">View on explorer ↗</a> · <a href="#" class="gold" data-copy-ca>Copy</a><br>It will boost the points you earn and let holders vote on which vaults Olvana lists. It does not pay out vault revenue. Any other address is not ours: check it here and on <a href="https://x.com/Olvanaorg" target="_blank" rel="noopener" class="gold">@Olvanaorg</a> before you buy.`; });
+}
+paintCA();
+document.addEventListener('click', e => { if (e.target.closest && e.target.closest('[data-copy-ca]')) copyCA(e); });
 
 // Pick up a wallet that is already authorised for this site (no prompt).
 setTimeout(async () => {
@@ -2564,7 +2585,7 @@ function viewRisk() {
     <h2>Bridge &amp; multi-network risk</h2><p>Each vault lives on one network (Robinhood Chain, Ethereum, Base or Arbitrum), and you can only deposit a token that is on that same network. Moving funds between networks uses bridges, which are separate protocols with their own smart contract, operator and delay risks, and a bridged token can differ from the native one. Olvana does not run or vet bridges. Always check the network shown next to a vault before you deposit, and that your wallet is on it.</p>
     <h2>Stablecoin risk</h2><p>Any stablecoin, including USDG and USDC, may lose its peg to the US dollar. Olvana only lists vaults whose token trades within 2% of $1, and flags a token more than 0.5% off.</p>
     <h2>Rates and grades</h2><p>APY is variable and reflects past performance, not a promise. Risk grades summarize public data using Olvana's methodology. They are not a guarantee, a rating by a regulated agency, or investment advice.</p>
-    <h2>Points and the Olvana token</h2><p>Points have no cash value and may change. The Olvana token is not live yet. When it launches, it will not entitle holders to vault revenue or profits.</p>
+    <h2>Points and the Olvana token</h2><p>Points have no cash value and may change. ${CONFIG.token ? `The Olvana token is live on ${esc(chainNm(CONFIG.token.chainId))} (contract <span class="mono">${esc(CONFIG.token.address)}</span>). It does not entitle holders to vault revenue or profits. Its price can go down as well as up.` : 'The Olvana token is not live yet. When it launches, it will not entitle holders to vault revenue or profits.'}</p>
     <h2>Regulatory risk</h2><p>Laws around digital assets vary by country and may change. You are responsible for complying with the rules where you live.</p>
   </article>`;
 }
@@ -2653,7 +2674,7 @@ function viewSecurity() {
     <p>Olvana is a non-custodial interface. Your funds move only when you sign a transaction in your own wallet. Here is every contract the app talks to, what it charges, and how each transaction is checked.</p>
     <h2>Contracts</h2>
     <p style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:0 0 6px">${liveBadge()}<span class="muted" style="font-size:14px">Vaults are Morpho Vault V2s and Vault V1s (MetaMorpho) that Morpho lists, created by an official factory of their own network. The app checks the factory onchain again before every transaction.</span></p>
-    <div class="scrollx"><table class="tbl"><tbody><tr><td>Olvana token</td><td class="muted">—</td><td class="n"><span class="muted">Coming soon</span></td></tr></tbody></table></div>
+    ${CONFIG.token ? caFull() : '<div class="scrollx"><table class="tbl"><tbody><tr><td>Olvana token</td><td class="muted">—</td><td class="n"><span class="muted">Coming soon</span></td></tr></tbody></table></div>'}
     ${netBlocks}
     <h2>Fees</h2>
     <p>Olvana charges no fee today. Each vault's own curator fee is shown on the vault and is already included in net APY. Nothing is charged on deposits, withdrawals or principal.</p>
@@ -2672,7 +2693,7 @@ function viewSecurity() {
     <h2>Verify you're on the real site</h2><ul>
       <li>The only Olvana app is <span class="mono">${esc(site)}</span>. Bookmark it and open it from the bookmark.</li>
       <li>Our only X account is <a href="https://x.com/Olvanaorg" target="_blank" rel="noopener" class="gold">@Olvanaorg</a>. We never DM you first, on Telegram, X, Discord or anywhere else.</li>
-      <li>The Olvana token is not live yet (coming soon). Until its contract address appears on this page, any "Olvana token" is a scam.</li>
+      <li>${CONFIG.token ? `The only official Olvana token is <span class="mono">${esc(CONFIG.token.address)}</span> on ${esc(chainNm(CONFIG.token.chainId))}. Any other "Olvana token" is a scam.` : 'The Olvana token is not live yet (coming soon). Until its contract address appears on this page, any "Olvana token" is a scam.'}</li>
       <li>We never ask for your seed phrase or private key. Anyone who does is a scammer.</li>
       <li>Before you sign, check that the contract address in your wallet prompt matches the address on this page, and that your wallet is on the vault's network.</li>
     </ul>

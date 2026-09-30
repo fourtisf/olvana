@@ -163,3 +163,15 @@ existing Ethereum deposit. Order: the API answer is shown first (usually within 
 chain read of the last 3,000 blocks (what the API may not have indexed yet); the full chain scan runs only when the API
 cannot answer. **Not yet run against the live API** from the build environment (unreachable). The e2e
 test covers a node that returns no logs, with the API answering from the chain's own events.
+
+## Olvana token — 2026-09-30
+
+| Field | Value | Source |
+|---|---|---|
+| Network | Robinhood Chain (4663) | project owner, 2026-09-30 |
+| Contract | `0x9a058bdd1b95ec643cfa6b0b657612fab66584ba` | project owner, 2026-09-30 |
+
+`OLVANA_TOKEN` in `packages/core/src/config.ts`, mirrored as `CONFIG.token` in the site (checked by
+`site-config.test.ts`). Shown on the landing header and mobile menu (copy on click), FAQ, Security page (full
+address, copy, Blockscout link) and Risk page. **Not verified onchain from the build environment** (no RPC access):
+open the Blockscout link and confirm the name/symbol before announcing.

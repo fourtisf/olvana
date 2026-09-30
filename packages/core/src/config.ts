@@ -130,6 +130,12 @@ const METAMORPHO_V1_1_FACTORY_ETHEREUM: Address = '0x1897A8997241C1cD4bD0698647e
 /** Multicall3: same address on every chain in mds1/multicall3 deployments.json (Ethereum, Base, Arbitrum One listed). */
 export const MULTICALL3: Address = '0xcA11bde05977b3631167028862bE2a173976CA11';
 
+/**
+ * The official Olvana token: contract and network given by the project owner on 2026-09-30 (docs/VERIFICATION.md).
+ * The site shows it on the landing page, FAQ, Security and Risk pages. null = not launched.
+ */
+export const OLVANA_TOKEN: { chainId: number; address: Address } | null = { chainId: 4663, address: '0x9a058bdd1b95ec643cfa6b0b657612fab66584ba' };
+
 export const CHAINS: readonly ChainConfig[] = [
   {
     id: 4663,
