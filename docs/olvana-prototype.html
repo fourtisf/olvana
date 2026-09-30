@@ -1280,10 +1280,10 @@ function openVaultPicker(current, onPick) {
   const list = () => {
     const words = q.toLowerCase().split(/\s+/).filter(Boolean);
     const rows = VAULTS.filter(v => (net === 'All' || String(v.chainId) === net)
-      && words.every(w => [v.name, sym(v), v.curator, chainNm(v.chainId)].join(' ').toLowerCase().includes(w)))
+      && words.every(w => [v.name, v.full, sym(v), v.curator, chainNm(v.chainId)].join(' ').toLowerCase().includes(w)))
       .sort((a, b) => (netApy(b) - netApy(a)) || (b.tvl - a.tvl));
     $('vpList').innerHTML = rows.length ? rows.map(v => `<button type="button" role="option" aria-selected="${v.id === current}" class="vp-row ${v.id === current ? 'on' : ''}" data-vp="${esc(v.id)}">
-        ${assetLogo(v, 30)}<span class="vp-name"><b>${esc(v.name)}</b><small>${esc(sym(v))} ${chainChip(v)} · ${esc(v.curator)}</small></span>
+        ${assetLogo(v, 30)}<span class="vp-name"><b title="${esc(v.full || v.name)}">${esc(v.name)}</b><small>${esc(sym(v))} ${chainChip(v)} · ${esc(v.curator)}</small></span>
         <span class="vp-num"><b>${fmt(netApy(v))}%</b><small>${fmtUsdShort(v.tvl)}</small></span>${gradeChip(v, false)}</button>`).join('')
       : `<p class="muted" style="padding:24px 4px;margin:0;font-size:14px">No vault matches “${esc(q)}”.</p>`;
     $('vpList').querySelectorAll('[data-vp]').forEach(b => b.onclick = () => { dlg.close(); onPick(b.dataset.vp); });
@@ -1641,7 +1641,7 @@ function viewEarn() {
       </div>
       <div class="right">
         <div class="vault-head">
-          <div style="display:flex;align-items:center;gap:14px;min-width:0">${assetLogo(v, 40)}<div style="min-width:0"><h2>${esc(v.name)}</h2><p>${esc(sym(v))} ${chainChip(v)} · Morpho ${vVer(v)} · curated by ${esc(v.curator)} · <a href="${esc(explorerFor(v.chainId))}/address/${esc(v.address)}" target="_blank" rel="noopener">${esc(short(v.address))} ↗</a> · non-custodial</p></div></div>
+          <div style="display:flex;align-items:center;gap:14px;min-width:0">${assetLogo(v, 40)}<div style="min-width:0"><h2 title="${esc(v.full || v.name)}">${esc(v.name)}</h2><p>${esc(sym(v))} ${chainChip(v)} · Morpho ${vVer(v)} · curated by ${esc(v.curator)} · <a href="${esc(explorerFor(v.chainId))}/address/${esc(v.address)}" target="_blank" rel="noopener">${esc(short(v.address))} ↗</a> · non-custodial</p></div></div>
           <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">${gradeChip(v)}${liveBadge()}</div>
         </div>
         <div class="statrow">
@@ -2125,7 +2125,7 @@ function vaultCard(v, inApp) {
   const r = risk(v), hot = v.util >= S.alerts.threshold, fl = riskFlags(v).filter(f => f.k !== 'lltv');
   const stat = (label, value, style = '') => `<div class="vstat"><small>${label}</small><b style="${style}">${value}</b></div>`;
   return `<article class="vcard ${inApp && S.vaultId === v.id ? 'sel' : ''}">
-    <div class="vcard-top"><div class="vcard-id">${assetLogo(v, 36)}<div style="min-width:0"><h3 title="${esc(v.name)}">${esc(v.name)}</h3><div class="vmeta">${esc(sym(v))} ${chainChip(v)} <span>· ${esc(v.curator)}</span></div></div></div>${gradeChip(v)}</div>
+    <div class="vcard-top"><div class="vcard-id">${assetLogo(v, 36)}<div style="min-width:0"><h3 title="${esc(v.full || v.name)}">${esc(v.name)}</h3><div class="vmeta">${esc(sym(v))} ${chainChip(v)} <span>· ${esc(v.curator)}</span></div></div></div>${gradeChip(v)}</div>
     <div>
       <div class="apy">${fmt(netApy(v))}<span class="gold">%</span></div>
       <div class="vsub">Net APY · 7-day avg · ${fmt(v.gross)}% gross, ${fmtFee(v.perfFee)} fee</div>
@@ -2484,7 +2484,7 @@ function renderLanding() {
     $('heroDeck').innerHTML = heroOrder.map((id, pos) => {
       const v = vault(id), hot = v.util >= S.alerts.threshold;
       return `<button type="button" class="dcard" data-pos="${pos}" data-id="${id}" aria-label="${esc(t('d.deckCard', { v: v.name, a: fmt(netApy(v)), g: risk(v).grade }))}">
-        <div class="top"><div style="display:flex;align-items:center;gap:12px">${assetLogo(v, 40)}<div><h3>${esc(v.name)}</h3><div class="muted" style="font-size:13px">${esc(sym(v))} ${chainChip(v)} · ${esc(v.curator)}</div></div></div>${gradeChip(v, false)}</div>
+        <div class="top"><div style="display:flex;align-items:center;gap:12px">${assetLogo(v, 40)}<div><h3 title="${esc(v.full || v.name)}">${esc(v.name)}</h3><div class="muted" style="font-size:13px">${esc(sym(v))} ${chainChip(v)} · ${esc(v.curator)}</div></div></div>${gradeChip(v, false)}</div>
         <div><div class="apy">${fmt(netApy(v))}%<small>${t('d.netApy')}</small></div></div>
         <div class="rows" style="font-size:13px">
           <div><span>${t('d.tvlLbl')}</span><span>${fmtUsdShort(v.tvl)}</span></div>
@@ -2803,7 +2803,7 @@ function mapVault(it) {
   const created = num(it.creationTimestamp);
   const address = lc(it.address), chainId = Number(it.chainId);
   return {
-    id: chainId + ':' + address, kind: it.kind === 'v1' ? 'v1' : 'v2', chainId, address, name: String(it.name || sym({ asset: it.asset }) + ' vault'), live: true,
+    id: chainId + ':' + address, kind: it.kind === 'v1' ? 'v1' : 'v2', chainId, address, name: String(it.name || sym({ asset: it.asset }) + ' vault'), full: String(it.name || sym({ asset: it.asset }) + ' vault'), live: true,
     curator: cur ? String(cur.name) : (isAddr(it.curator && it.curator.address) ? short(lc(it.curator.address)) : 'Unknown curator'),
     curatorVerified: !!(cur && cur.verified),
     net: (net7 ?? net1 ?? 0) * 100,
@@ -2821,7 +2821,28 @@ function mapVault(it) {
 // USDG on the home network first, then everything by TVL (the Vaults page filters by network and asset).
 function sortVaults(list) {
   const home = v => v.chainId === CONFIG.homeChainId && sym(v) === 'USDG' ? 1 : 0;
-  return list.sort((a, b) => (home(b) - home(a)) || (b.tvl - a.tvl) || a.id.localeCompare(b.id));
+  return shortenNames(list.sort((a, b) => (home(b) - home(a)) || (b.tvl - a.tvl) || a.id.localeCompare(b.id)));
+}
+// Short vault names: curator brand + token ("9Summits Piku Ecosystem USDC" → "9Summits USDC"). Two vaults on the same
+// network that would read the same keep one telling word ("Sentora Huma PYUSD" / "Sentora PRIME PYUSD"). The full
+// name is kept in v.full (tooltips, search).
+const NAME_FILLER = /^(x|by|the|of|vault|main|ecosystem|confidential|high|yield|savings|rwa|usd|stable|stables|stablecoin)$/i;
+function shortenNames(list) {
+  const words = v => String(v.full || v.name).split(/\s+/).filter(Boolean);
+  const isTok = (v, w) => w.toUpperCase() === sym(v).toUpperCase() || CONFIG.stablecoins.some(t => t.toUpperCase() === w.toUpperCase());
+  const base = v => { const w = words(v); return !w.length || isTok(v, w[0]) ? w.slice(0, 3).join(' ') : w[0] + ' ' + sym(v); };
+  const groups = new Map();
+  for (const v of list) { const k = v.chainId + '|' + base(v).toLowerCase(); (groups.get(k) || groups.set(k, []).get(k)).push(v); }
+  for (const g of groups.values()) {
+    if (g.length === 1) { g[0].name = base(g[0]); continue; }
+    for (const v of g) {
+      const w = words(v), cands = isTok(v, w[0] || '') ? [] : w.slice(1).filter(x => !isTok(v, x) && !NAME_FILLER.test(x));
+      const pick = cands.find(c => g.filter(o => o !== v && words(o).some(x => x.toLowerCase() === c.toLowerCase())).length === 0);
+      const tell = pick || cands[0];   // identical full names cannot be told apart anyway: keep the short form
+      v.name = tell ? `${w[0]} ${tell} ${sym(v)}` : base(v);
+    }
+  }
+  return list;
 }
 // Server-side snapshot (/vaults.json, written every few minutes by packages/core scripts/snapshot.ts): one request,
 // every vault at once, already detailed. Items still go through keepVault + mapVault here. Missing, broken or older
