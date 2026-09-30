@@ -1247,7 +1247,7 @@ function walletList() {
   const list = [...WALLETS.values()];
   if (!list.length && window.ethereum && typeof window.ethereum.request === 'function') {
     const e = window.ethereum;
-    list.push({ info: { uuid: 'injected', name: e.isRabby ? 'Rabby' : e.isCoinbaseWallet ? 'Coinbase Wallet' : e.isMetaMask ? 'MetaMask' : 'Browser wallet', icon: '' }, provider: e });
+    list.push({ info: { uuid: 'injected', name: e.isPhantom ? 'Phantom' : e.isRabby ? 'Rabby' : e.isCoinbaseWallet ? 'Coinbase Wallet' : e.isMetaMask ? 'MetaMask' : 'Browser wallet', icon: '' }, provider: e });
   }
   return list;
 }
@@ -1290,7 +1290,12 @@ function openVaultPicker(current, onPick) {
 // The button that shows the chosen vault and opens the picker
 const vaultSelBtn = (v, id) => `<button type="button" class="vsel" id="${id}" aria-haspopup="dialog">${assetLogo(v, 28)}<span class="vsel-name"><b>${esc(v.name)}</b><small>${esc(sym(v))} ${chainChip(v)} · ${fmt(netApy(v))}% net APY</small></span>${gradeChip(v, false)}<span class="vsel-change">Change <span aria-hidden="true">▾</span></span></button>`;
 dlg.addEventListener('click', e => { if (e.target === dlg) dlg.close(); });   // click on backdrop
-const wIcon = (w, size = 28) => safeIcon(w.info.icon) ? `<img src="${esc(w.info.icon)}" alt="" width="${size}" height="${size}">` : `<span class="wd-ph" style="width:${size}px;height:${size}px">${esc((w.info.name || '?').slice(0, 1))}</span>`;
+// A wallet that announces no usable icon (Phantom's desktop extension, for one) gets its official mark from WALLET_LOGO
+const knownLogo = w => { const k = `${w.info.rdns || ''} ${w.info.name || ''}`.toLowerCase();
+  const hit = [['phantom', 'phantom'], ['rabby', 'rabby'], ['coinbase', 'coinbase'], ['okx', 'okx'], ['okex', 'okx'], ['bitget', 'bitget'], ['bitkeep', 'bitget'], ['trust', 'trust'], ['metamask', 'metamask']].find(([n]) => k.includes(n));
+  return hit ? WALLET_LOGO[hit[1]] : ''; };
+const wIconSrc = w => safeIcon(w.info.icon) || knownLogo(w);
+const wIcon = (w, size = 28) => wIconSrc(w) ? `<img src="${esc(wIconSrc(w))}" alt="" width="${size}" height="${size}">` : `<span class="wd-ph" style="width:${size}px;height:${size}px">${esc((w.info.name || '?').slice(0, 1))}</span>`;
 
 async function connect() {
   if (S.connected) return openWalletMenu();
