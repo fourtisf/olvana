@@ -387,7 +387,7 @@ describe('buildSnapshot (server-side /vaults.json)', () => {
       asset: { address: '0xa0b86991c6218b36c1d19d4a2e9eb0ce3606eb48', symbol: 'USDC', decimals: 6 }, liquidity: { underlying: '1', usd: 1e6 },
       state: { totalAssets: '1', totalAssetsUsd: 50e6, fee: 0.1, weeklyApy: 0.05, dailyApy: 0.05, curators: [], allocation: [] } } as ApiVaultV1 & { chainId: number };
     const { f } = api([vault(), vault({ address: '0x' + '9'.repeat(40), name: 'Fake', factory: { address: '0x' + '1'.repeat(40) } })], { v1: [eth], failChain: 8453 });
-    const snap = await buildSnapshot({ fetchImpl: f, url: 'x', now: new Date('2026-09-28T00:00:00Z') });
+    const snap = await buildSnapshot({ fetchImpl: f, url: 'x', now: new Date('2026-09-28T00:00:00Z'), rpcUrls: {} });
     expect(snap.version).toBe(1);
     expect(snap.at).toBe('2026-09-28T00:00:00.000Z');
     expect(snap.items.map((v) => [v.name, v.kind, v.chainId])).toEqual([
@@ -397,6 +397,25 @@ describe('buildSnapshot (server-side /vaults.json)', () => {
     expect(snap.items[0]!.adapters?.items?.length).toBeGreaterThan(0);
     expect(snap.failed).toEqual([8453]);
     expect(JSON.parse(JSON.stringify(snap)).items.length).toBe(2);   // plain JSON
+  });
+  it('drops Vault V2s with a gate set (read over JSON-RPC); V1 has no gates; unchecked networks are reported', async () => {
+    const { f } = api([vault(), vault({ address: '0x' + '7'.repeat(40), name: 'Confidential USDG' })]);
+    const gated = ('0x' + '7'.repeat(40)).toLowerCase();
+    const rpcCalls: string[] = [];
+    const g = (async (url: string, init: { body: string }) => {
+      if (url !== 'https://rh-rpc.test') return (f as unknown as (u: string, i: unknown) => Promise<unknown>)(url, init);
+      const reqs = JSON.parse(init.body) as { id: number; params: [{ to: string; data: string }] }[];
+      rpcCalls.push(...reqs.map((r) => r.params[0].data));
+      return { json: async () => reqs.map((r) => ({ id: r.id, result: '0x' + (r.params[0].to.toLowerCase() === gated && r.params[0].data === '0x8eede801' ? '2bbba2fd0ae8976c798499477c03b47b88fba9fa' : '0'.repeat(40)).padStart(64, '0') })) };
+    }) as unknown as typeof fetch;
+    const snap = await buildSnapshot({ fetchImpl: g, url: 'x', rpcUrls: { 4663: 'https://rh-rpc.test' } });
+    expect(snap.items.map((v) => v.name)).toEqual(['Steakhouse USDG']);
+    expect(snap.restricted).toEqual([`4663:${gated}`]);
+    expect(snap.gatesUnchecked).toEqual([]);
+    expect(new Set(rpcCalls)).toEqual(new Set(['0x7e729ac4', '0x8eede801', '0x93ab2ab7', '0x54cde13e']));
+    const noRpc = await buildSnapshot({ fetchImpl: f, url: 'x', rpcUrls: {} });
+    expect(noRpc.items.length).toBe(2);
+    expect(noRpc.gatesUnchecked).toEqual([4663]);
   });
   it('throws when every network fails (the script then keeps the previous file)', async () => {
     const { f } = api([vault()], { status: 500 });

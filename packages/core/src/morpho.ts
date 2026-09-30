@@ -12,6 +12,7 @@
  * stablecoin trading near $1 are kept.
  */
 import { CHAINS, CHAIN_ID, MIN_TVL_USD, MORPHO_API_URL, STABLECOINS, SYNTHETIC_STABLECOINS, chainById } from './config';
+import { gateRpcUrls, readGates } from './gates';
 import {
   DEFAULT_COLLATERAL_CLASS,
   classifyCollateral,
@@ -498,6 +499,10 @@ export interface VaultSnapshot {
   items: ApiVaultV2[];
   /** Chains whose Vault V2 list failed this round. */
   failed: number[];
+  /** "chainId:address" of Vault V2s left out because a gate restricts who can deposit or withdraw (gates.ts). */
+  restricted?: string[];
+  /** Chains whose gates could not be checked this round (no RPC configured, or the reads failed). */
+  gatesUnchecked?: number[];
 }
 
 async function mapLimit<T, R>(items: readonly T[], n: number, fn: (x: T) => Promise<R>): Promise<PromiseSettledResult<R>[]> {
@@ -519,7 +524,11 @@ async function mapLimit<T, R>(items: readonly T[], n: number, fn: (x: T) => Prom
 }
 
 export async function buildSnapshot(
-  opts: { url?: string; fetchImpl?: typeof fetch; chainIds?: readonly number[]; concurrency?: number; now?: Date } = {},
+  opts: {
+    url?: string; fetchImpl?: typeof fetch; chainIds?: readonly number[]; concurrency?: number; now?: Date;
+    /** JSON-RPC per network for the gate reads (default: gateRpcUrls(), i.e. OLVANA_RPC_<chainId> or config rpcUrl). */
+    rpcUrls?: Record<number, string>;
+  } = {},
 ): Promise<VaultSnapshot> {
   const gql = gqlClient(opts.url ?? MORPHO_API_URL, opts.fetchImpl ?? fetch);
   const chainIds = opts.chainIds ?? CHAINS.map((c) => c.id);
@@ -532,11 +541,27 @@ export async function buildSnapshot(
   const details = await mapLimit(candidates, opts.concurrency ?? 8, (c) =>
     c.kind === 'v1' ? fetchVaultDetailV1(gql, c.address, c.chainId!) : fetchVaultDetail(gql, c.address, c.chainId),
   );
-  const items = details.flatMap((r) => (r.status === 'fulfilled' && r.value && keepVault(r.value) ? [r.value] : []));
+  const kept = details.flatMap((r) => (r.status === 'fulfilled' && r.value && keepVault(r.value) ? [r.value] : []));
+  // only vaults anyone can enter and leave: drop Vault V2s with a gate set (V1 / MetaMorpho has no gates)
+  const rpcUrls = opts.rpcUrls ?? gateRpcUrls();
+  const restricted: string[] = [];
+  const gatesUnchecked: number[] = [];
+  for (const id of chainIds) {
+    const v2s = kept.filter((v) => v.kind !== 'v1' && v.chainId === id);
+    if (!v2s.length) continue;
+    const rpc = rpcUrls[id];
+    if (!rpc) { gatesUnchecked.push(id); continue; }
+    const gates = await readGates(rpc, v2s.map((v) => v.address), opts.fetchImpl ?? fetch);
+    if (v2s.some((v) => gates.get(v.address.toLowerCase()) == null)) gatesUnchecked.push(id);
+    for (const v of v2s) if (gates.get(v.address.toLowerCase()) === true) restricted.push(`${id}:${v.address.toLowerCase()}`);
+  }
+  const items = kept.filter((v) => !restricted.includes(`${v.chainId}:${v.address.toLowerCase()}`));
   return {
     version: 1,
     at: (opts.now ?? new Date()).toISOString(),
     items,
     failed: chainIds.filter((_, k) => v2[k]!.status === 'rejected'),
+    restricted,
+    gatesUnchecked,
   };
 }

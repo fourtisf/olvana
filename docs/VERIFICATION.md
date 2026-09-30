@@ -130,3 +130,12 @@ Used only for reads: `aggregate3((address,bool,bytes)[])` = `0x82ad56cb` with `a
 one-by-one reads. The vault open on Earn is always read directly, first. `e2e/vault-v1` deploys Multicall3
 (`e2e/Multicall3.sol`, MIT, pragma relaxed to `^0.8.12` for the test toolchain) at the canonical address and
 checks that the rest of the network is read through it.
+
+## Restricted (gated) Vault V2s — checked 2026-09-30
+
+Flowdesk Confidential High Yield USDT, Ethereum, `0xb48C056C5608bA2Ee4cD94AF2bF4b1F25295Bd7e`, read from the VPS
+over `ethereum-rpc.publicnode.com`: `receiveSharesGate()` = 0, `sendAssetsGate()` =
+`0x2bbba2fd0ae8976c798499477c03b47b88fba9fa`. Deposits from addresses the curator has not approved revert
+(`CannotSendAssets`); the owner's real $8.04 USDT attempt failed this way after the approval, with the reason
+dropped by the wallet. Since then the snapshot drops every Vault V2 with any of the four gates set
+(`packages/core/src/gates.ts`, getters in the table above), and the review blocks a gated deposit before approving.
