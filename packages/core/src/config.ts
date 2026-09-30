@@ -110,6 +110,11 @@ export interface ChainConfig {
   stablecoinPins: Readonly<Record<string, Address>>;
   /** Only for chains wallets may not know yet (used by wallet_addEthereumChain). */
   rpcUrl?: string;
+  /**
+   * Multicall3, used to read every balance on a network in one eth_call. From mds1/multicall3 deployments.json
+   * (see docs/VERIFICATION.md). null where that list has no deployment (Robinhood Chain): reads go one by one.
+   */
+  multicall3: Address | null;
 }
 
 /**
@@ -122,6 +127,8 @@ export interface ChainConfig {
 /** MetaMorpho v1.0 factory, same address on Ethereum and Base (Morpho SDK GetVault.sol @ 61a904b). */
 export const METAMORPHO_V1_0_FACTORY: Address = '0xA9c3D3a366466Fa809d1Ae982Fb2c46E5fC41101';
 const METAMORPHO_V1_1_FACTORY_ETHEREUM: Address = '0x1897A8997241C1cD4bD0698647e4EB7213535c24';
+/** Multicall3: same address on every chain in mds1/multicall3 deployments.json (Ethereum, Base, Arbitrum One listed). */
+export const MULTICALL3: Address = '0xcA11bde05977b3631167028862bE2a173976CA11';
 
 export const CHAINS: readonly ChainConfig[] = [
   {
@@ -135,6 +142,7 @@ export const CHAINS: readonly ChainConfig[] = [
     metaMorphoFactories: [],
     stablecoinPins: { USDG: '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168' },
     rpcUrl: 'https://rpc.mainnet.chain.robinhood.com',
+    multicall3: null,
   },
   {
     id: 1,
@@ -150,6 +158,7 @@ export const CHAINS: readonly ChainConfig[] = [
       USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7',
       DAI: '0x6B175474E89094C44Da98b954EedeAC495271d0F',
     },
+    multicall3: MULTICALL3,
   },
   {
     id: 8453,
@@ -161,6 +170,7 @@ export const CHAINS: readonly ChainConfig[] = [
     vaultV2Factory: '0x4501125508079A99ebBebCE205DeC9593C2b5857',
     metaMorphoFactories: ['0xFf62A7c278C62eD665133147129245053Bbf5918', METAMORPHO_V1_0_FACTORY],
     stablecoinPins: { USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' },
+    multicall3: MULTICALL3,
   },
   {
     id: 42161,
@@ -172,6 +182,7 @@ export const CHAINS: readonly ChainConfig[] = [
     vaultV2Factory: '0x6b46fa3cc9EBF8aB230aBAc664E37F2966Bf7971',
     metaMorphoFactories: ['0x878988f5f561081deEa117717052164ea1Ef0c82'],
     stablecoinPins: { USDC: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' },
+    multicall3: MULTICALL3,
   },
 ];
 

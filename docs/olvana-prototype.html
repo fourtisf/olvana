@@ -1005,22 +1005,23 @@ const CONFIG = {
   //   Robinhood Chain has none: only Vault V2 there.
   // pins: a vault whose asset symbol has a pin must hold exactly that token address (anyone can deploy a token named "USDC").
   // rpcUrl: only for networks wallets may not know yet — handed to the wallet when it needs to add the network.
+  // multicall3: reads every balance in one eth_call (mds1/multicall3 deployments.json); null = not listed there, read one by one.
   chains: [
     { id: 4663,  key: 'robinhood', name: 'Robinhood Chain', short: 'Robinhood', explorer: 'https://robinhoodchain.blockscout.com',
       vaultV2Factory: '0x0FBad98595b0186dA120E41f77C102beb49f803c', morphoBlue: '0x9D53d5E3bd5E8d4Cbfa6DB1ca238AEA02E651010',
-      rpcUrl: 'https://rpc.mainnet.chain.robinhood.com', metaMorphoFactories: [],
+      rpcUrl: 'https://rpc.mainnet.chain.robinhood.com', metaMorphoFactories: [], multicall3: null,
       pins: { USDG: '0x5fc5360D0400a0Fd4f2af552ADD042D716F1d168' } },
     { id: 1,     key: 'ethereum',  name: 'Ethereum', short: 'Ethereum', explorer: 'https://etherscan.io',
       vaultV2Factory: '0xA1D94F746dEfa1928926b84fB2596c06926C0405', morphoBlue: '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb',
-      metaMorphoFactories: ['0x1897A8997241C1cD4bD0698647e4EB7213535c24', '0xA9c3D3a366466Fa809d1Ae982Fb2c46E5fC41101'],
+      metaMorphoFactories: ['0x1897A8997241C1cD4bD0698647e4EB7213535c24', '0xA9c3D3a366466Fa809d1Ae982Fb2c46E5fC41101'], multicall3: '0xcA11bde05977b3631167028862bE2a173976CA11',
       pins: { USDC: '0xA0b86991c6218b36c1d19D4a2e9Eb0cE3606eB48', USDT: '0xdAC17F958D2ee523a2206206994597C13D831ec7', DAI: '0x6B175474E89094C44Da98b954EedeAC495271d0F' } },
     { id: 8453,  key: 'base',      name: 'Base', short: 'Base', explorer: 'https://basescan.org',
       vaultV2Factory: '0x4501125508079A99ebBebCE205DeC9593C2b5857', morphoBlue: '0xBBBBBbbBBb9cC5e90e3b3Af64bdAF62C37EEFFCb',
-      metaMorphoFactories: ['0xFf62A7c278C62eD665133147129245053Bbf5918', '0xA9c3D3a366466Fa809d1Ae982Fb2c46E5fC41101'],
+      metaMorphoFactories: ['0xFf62A7c278C62eD665133147129245053Bbf5918', '0xA9c3D3a366466Fa809d1Ae982Fb2c46E5fC41101'], multicall3: '0xcA11bde05977b3631167028862bE2a173976CA11',
       pins: { USDC: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913' } },
     { id: 42161, key: 'arbitrum',  name: 'Arbitrum One', short: 'Arbitrum', explorer: 'https://arbiscan.io',
       vaultV2Factory: '0x6b46fa3cc9EBF8aB230aBAc664E37F2966Bf7971', morphoBlue: '0x6c247b1F6182318877311737BaC0844bAa518F5e',
-      metaMorphoFactories: ['0x878988f5f561081deEa117717052164ea1Ef0c82'],
+      metaMorphoFactories: ['0x878988f5f561081deEa117717052164ea1Ef0c82'], multicall3: '0xcA11bde05977b3631167028862bE2a173976CA11',
       pins: { USDC: '0xaf88d065e77c8cC2239327C5EDb3A432268e5831' } },
   ],
   morphoApi: 'https://api.morpho.org/graphql',   // fallback when the same-origin /api/morpho proxy is unavailable
@@ -1421,7 +1422,7 @@ async function switchNet(targetChainId) {
 }
 
 /* ----- balances, read through the wallet (current network only) ----- */
-function resetBal() { Object.assign(BAL, { chainId: null, who: null, eth: null, tok: {}, pos: {}, sh: {}, err: null, at: 0, first: null, want: null }); }
+function resetBal() { Object.assign(BAL, { chainId: null, who: null, eth: null, tok: {}, pos: {}, sh: {}, err: null, passErr: null, at: 0, first: null, want: null }); }
 const pad32 = h => h.replace(/^0x/, '').padStart(64, '0');
 const hexBig = h => (h && h !== '0x') ? BigInt(h) : 0n;
 // every read has a deadline: one call a wallet never answers must not leave the form on "Reading your balance…"
@@ -1429,6 +1430,26 @@ const withTimeout = (p, ms = 8000) => Promise.race([p, new Promise((_, no) => se
 const ethCall = (to, data) => withTimeout(W.provider.request({ method: 'eth_call', params: [{ to, data }, 'latest'] }));
 const toUnits = (v, d) => v == null ? null : Number(v) / 10 ** d;
 async function eachLimit(items, n, fn) { let i = 0; await Promise.all(Array.from({ length: Math.min(n, items.length) }, async () => { while (i < items.length) await fn(items[i++]); })); }
+// Multicall3.aggregate3((address target, bool allowFailure, bytes callData)[]): many reads in one eth_call. Results come back
+// per call (null when that call failed). Any surprise (no contract, bad data) throws, and the caller reads one by one instead.
+const mcEncode = calls => {
+  const parts = calls.map(([to, data]) => { const d = data.replace(/^0x/, ''), len = d.length / 2;
+    return pad32(to) + pad32('1') + pad32((96).toString(16)) + pad32(len.toString(16)) + d.padEnd(Math.ceil(len / 32) * 64, '0'); });
+  let off = parts.length * 32, heads = '';
+  for (const x of parts) { heads += pad32(off.toString(16)); off += x.length / 2; }
+  return '0x82ad56cb' + pad32('20') + pad32(parts.length.toString(16)) + heads + parts.join('');
+};
+const mcDecode = (hex, n) => {
+  const h = String(hex || '').replace(/^0x/, ''), at = b => { if (b * 2 + 64 > h.length) throw new Error('short multicall result'); return Number(BigInt('0x' + h.slice(b * 2, b * 2 + 64))); };
+  const arr = at(0); if (at(arr) !== n) throw new Error('multicall length mismatch');
+  return Array.from({ length: n }, (_, k) => { const t = arr + 32 + at(arr + 32 + k * 32), ok = at(t) === 1, bo = t + at(t + 32), len = at(bo);
+    return ok ? '0x' + h.slice((bo + 32) * 2, (bo + 32 + len) * 2) : null; });
+};
+async function multicall(mc, calls) {
+  const out = [];
+  for (let i = 0; i < calls.length; i += 100) { const part = calls.slice(i, i + 100); out.push(...mcDecode(await ethCall(mc, mcEncode(part)), part.length)); }
+  return out;
+}
 // Reads write straight into BAL (for the account + network they started on), so the open vault's read and the full pass never overwrite each other.
 const balStill = (me, cid) => S.address === me && UI.chainId === cid && BAL.who === me && BAL.chainId === cid;
 async function readTok(me, cid, a) { const b = hexBig(await ethCall(a, '0x70a08231' + pad32(me))); if (balStill(me, cid)) BAL.tok[bk(cid, a)] = b; }
@@ -1455,7 +1476,7 @@ async function readOpenVault(v) {
 async function refreshBalances() {
   if (!S.connected || !W || !chainById(UI.chainId)) return;   // unsupported network: nothing to read
   const me = S.address, cid = UI.chainId;
-  if (BAL.who !== me || BAL.chainId !== cid) Object.assign(BAL, { chainId: cid, who: me, eth: null, tok: {}, pos: {}, sh: {}, err: null, at: 0 });
+  if (BAL.who !== me || BAL.chainId !== cid) Object.assign(BAL, { chainId: cid, who: me, eth: null, tok: {}, pos: {}, sh: {}, err: null, passErr: null, at: 0 });
   const sel = VAULTS.find(v => v.id === S.vaultId && v.chainId === cid);
   if (sel) readOpenVault(sel);
   if (BAL.busy) { BAL.again = true; return; }                  // re-run once the current pass ends (e.g. network changed)
@@ -1464,12 +1485,31 @@ async function refreshBalances() {
   try {
     const eth = await withTimeout(W.provider.request({ method: 'eth_getBalance', params: [me, 'latest'] })).catch(() => null);
     if (eth != null && balStill(me, cid)) BAL.eth = hexBig(eth);
-    // everything else on this network (Portfolio, other vaults), a few at a time; a read that fails is retried next round
+    // everything else on this network (Portfolio, other vaults): one multicall where the network has Multicall3,
+    // otherwise a few reads at a time; a read that fails is retried next round
+    const assets = [...new Set(here.map(v => lcA(v.asset.address)).filter(Boolean))], rest = here.filter(v => v !== sel);
     let ok = 0;
-    const assets = [...new Set(here.map(v => lcA(v.asset.address)).filter(Boolean))];
-    await eachLimit(assets, 6, a => readTok(me, cid, a).then(() => ok++, () => {}));
-    await eachLimit(here.filter(v => v !== sel), 6, v => readPos(me, cid, v).then(() => ok++, () => {}));
-    if (balStill(me, cid)) { BAL.at = Date.now(); if (!ok && !sel) BAL.err = 'Could not read balances from your wallet'; }
+    const mc = (chainById(cid) || {}).multicall3;
+    try {
+      if (!mc) throw new Error('no multicall');
+      const bal = '0x70a08231' + pad32(me);
+      const r1 = await multicall(mc, [...assets.map(a => [a, bal]), ...rest.map(v => [v.address, bal])]);
+      const shares = new Map();
+      assets.forEach((a, k) => { if (r1[k] != null && balStill(me, cid)) { BAL.tok[bk(cid, a)] = hexBig(r1[k]); ok++; } });
+      rest.forEach((v, k) => { const r = r1[assets.length + k]; if (r != null) shares.set(v, hexBig(r)); });
+      const held = [...shares].filter(([, sh]) => sh > 0n);
+      const r2 = held.length ? await multicall(mc, held.map(([v, sh]) => [v.address, '0x07a2d13a' + pad32(sh.toString(16))])) : [];
+      const conv = new Map(held.map(([v], k) => [v, r2[k]]));
+      for (const [v, sh] of shares) {
+        if (sh > 0n && conv.get(v) == null) continue;               // position unknown this round
+        if (balStill(me, cid)) { BAL.sh[bk(cid, v.address)] = sh; BAL.pos[bk(cid, v.address)] = sh > 0n ? hexBig(conv.get(v)) : 0n; ok++; }
+      }
+    } catch (e) {
+      await eachLimit(assets, 4, a => readTok(me, cid, a).then(() => ok++, () => {}));
+      await eachLimit(rest, 4, v => readPos(me, cid, v).then(() => ok++, () => {}));
+    }
+    if (sel && balStill(me, cid) && BAL.pos[bk(cid, sel.address)] != null && BAL.tok[bk(cid, lcA(sel.asset.address))] != null) BAL.err = null;   // known now: drop a stale timeout error
+    if (balStill(me, cid)) { BAL.at = Date.now(); BAL.passErr = ok || !(assets.length + rest.length) ? null : 'Could not read your positions from the wallet'; }
   } finally {
     BAL.busy = false;
   }
@@ -1685,7 +1725,7 @@ function renderForm() {
     </div>
     ${S.connected && f.isDep && f.max === 0 ? `<div class="alert info" style="margin:0">${warnSvg(16)}<div><b>No ${u} in this wallet on ${esc(chainNm(f.v.chainId))}.</b> <a href="#faq" class="gold">How to get stablecoins</a></div></div>` : ''}
     ${S.connected && BAL.eth === 0n && onWalletNet(f.v) ? `<div class="alert" style="margin:0">${warnSvg(16)}<div><b>No ETH for network fees.</b> Keep a little ETH on ${esc(chainNm(f.v.chainId))} to sign transactions.</div></div>` : ''}
-    ${S.connected && BAL.err ? `<div class="alert" style="margin:0">${warnSvg(16)}<div>${esc(BAL.err)}. <button type="button" class="linkbtn gold" id="balRetry">Retry</button></div></div>` : ''}
+    ${S.connected && BAL.err && f.max == null && !wrongNet() ? `<div class="alert" style="margin:0">${warnSvg(16)}<div>${esc(BAL.err)}. <button type="button" class="linkbtn gold" id="balRetry">Retry</button></div></div>` : ''}
     <div class="grow"></div>
     <button type="button" class="btn btn-gold" id="primary" ${f.enabled ? '' : 'disabled'}>${f.label}</button>`;
   const br = $('balRetry'); if (br) br.onclick = () => { BAL.err = null; refreshBalances(); };
@@ -2142,7 +2182,7 @@ function viewPortfolio() {
   const total = held.reduce((t, x) => t + usd(x), 0);
   const blended = total ? held.reduce((t, x) => t + usd(x) * netApy(x.v), 0) / total : null;
   const others = CONFIG.chains.filter(ch => !net || ch.id !== net.id).map(ch => ch.name);
-  const status = !c ? '' : UI.chainId == null ? 'Reading your wallet network…' : !net ? `Your wallet is on an unsupported network. Switch to ${esc(listNames(others, 'or'))} to see your positions there.` : BAL.err ? esc(BAL.err) + '.' : !known ? 'Reading your positions…' : '';
+  const status = !c ? '' : UI.chainId == null ? 'Reading your wallet network…' : !net ? `Your wallet is on an unsupported network. Switch to ${esc(listNames(others, 'or'))} to see your positions there.` : BAL.passErr ? esc(BAL.passErr) + '.' : !known ? 'Reading your positions…' : '';
   const netNote = c && net ? `<p class="muted" id="pfNets" style="margin:14px 0 0;font-size:12px;line-height:1.5">Showing ${esc(net.name)}. Switch network in your wallet to see positions on ${esc(listNames(others))}.</p>` : '';
   $('view').innerHTML = `
     <div class="page-head"><div><h1>Portfolio</h1><p>${c ? 'Wallet ' + esc(short(S.address)) + (W ? ' · ' + esc(W.info.name) : '') + (net ? ' · ' + esc(net.name) : '') : 'Connect a wallet to start'}</p></div></div>

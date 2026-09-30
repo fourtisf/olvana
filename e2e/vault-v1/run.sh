@@ -16,7 +16,11 @@ if [ ! -f $B/mm/out/MetaMorphoV1_1Factory.sol/MetaMorphoV1_1Factory.json ]; then
   S=$(cd $T && pwd)
   (cd $B/mm && $S/foundry/forge build --offline --use $S/solc-0.8.26 >/dev/null)
   (cd $B/blue && $S/foundry/forge build --offline --use $S/solc-0.8.19 >/dev/null)
-  (cd $B/token && $S/foundry/forge build --offline --use $S/solc-0.8.26 >/dev/null)
+  (cd $B/token && $S/foundry/forge build --offline --use $S/solc-0.8.26 >/dev/null 2>&1)
+fi
+if [ ! -f $B/token/out/Multicall3.sol/Multicall3.json ]; then
+  cp ../Multicall3.sol $B/token/src/
+  S=$(cd $T && pwd); (cd $B/token && $S/foundry/forge build --offline --use $S/solc-0.8.26 >/dev/null 2>&1)
 fi
 export FOUNDRY_DIR="$(cd $T/foundry && pwd)" BLUE_OUT="$PWD/$B/blue/out" MM_OUT="$PWD/$B/mm/out" TOKEN_OUT="$PWD/$B/token/out"
 node deposit-withdraw.test.cjs

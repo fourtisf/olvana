@@ -114,4 +114,18 @@ the site still shows every V2 vault (V1 is loaded separately and failures are sk
 Net APY for V1 = `weeklyApy × (1 − fee)`: the vault's own yield after the curator fee, **without** reward tokens.
 
 Tested end to end on a local chain (id 1) running Morpho Blue + MetaMorpho v1.1 compiled from source, factory at
-its Ethereum address: `e2e/vault-v1/run.sh` (14 checks).
+its Ethereum address: `e2e/vault-v1/run.sh` (16 checks).
+
+## Multicall3 (balance reads) — checked 2026-09-30
+
+| Network | Address | Source |
+|---|---|---|
+| Ethereum (1), Base (8453), Arbitrum One (42161) | `0xcA11bde05977b3631167028862bE2a173976CA11` | mds1/multicall3 `deployments.json` on `main` (entries "Mainnet", "Base", "Arbitrum" with their explorer links); README: "deployed on over 250 chains at `0xcA11…CA11`" |
+| Robinhood Chain (4663) | none (`multicall3: null`) | not in `deployments.json` (315 entries checked): balances are read one call at a time there |
+
+Used only for reads: `aggregate3((address,bool,bytes)[])` = `0x82ad56cb` with `allowFailure = true`, wrapping
+`balanceOf(address)` and `convertToAssets(uint256)`. The site's encoder was checked byte-for-byte against
+`cast calldata`. If the call fails or returns anything unexpected (e.g. no contract), the site falls back to
+one-by-one reads. The vault open on Earn is always read directly, first. `e2e/vault-v1` deploys Multicall3
+(`e2e/Multicall3.sol`, MIT, pragma relaxed to `^0.8.12` for the test toolchain) at the canonical address and
+checks that the rest of the network is read through it.

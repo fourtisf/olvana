@@ -19,6 +19,7 @@ describe('site CONFIG matches packages/core CHAINS', () => {
       for (const a of [c.vaultV2Factory, c.morphoBlue, ...c.metaMorphoFactories, ...Object.values(c.stablecoinPins)]) expect(b).toContain(a);
       const v1 = /metaMorphoFactories: \[([^\]]*)\]/.exec(b)?.[1] ?? '';
       expect((v1.match(/0x[0-9a-fA-F]{40}/g) ?? []).length).toBe(c.metaMorphoFactories.length);
+      expect(b).toContain(`multicall3: ${c.multicall3 ? `'${c.multicall3}'` : 'null'},`);
     });
   }
   it('same stablecoin list', () => {

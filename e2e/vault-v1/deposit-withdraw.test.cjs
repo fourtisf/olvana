@@ -44,13 +44,14 @@ function api(postData) {
 }
 
 const WALLET = (user) => {
-  window.__sent = []; window.__reject = false;
+  window.__sent = []; window.__reads = []; window.__reject = false;
   const provider = {
     on() {}, removeListener() {},
     request: async ({ method, params }) => {
       if (method === 'eth_requestAccounts') { window.__authed = true; return [user]; }
       if (method === 'eth_accounts') return window.__authed ? [user] : [];
       if (method === 'wallet_revokePermissions') return null;
+      if (method === 'eth_call') window.__reads.push({ to: String(params[0].to).toLowerCase(), data: params[0].data });
       if (method === 'eth_sendTransaction') {
         if (window.__reject) throw Object.assign(new Error('User rejected the request.'), { code: 4001 });
         window.__sent.push({ to: params[0].to.toLowerCase(), data: params[0].data });
@@ -109,6 +110,13 @@ const WALLET = (user) => {
   check('onchain: 100 USDC supplied into Morpho Blue through the vault, allowance used up', bal(USDC, USER) === 900000000n && bal(USDC, BLUE) === 100000000n
     && BigInt(cast(`call ${USDC} "allowance(address,address)(uint256)" ${USER} ${VAULT}`)) === 0n, `${bal(USDC, USER)} ${bal(USDC, BLUE)}`);
   await page.click('#again'); await until(async () => /100\.00/.test(await txt('.pos')));
+  const MC3 = '0xca11bde05977b3631167028862be2a173976ca11';
+  let reads = await page.evaluate(() => window.__reads);
+  check('the rest of the network is read through Multicall3 (aggregate3), not vault by vault', reads.some(r => r.to === MC3 && r.data.startsWith('0x82ad56cb')) && !reads.some(r => r.to === FAKE),
+    JSON.stringify(reads.map(r => r.to + ' ' + r.data.slice(0, 10))));
+  await page.goto(ORIGIN + '/#portfolio'); await until(async () => /Steakhouse USDC[\s\S]*100\.00/.test(await txt('#view')));
+  check('Portfolio: the 100 USDC position, no read error', /Steakhouse USDC[\s\S]*100\.00/.test(await txt('#view')) && !/Could not read/.test(await txt('#view')), (await txt('#view')).slice(0, 400));
+  await page.goto(ORIGIN + '/#app'); await page.waitForTimeout(300);
 
   // 2 · over the cap (150 − 100 = 50 left): blocked before any approval
   await setAmount('80'); await review();

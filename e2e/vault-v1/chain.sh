@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Starts anvil with chain id 1 and deploys Morpho's real contracts from source: Morpho Blue, the MetaMorpho V1.1
 # factory (runtime placed at its Ethereum address 0x1897…5c24, config.ts) and a USDC stand-in at the pinned USDC
-# address. Creates an idle USDC market, a V1.1 vault through the factory with a 150 USDC cap on that market, and mints
+# address, and Multicall3 at its canonical address. Creates an idle USDC market, a V1.1 vault through the factory with a 150 USDC cap on that market, and mints
 # 1,000 test USDC to anvil account #1. Prints the vault address.
 set -e
 F=${FOUNDRY_DIR:?}; BL=${BLUE_OUT:?}; MM=${MM_OUT:?}; TOK=${TOKEN_OUT:?}; RPC=http://127.0.0.1:8548
@@ -15,6 +15,7 @@ send() { $F/cast send "$@" --from $OWNER --unlocked --rpc-url $RPC >/dev/null; }
 create() { $F/cast send --from $OWNER --unlocked --rpc-url $RPC --json --create "$1" | python3 -c "import json,sys;print(json.load(sys.stdin)['contractAddress'])"; }
 BLUE=$(create "$(j $BL/Morpho.sol/Morpho.json bytecode)$($F/cast abi-encode 'c(address)' $OWNER | cut -c3-)")
 $F/cast rpc anvil_setCode $USDC "$(j $TOK/MockToken.sol/MockToken.json deployedBytecode)" --rpc-url $RPC >/dev/null
+$F/cast rpc anvil_setCode 0xcA11bde05977b3631167028862bE2a173976CA11 "$(j $TOK/Multicall3.sol/Multicall3.json deployedBytecode)" --rpc-url $RPC >/dev/null   # Multicall3 (config.ts MULTICALL3)
 send $BLUE "enableIrm(address)" $ZERO
 send $BLUE "enableLltv(uint256)" 0
 MP="($USDC,$ZERO,$ZERO,$ZERO,0)"
